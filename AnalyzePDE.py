@@ -323,6 +323,8 @@ class Alpha_data:
     def plot_alpha(self, color = 'purple', out_file = None):
         color = 'tab:' + color
         fig = plt.figure()
+        fig.tight_layout()
+        plt.rc('font', size=22)
 
         data_x = self.ov
         data_x_err = self.ov_err
@@ -354,11 +356,11 @@ class Alpha_data:
         props = dict(boxstyle='round', facecolor=color, alpha=0.4)
         fig.text(0.75, 0.25, textstr, fontsize=8,
                 verticalalignment='top', bbox=props)
-        plt.tight_layout()
         if out_file:
             data = {x_label: data_x, x_label + ' error': data_x_err, y_label: data_y, y_label + ' error': data_y_err}
             df = pd.DataFrame(data)
             df.to_csv(out_file)
+        plt.show()
 
     def plot_num_det_photons(self, color = 'purple', out_file = None):
         color = 'tab:' + color

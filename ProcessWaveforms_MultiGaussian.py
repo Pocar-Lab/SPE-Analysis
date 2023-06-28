@@ -489,6 +489,8 @@ class WaveformProcessor:
 
     def plot_spe(self, with_baseline = True, baselinecolor = 'orange', peakcolor = 'blue', savefig = False, path = None):
         fig = plt.figure()
+        fig.tight_layout()
+        plt.rc('font', size=22)
         plt.errorbar(self.spe_num, self.peak_locs[:self.numpeaks], yerr = self.peak_stds[:self.numpeaks], fmt = '.', label = 'Self-Triggered Peaks', color = 'tab:' + peakcolor, markersize = 10)
         if with_baseline:
             if self.no_solicit == False:
@@ -525,9 +527,8 @@ class WaveformProcessor:
             textstr += f'Baseline: {self.baseline_mean:0.4} +- {self.baseline_err:0.2} [V]'
 
         props = dict(boxstyle='round', facecolor='tab:' + peakcolor, alpha=0.4)
-        fig.text(0.6, 0.4, textstr, fontsize=8,
+        fig.text(0.6, 0.4, textstr, fontsize=20,
                 verticalalignment='top', bbox=props)
-        plt.tight_layout()
 
         if savefig:
             plt.savefig(path)
@@ -663,6 +664,8 @@ class WaveformProcessor:
 
     def plot_alpha_histogram(self, with_fit = True, log_scale = False, peakcolor = 'purple'):
         fig = plt.figure()
+        fig.tight_layout()
+        plt.rc('font', size=22)
         bin_density = self.info.peaks_numbins / (self.alpha_fit['high'] - self.alpha_fit['low'])
         total_num_bins = bin_density * (np.amax(self.peak_values) - np.amin(self.peak_values))
         plt.hist(self.peak_values, bins = int(total_num_bins), color = 'tab:' + peakcolor)
@@ -685,9 +688,8 @@ class WaveformProcessor:
         textstr += f'''Reduced $\chi^2$: {self.alpha_res.redchi:0.4}'''
 
         props = dict(boxstyle='round', facecolor='tab:' + peakcolor, alpha=0.4)
-        fig.text(0.175, 0.925, textstr, fontsize=16,
+        fig.text(0.175, 0.925, textstr, fontsize=20,
                 verticalalignment='top', bbox=props)
-        plt.tight_layout()
         plt.show()
 
     def plot_both_histograms(self, log_scale = True, density = True, alphas = False, baselinecolor = 'orange', peakcolor = 'blue', savefig = False, path = None):
