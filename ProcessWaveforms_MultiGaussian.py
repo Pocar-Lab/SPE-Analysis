@@ -340,25 +340,9 @@ class WaveformProcessor:
                         self.baseline_values = np.array(self.run_info_solicit.peak_data[curr_file][curr_acquisition_name])
                     self.baseline_values = np.array(self.run_info_solicit.peak_data[curr_file][curr_acquisition_name])
 
-    def process_text(self, overwrite):
-        # check if already saved as csv
-        if not self.info.saved_to_csv or overwrite:
-            # if not save, read in waveform data and save to .csv
-            print('reading self-trig waveforms')
-            save_peaks_csv(self.info.selftrig_path, self.info.selftrig_savedir, self.info.peak_search_params)
-            print('reading solicit waveforms')
-            save_baseline_csv(self.info.solicit_path, self.info.solicit_savedir, self.info.peak_search_params)
-        self.baseline_values = read_data_csv(self.info.solicit_savedir)['waveform data']
-        self.peak_values = read_data_csv(self.info.selftrig_savedir)['peaks']
-
     # reads in the waveform data either from the raw data or from a pre-saved .csv file
     def process(self, overwrite = False, do_spe = True, do_alpha = False, range_low = 0, range_high = 2, center = 0.1):
-        if self.info.data_type == 'text':
-            self.process_text(overwrite)
-        elif self.info.data_type == 'h5':
-            self.process_h5()
-        else:
-            return
+        self.process_h5()
 
         if do_alpha:
             self.peak_values = self.peak_values[self.peak_values > self.info.min_alpha_value]
