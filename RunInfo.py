@@ -260,7 +260,7 @@ class RunInfo:
         window_length = time[-1] - time[0]
         num_points = float(len(time))
         fs = num_points / window_length
-#        print(fs)
+        # print(fs)
         num_wavefroms = np.shape(curr_data)[1]
         print(f"num_wavefroms: {num_wavefroms}")
         if self.plot_waveforms: # TODO replace w/ num_wavefroms if not self.plot_waveforms else 20
@@ -285,7 +285,7 @@ class RunInfo:
                 filtered = signal.sosfilt(sos, amp)
                 amp = filtered
 
-#            peaks, props = signal.find_peaks(amp, **self.peak_search_params)
+            # peaks, props = signal.find_peaks(amp, **self.peak_search_params)
             if self.plot_waveforms:
                 if self.fourier:
                     fourier = np.fft.fft(amp)
@@ -334,15 +334,15 @@ class RunInfo:
                 window_length = time[-1] - time[0]
                 num_points = float(len(time))
                 fs = num_points / window_length
-        #        print(fs)
+                # print(fs)
                 if num < 1:
                     num_w = np.shape(curr_data)[1]
                 else:
                     num_w = num
-        #        print(num_wavefroms)
+                # print(num_wavefroms)
 
                 for idx in range(num_w):
-        #        for idx in range(200):
+                # for idx in range(200):
                     if idx % 1000 == 0:
                         print(idx)
 

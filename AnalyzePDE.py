@@ -329,12 +329,12 @@ class Alpha_data:
         data_y = self.alpha_vals
         data_y_err = self.alpha_err
 
-#        fit_x = np.linspace(0.0, np.amax(self.ov) + 1.0, num = 100)
-#        fit_y = self.CA_res.eval(params=self.CA_res.params, x = fit_x)
-#        fit_y_err = self.CA_res.eval_uncertainty(x = fit_x, params = self.CA_res.params, sigma = 1)
+        # fit_x = np.linspace(0.0, np.amax(self.ov) + 1.0, num = 100)
+        # fit_y = self.CA_res.eval(params=self.CA_res.params, x = fit_x)
+        # fit_y_err = self.CA_res.eval_uncertainty(x = fit_x, params = self.CA_res.params, sigma = 1)
 
-#        plt.fill_between(fit_x, fit_y + fit_y_err, fit_y - fit_y_err, color = 'red', alpha = .5)
-#        plt.plot(fit_x, fit_y, color = 'red', label = r'$\frac{Ae^{B*V_{OV}}+1}{A + 1} - 1$ fit')
+        # plt.fill_between(fit_x, fit_y + fit_y_err, fit_y - fit_y_err, color = 'red', alpha = .5)
+        # plt.plot(fit_x, fit_y, color = 'red', label = r'$\frac{Ae^{B*V_{OV}}+1}{A + 1} - 1$ fit')
         plt.errorbar(data_x, data_y, xerr = data_x_err, yerr = data_y_err, markersize = 10, fmt = '.', color = color)
 
         plt.xlabel('Overvoltage [V]')
@@ -342,14 +342,14 @@ class Alpha_data:
         textstr = f'Date: {self.campaign[0].info.date}\n'
         textstr += f'Condition: {self.campaign[0].info.condition}\n'
         textstr += f'RTD4: {self.campaign[0].info.temperature} [K]'
-#        if self.filtered:
-#            textstr += f'Filtering: Lowpass, 400kHz\n'
-#        else:
-#            textstr += f'Filtering: None\n'
-#        textstr += f'--\n'
-#        textstr += f'''A: {self.CA_res.params['A'].value:0.3f} $\pm$ {self.CA_res.params['A'].stderr:0.3f}\n'''
-#        textstr += f'''B: {self.CA_res.params['B'].value:0.2} $\pm$ {self.CA_res.params['B'].stderr:0.2}\n'''
-#        textstr += rf'''Reduced $\chi^2$: {self.CA_res.redchi:0.4}'''
+        # if self.filtered:
+        #     textstr += f'Filtering: Lowpass, 400kHz\n'
+        # else:
+        #     textstr += f'Filtering: None\n'
+        # textstr += f'--\n'
+        # textstr += f'''A: {self.CA_res.params['A'].value:0.3f} $\pm$ {self.CA_res.params['A'].stderr:0.3f}\n'''
+        # textstr += f'''B: {self.CA_res.params['B'].value:0.2} $\pm$ {self.CA_res.params['B'].stderr:0.2}\n'''
+        # textstr += rf'''Reduced $\chi^2$: {self.CA_res.redchi:0.4}'''
 
         props = dict(boxstyle='round', facecolor=color, alpha=0.4)
         fig.text(0.75, 0.25, textstr, fontsize=8,
@@ -376,10 +376,10 @@ class Alpha_data:
         textstr = f'Date: {self.campaign[0].info.date}\n'
         textstr += f'Condition: {self.campaign[0].info.condition}\n'
         textstr += f'RTD4: {self.campaign[0].info.temperature} [K]'
-#        if self.filtered:
-#            textstr += f'Filtering: Lowpass, 400kHz\n'
-#        else:
-#            textstr += f'Filtering: None\n'
+        # if self.filtered:
+        #     textstr += f'Filtering: Lowpass, 400kHz\n'
+        # else:
+        #     textstr += f'Filtering: None\n'
 
 
         props = dict(boxstyle='round', facecolor=color, alpha=0.4)

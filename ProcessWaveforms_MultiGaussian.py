@@ -61,13 +61,13 @@ def get_peaks(waveform_dir, peak_search_params):
     return all_peaks
 
 def get_peak_waveforms(waveform_dir, num = -1):
-    #wfs = fnmatch.filter(os.listdir(filepath), 'w*')
-#   read in solicited trigger waveforms
+    # wfs = fnmatch.filter(os.listdir(filepath), 'w*')
+    # read in solicited trigger waveforms
     waveform_filenames = glob.glob(waveform_dir + 'w*.txt')
     values = []
     times = []
     num_w = 0
-#   search each waveform for pulses, reject those with any
+    # search each waveform for pulses, reject those with any
     if num > 0:
         waveform_filenames = waveform_filenames[:num]
     for idx, w in enumerate(waveform_filenames):
@@ -81,18 +81,18 @@ def get_peak_waveforms(waveform_dir, num = -1):
 
 def get_baseline(waveform_dir, peak_search_params):
     #wfs = fnmatch.filter(os.listdir(filepath), 'w*')
-#   read in solicited trigger waveforms
+    # read in solicited trigger waveforms
     waveform_filenames = glob.glob(waveform_dir + 'w*.txt')
     values = []
     times = []
     num_w = 0
-#   search each waveform for pulses, reject those with any
+    # search each waveform for pulses, reject those with any
     for idx, w in enumerate(waveform_filenames):
         if idx % 100 == 0:
             print(idx)
         time, amp = get_waveform(w)
         peaks, props = signal.find_peaks(amp, **peak_search_params)
-#   aggregate all pulseless data
+    # aggregate all pulseless data
         if len(amp) < 1:
             continue
         if len(peaks) == 0 and np.amin(amp) > -.25:
@@ -135,9 +135,9 @@ def fit_baseline_gauss(values, binnum = 50, alpha = False):
     f_range = {}
     if alpha:
         f_range['low'] = -0.0005
-    #    f_range['low'] = 0.0
+        # f_range['low'] = 0.0
         f_range['high'] = 0.0045
-    #    f_range['high'] = 0.003
+        # f_range['high'] = 0.003
         f_range['center'] = (f_range['high'] + f_range['low']) / 2.0
     else:
         f_range['center'] = np.mean(values)
@@ -148,7 +148,7 @@ def fit_baseline_gauss(values, binnum = 50, alpha = False):
     new_binnum = int(bin_density * (f_range['high'] - f_range['low']))
     limit_values = values[(values >= f_range['low']) & (values <= f_range['high'])]
     curr_hist = np.histogram(limit_values, bins = new_binnum)
-#    plt.hist(values, bins= binnum)
+    # plt.hist(values, bins= binnum)
     counts = curr_hist[0]
     bins = curr_hist[1]
     centers = (bins[1:] + bins[:-1])/2
@@ -156,10 +156,10 @@ def fit_baseline_gauss(values, binnum = 50, alpha = False):
     model = lm.models.GaussianModel()
     params = model.make_params(amplitude=np.amax(counts), center=np.mean(limit_values), sigma=np.std(values))
     res = model.fit(counts, params=params, x=centers, weights=np.sqrt(1/counts))
-#    plt.step(centers, counts, where = 'mid')
-#    plt.plot(centers, res.eval(params = res.params, x = centers), '--')
+    # plt.step(centers, counts, where = 'mid')
+    # plt.plot(centers, res.eval(params = res.params, x = centers), '--')
     f_range['fit'] = res
-#    return {'center': np.mean(values), 'low': np.amin(values), 'high': np.amax(values), 'fit': res}
+    # return {'center': np.mean(values), 'low': np.amin(values), 'high': np.amax(values), 'fit': res}
     return f_range
 
 
@@ -245,15 +245,15 @@ def fit_alpha_gauss(values, binnum=20):
     mean_guess = centers[np.argmax(counts)]
     f_range['low'] = mean_guess - 0.25 * std_guess
     f_range['high'] = mean_guess + 0.5 * std_guess
-#    print(f_range['center'], f_range['low'], f_range['high'])
+    # print(f_range['center'], f_range['low'], f_range['high'])
     curr_peak_data = values[(values >= f_range['low']) & (values <= f_range['high'])]
 
-#    high_val = 3.5
-#    low_val = 2.4
-#    center_val = (high_val - low_val) / 2.0
-#    curr_peak_data = values[(values > low_val) & (values < high_val)]
+    # high_val = 3.5
+    # low_val = 2.4
+    # center_val = (high_val - low_val) / 2.0
+    # curr_peak_data = values[(values > low_val) & (values < high_val)]
     curr_hist = np.histogram(curr_peak_data, bins = binnum)
-#    plt.hist(curr_peak_data, bins = binnum)
+    # plt.hist(curr_peak_data, bins = binnum)
     counts = curr_hist[0]
     bins = curr_hist[1]
     centers = (bins[1:] + bins[:-1])/2.0
@@ -308,10 +308,7 @@ class WaveformProcessor:
         self.offset_num = offset_num
         self.no_solicit = no_solicit
         # options for if you forgot to take pre-breakdown data.......
-        if no_solicit == False:
-            self.run_info_solicit = run_info_solicit
-            self.baseline_mode = run_info_solicit.baseline_mode
-        else:
+        if no_solicit:
             self.baseline_mode = run_info_self.baseline_mode_mean
             # self.baseline_mode = 1 #PLACEHOLDER
             self.baseline_rms = run_info_self.baseline_mode_rms
@@ -320,11 +317,14 @@ class WaveformProcessor:
             self.baseline_rms = run_info_self.baseline_mode_rms
             # self.baseline_std = 1
             # self.baseline_err = 1
+        else:
+            self.run_info_solicit = run_info_solicit
+            self.baseline_mode = run_info_solicit.baseline_mode
 
     def process_h5(self):
         for curr_file in self.run_info_self.hd5_files:
             for curr_acquisition_name in self.run_info_self.acquisition_names[curr_file]:
-#                self.peak_values = np.array(self.run_info_self.peak_data[curr_file][curr_acquisition_name])
+                # self.peak_values = np.array(self.run_info_self.peak_data[curr_file][curr_acquisition_name])
                 self.peak_values = np.array(self.run_info_self.all_peak_data)
                 self.peak_values = self.peak_values[(self.peak_values >= self.range_low) & (self.peak_values <= self.range_high)] #peaks in a range
                 self.all = np.array(self.run_info_self.all_peak_data) #all peaks
@@ -341,9 +341,9 @@ class WaveformProcessor:
                     self.baseline_values = np.array(self.run_info_solicit.peak_data[curr_file][curr_acquisition_name])
 
     def process_text(self, overwrite):
-#        check if already saved as csv
+        # check if already saved as csv
         if not self.info.saved_to_csv or overwrite:
-#            if not save, read in waveform data and save to .csv
+            # if not save, read in waveform data and save to .csv
             print('reading self-trig waveforms')
             save_peaks_csv(self.info.selftrig_path, self.info.selftrig_savedir, self.info.peak_search_params)
             print('reading solicit waveforms')
@@ -518,9 +518,9 @@ class WaveformProcessor:
         x_values = np.linspace(0, len(self.spe_num) + 1, 20)
         y_values = m * x_values + b
         plt.plot(x_values, y_values, '--', color = 'tab:' + peakcolor, label = 'Self-Triggered Fit')
-#        dely = self.spe_res.eval_uncertainty(x=x_values, sigma=1)
-#        plt.fill_between(x_values, y_values+dely, y_values-dely)
-#        plt.plot(self.spe_num, self.spe_res.best_fit, 'r', label='Self-Triggered Fit')
+        # dely = self.spe_res.eval_uncertainty(x=x_values, sigma=1)
+        # plt.fill_between(x_values, y_values+dely, y_values-dely)
+        # plt.plot(self.spe_num, self.spe_res.best_fit, 'r', label='Self-Triggered Fit')
 
         plt.xlabel('Photoelectron Peak Number')
         plt.ylabel('Peak Location [V]')
@@ -554,7 +554,7 @@ class WaveformProcessor:
         plt.hist(self.baseline_values, bins = self.info.baseline_numbins, label = 'Solicited Baseline Data', color = 'tab:' + color)
         if with_fit:
             plot_fit(self.baseline_fit, self.baseline_values, binnum = self.info.baseline_numbins, plot_hists = False, label = 'Solicited Baseline Fit')
-#        plt.legend(loc = 'center left')
+        # plt.legend(loc = 'center left')
         plt.xlabel('Waveform Amplitude [V]')
         plt.ylabel('Counts')
         if log_scale:
@@ -625,7 +625,7 @@ class WaveformProcessor:
     #         plt.savefig(path)
     #         plt.close(fig)
 
-#see entire hist
+    # see entire hist
     def plot_peak_histograms(self, with_fit = True, log_scale = True, peakcolor = 'blue', savefig = False, path = None):
         fig = plt.figure()\
 
@@ -700,7 +700,6 @@ class WaveformProcessor:
         textstr += f'''Alpha Peak Sigma: {self.alpha_fit['fit'].params['sigma'].value:0.4} +- {self.alpha_fit['fit'].params['sigma'].stderr:0.1} [V]\n'''
         textstr += f'''Reduced $\chi^2$: {self.alpha_res.redchi:0.4}'''
 
-
         props = dict(boxstyle='round', facecolor='tab:' + peakcolor, alpha=0.4)
         fig.text(0.175, 0.925, textstr, fontsize=16,
                 verticalalignment='top', bbox=props)
@@ -708,7 +707,7 @@ class WaveformProcessor:
         plt.show()
 
     def plot_both_histograms(self, log_scale = True, density = True, alphas = False, baselinecolor = 'orange', peakcolor = 'blue', savefig = False, path = None):
-        if self.no_solicit == True:
+        if self.no_solicit:
             print('NO PRE BREAKDOWN DATA TO PLOT')
         fig = plt.figure()
         plt.hist(self.baseline_values, bins = self.info.baseline_numbins, label = 'Solicited Baseline Data', density = density, color = 'tab:' + baselinecolor)
@@ -722,10 +721,7 @@ class WaveformProcessor:
         if log_scale:
             plt.ylim(1E-1)
             plt.yscale('log')
-        if density:
-            plt.ylabel('Frequency')
-        else:
-            plt.ylabel('Counts')
+        plt.ylabel('Frequency' if density else 'Counts')
         plt.xlabel('Amplitude [V]')
 
         plt.legend()
@@ -742,7 +738,7 @@ class WaveformProcessor:
             plt.savefig(path)
             plt.close(fig)
 
-#currently broken:
+    # currently broken:
     def plot_baseline_waveform_hist(self, num = -1, color = 'orange'):
         fig = plt.figure()
         waveform_data, waveform_times, num_w = get_baseline(self.info.solicit_path, self.info.peak_search_params)
