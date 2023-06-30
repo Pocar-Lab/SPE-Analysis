@@ -28,5 +28,18 @@ For details on how to use git see the [git guide][1], in summary:
 * Commit often. Commits should only change/do one thing at a time.  Only commit changes that are
   done and working, not work in progress code.
 
-
 [1]: https://umass-my.sharepoint.com/:b:/r/personal/pocar_umass_edu/Documents/PocarLab-021%20Repository/Lab%20Documentation/Git_Guide.pdf?csf=1&web=1&e=mtK75I
+
+### Todo List
+
+- [ ] Make analyzes reproducible
+  - [ ] Make main analysis script self contained
+- [ ] Document Every Function
+- [ ] Reorganize class structure
+  - [ ] Split RunInfo into MeasurementInfo and a new ProcessWaveforms
+  - [ ] Rename current ProcessWaveforms to ProcessHistograms
+  - [ ] Split AnalyzePDE into AnalyzeSPE
+- [ ] Condense function arguments
+  - [ ] Remove redundancy (ie specifyAcquisition, acquisitions argument is either list or none)
+  - [ ] Group related parameters into single structure
+- [ ] Analysis script template
