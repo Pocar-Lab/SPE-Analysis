@@ -162,75 +162,57 @@ def fit_baseline_gauss(values, binnum = 50, alpha = False):
     # return {'center': np.mean(values), 'low': np.amin(values), 'high': np.amax(values), 'fit': res}
     return f_range
 
-
-def fit_peaks_multigauss(values, baseline_width, binnum=500, range_low = 0, range_high = 2, center = 0.1, offset_num = 0):
-
-    fit_range = [] #defines estimated center and the locations of the left and right "edges" of the "finger"
-    fit_range.append({'low': range_low, 'high': range_high})
-    curr_peak_data = values[(values >= range_low) & (values <= range_high)]
-    binnum = int(round(np.sqrt(len(curr_peak_data)))) # bin number = square root of number of data points
-    curr_hist = np.histogram(curr_peak_data, bins = binnum)
-    counts = curr_hist[0]
-
-    print('bins: ' + str(binnum))
-    print('sigma guess: '+str(baseline_width))
-
-    bins = curr_hist[1]
+def fit_peaks_multigauss(values, baseline_width, centers, numpeaks = 4, cutoff = (0,np.infty)):
+    '''
+    Fit multiple gaussians to a finger plot made from values.
+    
+    Parameters
+    ----------
+    values : list
+        height of peaks extracted from waveforms
+    baseline_width : float
+        estimate of the width in Volts of the noise
+    centers : list
+        initial guesses for centroid of each gaussian
+    cutoff : tuple
+        low and high cutoff values
+    numpeaks : int
+        the number of peaks you want to fit
+    Returns
+    -------
+    res : lmfit.model.ModelResult
+        an lmfit model result object containing all fit information
+    '''
+    curr_peak_data = values[(values >= cutoff[0]) & (values <= cutoff[1])]
+    binnum = round(np.sqrt(len(curr_peak_data)))
+    counts, bins = np.histogram(curr_peak_data, bins = binnum)
     centers = (bins[1:] + bins[:-1])/2
     model = (GaussianModel(prefix='g1_') + GaussianModel(prefix='g2_') + GaussianModel(prefix='g3_') + GaussianModel(prefix='g4_') + LinearModel(prefix= 'l_') )
+    
     params = model.make_params(
-        g1_amplitude=max(counts)*np.sqrt(2*np.pi)*baseline_width/2,
-        g2_amplitude=max(counts)*np.sqrt(2*np.pi)*center/4,
-        g3_amplitude=max(counts)*np.sqrt(2*np.pi)*baseline_width/8,
-        g4_amplitude=max(counts)*np.sqrt(2*np.pi)*baseline_width/16,
-        g1_center=center*(1+offset_num),
-        g2_center=center*(2+offset_num),
-        g3_center=center*(3+offset_num),
-        g4_center=center*(4+offset_num),
-        g1_sigma= 0.5*baseline_width,
-        g2_sigma= 0.5*baseline_width,
-        g3_sigma= 0.5*baseline_width,
-        g4_sigma= 0.5*baseline_width,
         l_slope = 0,
         l_intercept = counts[0],
         )
-    g1_c=center*(1+offset_num)
-    g2_c=center*(2+offset_num)
-    g3_c=center*(3+offset_num)
-    g4_c=center*(4+offset_num)
-    params['g1_sigma'].max = baseline_width
-    params['g2_sigma'].max = baseline_width
-    params['g3_sigma'].max = baseline_width
-    params['g4_sigma'].max = baseline_width
-    # params['g5_sigma'].max = baseline_width
-    # params['g6_sigma'].max = baseline_width
-    params['g1_center'].min = range_low
-    params['g1_center'].max = baseline_width + g1_c
-    params['g2_center'].min = range_low
-    params['g2_center'].max = baseline_width + g2_c
-    params['g3_center'].min = g3_c - baseline_width
-    params['g3_center'].max = g3_c + baseline_width
-    params['g4_center'].min = g4_c - baseline_width
-    params['g4_center'].max = range_high
-    # params['g5_center'].min = range_low
-    # params['g5_center'].max = center*5 + 0.5*baseline_width
-    # params['g6_center'].min = range_low
-    # params['g6_center'].max = center*5 + 0.5*baseline_width
-    params['g1_amplitude'].min = 0
-    params['g2_amplitude'].min = 0
-    params['g3_amplitude'].min = 0
-    params['g4_amplitude'].min = 0
-    # params['g5_amplitude'].min = 0
-    # params['g6_amplitude'].min = 0
-
-    print(center*(1+offset_num))
+    
+    peak_scale = max(counts)*np.sqrt(2*np.pi)*baeline_width
+    for i in range(1, numpeaks+1):
+        params[f'g{i}_amplitude'] = peak_scale/(2**i)
+        
+        params[f'g{i}_center'] = centers[i]
+        params[f'g{i}_center'].max = params[f'g{i}_center'].value*1.3
+        params[f'g{i}_center'].min = params[f'g{i}_center'].value*0.8
+        
+        params[f'g{i}_sigma'] = 0.5*baseline_width
+        params[f'g{i}_sigma'].min = 0.3*0.5*baseline_width
+        params[f'g{i}_sigma'].max = 2*0.5*baseline_width
+        
+        params[f'g{i}_amplitude'].min = 0
+    
     res = model.fit(counts, params=params, x=centers, weights = 1/np.sqrt(counts))
-        #****************
-    # ci = res.conf_interval()
-    # lm.printfuncs.report_ci(ci)
-        #****************
-    # print(res.fit_report())
+    
+    print(res.fit_report())
     return res
+
 
 def fit_alpha_gauss(values, binnum=20):
 
@@ -295,18 +277,22 @@ def get_mode(hist_data):
     return centers[max_index], np.amax(counts)
 
 
-# takes in measurement info, and processes it at waveform level, constructs different histograms, and does gaussian fits
+# takes in measurement info, and processes it at waveform level
+#constructs different histograms, and does gaussian fits
 class WaveformProcessor:
-    def __init__(self, info, run_info_self = None, run_info_solicit = None, baseline_correct = False, range_low = 0, range_high = 2, center = 0.1, numpeaks = 4, offset_num = 0, no_solicit = False):
+    def __init__(self, info, centers, run_info_self = None,
+                 run_info_solicit = None, baseline_correct = False,
+                 cutoff = (0,np.infty), numpeaks = 4, no_solicit = False,
+                 offset_num = 0):
+        
         self.baseline_correct = baseline_correct
         self.info = info
         self.run_info_self = run_info_self
-        self.range_low = range_low
-        self.range_high = range_high
-        self.center = center
+        self.cutoff = cutoff
+        self.centers = centers
         self.numpeaks = numpeaks
-        self.offset_num = offset_num
         self.no_solicit = no_solicit
+        self.offset_num = offset_num
         # options for if you forgot to take pre-breakdown data.......
         if no_solicit:
             self.baseline_mode = run_info_self.baseline_mode_mean
@@ -326,7 +312,7 @@ class WaveformProcessor:
             for curr_acquisition_name in self.run_info_self.acquisition_names[curr_file]:
                 # self.peak_values = np.array(self.run_info_self.peak_data[curr_file][curr_acquisition_name])
                 self.peak_values = np.array(self.run_info_self.all_peak_data)
-                self.peak_values = self.peak_values[(self.peak_values >= self.range_low) & (self.peak_values <= self.range_high)] #peaks in a range
+                self.peak_values = self.peak_values[(self.peak_values >= self.cutoff[0]) & (self.peak_values <= self.cutoff[1])] #peaks in a range
                 self.all = np.array(self.run_info_self.all_peak_data) #all peaks
 
         if not self.no_solicit:
@@ -341,15 +327,15 @@ class WaveformProcessor:
                     self.baseline_values = np.array(self.run_info_solicit.peak_data[curr_file][curr_acquisition_name])
 
     # reads in the waveform data either from the raw data or from a pre-saved .csv file
-    def process(self, overwrite = False, do_spe = True, do_alpha = False, range_low = 0, range_high = 2, center = 0.1):
+    def process(self, overwrite = False, do_spe = True, do_alpha = False):
         self.process_h5()
 
         if do_alpha:
             self.peak_values = self.peak_values[self.peak_values > self.info.min_alpha_value]
 
-        self.numbins = int(round(np.sqrt(len(self.peak_values))))
+        self.numbins = int(round(np.sqrt(len(self.peak_values)))) #!!! attr defined outside init
         print(f"len: {len(self.peak_values)}")
-        print(f"{self.numbins=}")
+        print(f"{self.numbins}")
         if self.no_solicit:
             self.baseline_mean = self.baseline_mode
             self.baseline_std = 0.002 #arbitrary
@@ -637,11 +623,9 @@ class WaveformProcessor:
         counts = curr_hist[0]
         bins = curr_hist[1]
         centers = (bins[1:] + bins[:-1])/2
-        plt.plot(np.linspace(self.range_low,self.range_high,len(self.peak_fit.best_fit)), self.peak_fit.best_fit, '-', label='best fit', color = 'red') #plot the best fit model func
+        plt.plot(np.linspace(self.cutoff[0],self.cutoff[1],len(self.peak_fit.best_fit)), self.peak_fit.best_fit, '-', label='best fit', color = 'red') #plot the best fit model func
 
-        # plt.plot(np.linspace(self.range_low,self.range_high,len(self.peak_fit.best_fit)), self.peak_fit.best_fit, '-', label='best fit', color = 'red') #plot the best fit model func
-
-        x = np.linspace(self.range_low,self.range_high,200)
+        x = np.linspace(self.cutoff[0],self.cutoff[1],200)
         plt.plot(x, self.peak_fit.best_values['l_intercept'] +  self.peak_fit.best_values['l_slope']*x, '-', label='best fit - line', color = 'blue') #plot linear component of best fit model func
 
         props = dict(boxstyle='round', facecolor='tab:' + peakcolor, alpha=0.4)
