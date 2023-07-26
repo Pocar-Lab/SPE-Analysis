@@ -18,27 +18,70 @@ from scipy.stats import sem
 import pprint
 #%%
 
-def get_data(h5path, groupname):
+def get_data(h5path: str, groupname: str)-> np.ndarray:
+    """Extrats data from an h5 file provided by h5 path
+
+    Args:
+        h5path (str): Path to h5 file.
+        groupname (str): Group name of desired group in h5 file
+
+    Returns:
+        np.ndarray : waveform data
+    """
     with h5py.File(h5path, 'r') as hdf:
-        data = hdf['RunData'].get(groupname)[:]
+        # TODO: check data format can be cast to ndarray
+        data: np.ndarray = hdf['RunData'][groupname][:]
     return data
 
-def get_grp_meta(h5path, groupname):
+def get_grp_meta(h5path: str, groupname: str)-> dict:
+    """Get metadata of specified group
+
+    Args:
+        h5path (str): Path to h5 file
+        groupname (str): Name of group to accquire metadata from
+
+    Returns:
+        dict: hdf5 group metadata
+    """
     with h5py.File(h5path, 'r') as hdf:
         meta_group = dict(hdf['RunData'][groupname].attrs)
     return meta_group
 
-def get_run_meta(h5path):
+def get_run_meta(h5path: str)-> dict:
+    """Get metadata for specific run 
+
+    Args:
+        h5path (str): path to h5 file
+
+    Returns:
+        dict : hdf5 run metadata
+    """
     with h5py.File(h5path, 'r') as hdf:
         run_meta = dict(hdf['RunData'].attrs)
     return run_meta
 
-def get_grp_names(h5path):
+def get_grp_names(h5path: str) -> list:
+    """Get names of groups in specified h5 file
+
+    Args:
+        h5path (str): Path to h5 file
+
+    Returns:
+        list : acquisition names
+    """
     with h5py.File(h5path, 'r') as hdf:
         group_names = list(hdf['RunData'].keys())
     return group_names
 
-def get_mode(hist_data):
+def get_mode(hist_data: list or np.array)-> tuple[float, float]:
+    """Get the mode of histogram data
+
+    Args:
+        hist_data (list or np.array): Histogram data
+
+    Returns:
+        tuple[float, float]: value (in volts), number of counts
+    """
     counts = hist_data[0]
     bins = hist_data[1]
     centers = (bins[1:] + bins[:-1])/2.0
@@ -47,7 +90,33 @@ def get_mode(hist_data):
 
 class RunInfo:
 
-    def __init__(self, f, acquisition = 'placeholder', is_solicit = False, do_filter = False, plot_waveforms = False, upper_limit = 4.4, baseline_correct = False, prominence = 0.005, specifyAcquisition = False, fourier = False):
+    def __init__(self, f: list, acquisition:str = 'placeholder', is_solicit: bool = False, do_filter: bool = False, plot_waveforms: bool = False, upper_limit: float = 4.4, baseline_correct:bool = False, prominence: float = 0.005, specifyAcquisition: bool = False, fourier:bool = False):
+        #TODO: 
+        #combine acquisition and specify_acquisition inputs
+        #baseline_correct should allow for choice of peakutils vs mode or mean subtraction
+        #
+
+        """Extract raw waveform data from either txt or h5 files. Apply filtering and baseline correciton
+        to waveforms. Can process alpha pulse waveforms, SPE waveforms (in LXe or Vacuum), or baseline data.
+        Records alpha pulse heights, SPE pulse heights, or aggregate y-axis data respectively.
+        Can also collect baseline info from SPE data in the absence of dedicated baseline data (why?).
+        Optionally plots waveforms to inspect data for tuning peak finding algo.
+
+        Args:
+            f list: list of h5 file names
+            acquisition (str, optional): specified file name. Defaults to 'placeholder'.
+            is_solicit (bool, optional): specified whether data is solicited, AKA 'empty' baseline data. Defaults to False.
+            do_filter (bool, optional): activates butterworth lowpass filter if True. Defaults to False.
+            plot_waveforms (bool, optional): plots waveforms if True. Defaults to False.
+            upper_limit (float, optional): amplitude threshold for discarding waveforms. Defaults to 4.4.
+            baseline_correct (bool, optional): baseline corrects waveforms if True. Defaults to False.
+            prominence (float, optional): parameter used for peak finding algo. Defaults to 0.005.
+            specifyAcquisition (bool, optional): if True, uses acquisition to extract just one acquisition dataset. Defaults to False.
+            fourier (bool, optional): if True performs fourier frequency subtraction. Defaults to False.
+        
+        Raises:
+            TypeError: _description_
+        """
         if not isinstance(f, list):
             raise TypeError('Files must be a in a list') # TODO replace with list conversion
             # f = [f]
@@ -142,7 +211,14 @@ class RunInfo:
         if not is_solicit:
             print('mean mode of amplitudes, standard deviation, SEM: ' + str(self.baseline_mode_mean) + ', ' + str(self.baseline_mode_std) + ',' + str(self.baseline_mode_err))
 
-    def plot_hists(self, temp_mean, temp_std, new = False):
+    def plot_hists(self, temp_mean: str, temp_std: str, new: bool = False)-> None:
+        """Plot histograms of file. Plots will display when called. No return value
+
+        Args:
+            temp_mean (str): Used in label of title. Mean of data (?)
+            temp_std (str): Used in label of title. Error of mean 
+            new (bool, optional): Whether or not to create new figure. Defaults to False.
+        """
         if new:
             plt.figure() #makes new
         # TODO bin arg
@@ -172,7 +248,16 @@ class RunInfo:
 
 
 #
-    def get_peaks(self, filename, acquisition_name):
+    def get_peaks(self, filename: str, acquisition_name: str)-> list[float]:
+        """Uses scipy.signal.find_peaks to find the peaks of the data.
+
+        Args:
+            filename (str): Name of file to analyze
+            acquisition_name (str): Name of particular acquisition
+
+        Returns:
+            list: List of peak heights.
+        """
         all_peaks = []
         print(filename, acquisition_name)
         curr_data = self.acquisitions_data[filename][acquisition_name]
@@ -240,7 +325,10 @@ class RunInfo:
         return all_peaks
 
 
-    def get_peak_data(self):
+    def get_peak_data(self)-> None:
+        """
+        Collects peak data and stores as a dict in self.peak_data
+        """
         self.peak_data = {}
         for curr_file in self.hd5_files:
             self.peak_data[curr_file] = {}
@@ -253,7 +341,18 @@ class RunInfo:
                 if self.plot_waveforms or self.specifyAcquisition:
                     break
 
-    def get_peaks_solicit(self, filename, acquisition_name):
+    def get_peaks_solicit(self, filename: str, acquisition_name: str)-> list:
+        """Aggregates y-axis data of all solicited waveforms after optionally
+        filtering (why?), baseline subtracting (why?), and removing first
+        100 data points (why?). Also optionally plots waveforms.
+
+        Args:
+            filename (str): path on disk of hdf5 data to be processed
+            acquisition_name (str): name of acquisition to be processed
+
+        Returns:
+            list: concatened list of all amplitude values for all waveforms
+        """
         all_peaks = []
         curr_data = self.acquisitions_data[filename][acquisition_name]
         time = self.acquisitions_time[filename][acquisition_name]
@@ -270,7 +369,7 @@ class RunInfo:
                 print(idx)
 
             amp = curr_data[:, idx]
-            if np.amax(amp) > self.upper_limit:
+            if np.amax(amp) > self.upper_limit: #skips waveform if amplitude exceeds upper_limit
                 continue
 
             if self.baseline_correct:
@@ -307,7 +406,9 @@ class RunInfo:
         return all_peaks
 
 
-    def get_peak_data_solicit(self):
+    def get_peak_data_solicit(self)-> None:
+        """Get peak data and add as a dict to self.peak_data. No return value.
+        """
         self.peak_data = {}
         for curr_file in self.hd5_files:
             self.peak_data[curr_file] = {}
@@ -319,7 +420,16 @@ class RunInfo:
                 if self.plot_waveforms or self.specifyAcquisition:
                     break
 
-    def plot_peak_waveform_hist(self, num = -1, color = 'blue'):
+    def plot_peak_waveform_hist(self, num = -1, color = 'blue')-> None:
+        """Plot peak waveforms as a 2D histogram. The function does not return any value.
+
+        Args:
+            num (int, optional): The number of waveforms to process for each acquisition. 
+            If set to -1 (default), all waveforms are processed. If set to a positive integer, 
+            only that many waveforms are processed for each acquisition.
+            
+            color (str, optional): The color to be used for the information box in the plot. Defaults to 'blue'.
+        """
         fig = plt.figure()
 
         waveform_data = []
@@ -373,7 +483,18 @@ class RunInfo:
                 verticalalignment='top', bbox=props)
         plt.tight_layout()
 
-    def average_all_waveforms(self):
+    def average_all_waveforms(self)-> tuple:
+        """Calculates and returns the average of waveform data from multiple acquisitions across several files.
+
+        The function iterates over all files and their respective acquisitions, collects the waveform data, 
+        calculates the average across all collected waveforms, and returns this average alongside the time data 
+        of the last processed acquisition.
+
+        Returns:
+             tuple: A tuple consisting of two NumPy arrays:
+            - The first element is the averaged waveform data across all acquisitions and files.
+            - The second element is the time data of the last processed acquisition.
+        """
         waveform_data = []
         for curr_file in self.hd5_files:
             for curr_acquisition_name in self.acquisition_names[curr_file]:
