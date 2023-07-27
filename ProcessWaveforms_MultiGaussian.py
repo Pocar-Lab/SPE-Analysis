@@ -18,37 +18,76 @@ from MeasurementInfo import MeasurementInfo
 import glob
 from scipy.fft import fft, fftfreq
 from lmfit.models import LinearModel, GaussianModel, ExponentialModel
+from typing import Any, Dict, List, Tuple, Optional
 
-def get_waveform(w):
+from RunInfo import RunInfo
+
+
+def get_waveform(w: str) -> tuple[list[float], list[float]]:
+    # TODO: getting the axe
+    """
+    Processes a waveform file, extracting metadata and data points. Metadata is skipped until
+    the line 'Time (s)' is found. Subsequent lines are treated as data with the first column
+    as time and the second as amplitude.
+
+    Args:
+        w (str): Path to the waveform file. The file should be tab-delimited with the first
+                 column being time in seconds, and the second column being the amplitude.
+                 The first non-metadata line may start with 'Time (s)'.
+
+    Returns:
+        tuple: Two lists, first one containing the time data in microseconds, and the second
+               one containing the amplitude data, both extracted from the waveform file.
+    """
     time = []
     amp = []
 
-    f = open(w, 'r')
+    f = open(w, "r")
 
     metadata = {}
     data = {}
 
     header = True
     for x in f:
-        line = x.split('\t')
+        line = x.split("\t")
         if header:
-            if line[0] == 'Time (s)':
+            if line[0] == "Time (s)":
                 header = False
             elif len(line) < 10:
                 continue
             else:
                 metadata[line[0]] = line[1]
         else:
-            t = float(line[0]) * 1E6
+            t = float(line[0]) * 1e6
             a = float(line[1])
             time.append(t)
             amp.append(a)
     f.close()
     return (time, amp)
 
+
 # REED DID THIS <3
-def get_peaks(waveform_dir, peak_search_params):
-    waveform_filenames = glob.glob(waveform_dir + 'w*.txt')
+def get_peaks(
+    waveform_dir: str, peak_search_params: dict[str, type[int | float]]
+) -> list[float]:
+    """
+    Searches for peaks in a set of waveforms specified in a directory using parameters for peak
+    searching. This function applies signal.find_peaks to each waveform and stores the amplitude
+    of each peak.
+
+    Args:
+        waveform_dir (str): The directory containing waveform files. Each file should be named
+                            with the prefix 'w' and have the extension '.txt'.
+        peak_search_params (Dict[str, Union[int, float]]): Parameters to be passed to
+                               scipy.signal.find_peaks. These parameters may include
+                               properties like 'height', 'threshold', 'distance', etc.,
+                               depending on the requirements for a valid peak.
+
+    Returns:
+        List[float]: A list containing the amplitudes of all detected peaks across all
+                     waveforms in the specified directory.
+    """
+    waveform_filenames = glob.glob(waveform_dir + "w*.txt")
     all_peaks = []
     for idx, w in enumerate(waveform_filenames):
         if idx % 100 == 0:
@@ -60,10 +99,31 @@ def get_peaks(waveform_dir, peak_search_params):
             all_peaks.append(amp[peak])
     return all_peaks
 
-def get_peak_waveforms(waveform_dir, num = -1):
+
+def get_peak_waveforms(
+    waveform_dir: str, num: int = -1
+) -> tuple[list[float], list[float], int]:
+    """
+    Reads a specified number of waveform files from a directory, and combines their time and
+    amplitude values into two lists. Also returns the total number of waveforms processed.
+
+    Args:
+        waveform_dir (str): The directory containing waveform files. Each file should be named
+                            with the prefix 'w' and have the extension '.txt'.
+        num (int, optional): The maximum number of waveform files to process. If this is set to
+                             a positive number, only the first 'num' waveforms will be processed.
+                             If it is set to -1 (default), all waveforms in the directory will
+                             be processed.
+
+    Returns:
+        Tuple[List[float], List[float], int]: A tuple containing three elements:
+            1. A list of amplitude values combined from all processed waveforms.
+            2. A list of corresponding time values combined from all processed waveforms.
+            3. The total number of waveforms processed.
+    """
     # wfs = fnmatch.filter(os.listdir(filepath), 'w*')
     # read in solicited trigger waveforms
-    waveform_filenames = glob.glob(waveform_dir + 'w*.txt')
+    waveform_filenames = glob.glob(waveform_dir + "w*.txt")
     values = []
     times = []
     num_w = 0
@@ -79,10 +139,11 @@ def get_peak_waveforms(waveform_dir, num = -1):
         times += time
     return values, times, num_w
 
+
 def get_baseline(waveform_dir, peak_search_params):
-    #wfs = fnmatch.filter(os.listdir(filepath), 'w*')
+    # wfs = fnmatch.filter(os.listdir(filepath), 'w*')
     # read in solicited trigger waveforms
-    waveform_filenames = glob.glob(waveform_dir + 'w*.txt')
+    waveform_filenames = glob.glob(waveform_dir + "w*.txt")
     values = []
     times = []
     num_w = 0
@@ -92,199 +153,336 @@ def get_baseline(waveform_dir, peak_search_params):
             print(idx)
         time, amp = get_waveform(w)
         peaks, props = signal.find_peaks(amp, **peak_search_params)
-    # aggregate all pulseless data
+        # aggregate all pulseless data
         if len(amp) < 1:
             continue
-        if len(peaks) == 0 and np.amin(amp) > -.25:
+        if len(peaks) == 0 and np.amin(amp) > -0.25:
             num_w += 1
             values += amp[300:-300]
             times += time[300:-300]
     return values, times, num_w
 
+
 def save_baseline_csv(waveform_dir, savedir, peak_search_params):
     waveform_data, waveform_times, _ = get_baseline(waveform_dir, peak_search_params)
-    data = {'waveform data': waveform_data}
+    data = {"waveform data": waveform_data}
     df = pd.DataFrame(data)
     df.to_csv(savedir)
 
+
 def save_peaks_csv(waveform_dir, savedir, peak_search_params):
     peaks = get_peaks(waveform_dir, peak_search_params)
-    data = {'peaks': peaks}
+    data = {"peaks": peaks}
     df = pd.DataFrame(data)
     df.to_csv(savedir)
+
 
 def read_data_csv(filename):
     df = pd.read_csv(filename)
     return df
 
-def Gauss(x, A, B, C):
-    y = A * np.exp(-(x - B) ** 2 / (2 * C * C))
+
+def Gauss(x: np.ndarray, A: float, B: float, C: float) -> np.ndarray:
+    """
+    Calculates the value of a Gaussian function at a given point or array of points.
+
+    Args:
+        x (Union[float, np.ndarray]): The point(s) at which to evaluate the Gaussian function.
+                                       This can be a single float or a numpy array of floats.
+        A (float): The height of the Gaussian's peak.
+        B (float): The position of the center of the peak.
+        C (float): The standard deviation, which controls the width of the peak.
+
+    Returns:
+        Union[float, np.ndarray]: The value(s) of the Gaussian function at the given point(s).
+    """
+    y = A * np.exp(-((x - B) ** 2) / (2 * C * C))
     return y
 
-def fit_gauss(values, range_low, range_high):
-    histogram = np.histogram(values, bins = 40)
+
+def fit_gauss(
+    values: list[float], range_low: float, range_high: float
+) -> lm.model.ModelResult:
+    """
+    Fits a Gaussian model to the provided data within the specified range using the
+    lmfit.models.GaussianModel method.
+
+    Args:
+        values (List[float]): A list of values to which a Gaussian function will be fitted.
+        range_low (float): The lower bound of the range to consider for fitting.
+        range_high (float): The upper bound of the range to consider for fitting.
+
+    Returns:
+        lm.model.ModelResult: An instance of the ModelResult class in the lmfit package, containing the results
+             of the model fitting process. This includes parameters of the fitted model and
+             other statistical information.
+    """
+    histogram = np.histogram(values, bins=40)
     counts = histogram[0]
     bins = histogram[1]
-    centers = (bins[1:] + bins[:-1])/2
+    centers = (bins[1:] + bins[:-1]) / 2
     model = lm.models.GaussianModel()
-    params = model.make_params(amplitude=max(counts), center=np.mean(values), sigma=np.std(values))
-    res = model.fit(counts, params=params, x=centers, weights=np.sqrt(1/counts))
+    params = model.make_params(
+        amplitude=max(counts), center=np.mean(values), sigma=np.std(values)
+    )
+    res = model.fit(counts, params=params, x=centers, weights=np.sqrt(1 / counts))
     return res
 
-def fit_baseline_gauss(values, binnum = 50, alpha = False):
+
+def fit_baseline_gauss(
+    values: list[float], binnum: int = 50, alpha: bool = False
+) -> dict[str, type[float | Any]]:
+    """
+    Fits a Gaussian model to the provided data using the lmfit.models.GaussianModel method.
+    This function also allows to handle alpha-type peak fitting based on the 'alpha' parameter.
+
+    Args:
+        values (List[float]): A list of values to which a Gaussian function will be fitted.
+        binnum (int, optional): The number of bins to use for histogramming the data. Defaults to 50.
+        alpha (bool, optional): If True, the function assumes the data represents an alpha
+                                 peak, and sets fitting range accordingly. If False, the function
+                                 estimates the fitting range based on the data's standard deviation.
+                                 Defaults to False.
+
+    Returns:
+        Dict[str, Union[float, Any]]: A dictionary containing the center, low, and high bounds of the
+                                       fitting range, as well as the fitted model result.
+    """
     f_range = {}
-    if alpha:
-        f_range['low'] = -0.0005
+    if alpha:  # TODO no hardcoded parameters !!
+        f_range["low"] = -0.0005
         # f_range['low'] = 0.0
-        f_range['high'] = 0.0045
+        f_range["high"] = 0.0045
         # f_range['high'] = 0.003
-        f_range['center'] = (f_range['high'] + f_range['low']) / 2.0
+        f_range["center"] = (f_range["high"] + f_range["low"]) / 2.0
     else:
-        f_range['center'] = np.mean(values)
+        f_range["center"] = np.mean(values)
         std_guess = np.std(values)
-        f_range['low'] = f_range['center'] - 2.0 * std_guess
-        f_range['high'] = f_range['center'] + 2.0 * std_guess
+        f_range["low"] = f_range["center"] - 2.0 * std_guess
+        f_range["high"] = f_range["center"] + 2.0 * std_guess
     bin_density = float(binnum) / (np.amax(values) - np.amin(values))
-    new_binnum = int(bin_density * (f_range['high'] - f_range['low']))
-    limit_values = values[(values >= f_range['low']) & (values <= f_range['high'])]
-    curr_hist = np.histogram(limit_values, bins = new_binnum)
+    new_binnum = int(bin_density * (f_range["high"] - f_range["low"]))
+    limit_values = values[(values >= f_range["low"]) & (values <= f_range["high"])]
+    curr_hist = np.histogram(limit_values, bins=new_binnum)
     # plt.hist(values, bins= binnum)
     counts = curr_hist[0]
     bins = curr_hist[1]
-    centers = (bins[1:] + bins[:-1])/2
+    centers = (bins[1:] + bins[:-1]) / 2
 
     model = lm.models.GaussianModel()
-    params = model.make_params(amplitude=np.amax(counts), center=np.mean(limit_values), sigma=np.std(values))
-    res = model.fit(counts, params=params, x=centers, weights=np.sqrt(1/counts))
+    params = model.make_params(
+        amplitude=np.amax(counts), center=np.mean(limit_values), sigma=np.std(values)
+    )
+    res = model.fit(counts, params=params, x=centers, weights=np.sqrt(1 / counts))
     # plt.step(centers, counts, where = 'mid')
     # plt.plot(centers, res.eval(params = res.params, x = centers), '--')
-    f_range['fit'] = res
+    f_range["fit"] = res
     # return {'center': np.mean(values), 'low': np.amin(values), 'high': np.amax(values), 'fit': res}
     return f_range
 
-def fit_peaks_multigauss(values, baseline_width, centers, numpeaks = 4, cutoff = (0,np.infty)):
-    '''
-    Fit multiple gaussians to a finger plot made from values.
-    
-    Parameters
-    ----------
-    values : list
-        height of peaks extracted from waveforms
-    baseline_width : float
-        estimate of the width in Volts of the noise
-    centers : list
-        initial guesses for centroid of each gaussian
-    cutoff : tuple
-        low and high cutoff values
-    numpeaks : int
-        the number of peaks you want to fit
-    Returns
-    -------
-    res : lmfit.model.ModelResult
-        an lmfit model result object containing all fit information
-    '''
+
+def fit_peaks_multigauss(
+    values: np.ndarray,
+    baseline_width: float,
+    centers: list[float],
+    numpeaks: int = 4,
+    cutoff: tuple[float, float] = (0, np.infty),
+) -> lm.model.ModelResult:
+    """
+    Fits multiple Gaussian functions to a 'finger plot' made from given values using the
+    lmfit.models.GaussianModel method.
+
+    Args:
+        values (List[float]): Heights of peaks extracted from waveforms.
+        baseline_width (float): An estimate of the width in Volts of the noise.
+        centers (List[float]): Initial guesses for the centroid of each Gaussian.
+        numpeaks (int, optional): The number of peaks you want to fit. Defaults to 4.
+        cutoff (Tuple[float, float], optional): Low and high cutoff values. Defaults to (0, np.infty).
+
+    Returns:
+        ModelResult: An lmfit ModelResult object containing all fit information.
+    """
     curr_peak_data = values[(values >= cutoff[0]) & (values <= cutoff[1])]
     binnum = round(np.sqrt(len(curr_peak_data)))
-    counts, bins = np.histogram(curr_peak_data, bins = binnum)
-    centers = (bins[1:] + bins[:-1])/2
-    model = (GaussianModel(prefix='g1_') + GaussianModel(prefix='g2_') + GaussianModel(prefix='g3_') + GaussianModel(prefix='g4_') + LinearModel(prefix= 'l_') )
-    
+    counts, bins = np.histogram(curr_peak_data, bins=binnum)
+    bin_centers = (bins[1:] + bins[:-1]) / 2
+
+    model = LinearModel(prefix="l_")
+
+    for i in range(1, numpeaks + 1):
+        model += GaussianModel(prefix=f"g{i}_")
+
     params = model.make_params(
-        l_slope = 0,
-        l_intercept = counts[0],
-        )
-    
-    peak_scale = max(counts)*np.sqrt(2*np.pi)*baeline_width
-    for i in range(1, numpeaks+1):
-        params[f'g{i}_amplitude'] = peak_scale/(2**i)
-        
-        params[f'g{i}_center'] = centers[i]
-        params[f'g{i}_center'].max = params[f'g{i}_center'].value*1.3
-        params[f'g{i}_center'].min = params[f'g{i}_center'].value*0.8
-        
-        params[f'g{i}_sigma'] = 0.5*baseline_width
-        params[f'g{i}_sigma'].min = 0.3*0.5*baseline_width
-        params[f'g{i}_sigma'].max = 2*0.5*baseline_width
-        
-        params[f'g{i}_amplitude'].min = 0
-    
-    res = model.fit(counts, params=params, x=centers, weights = 1/np.sqrt(counts))
-    
+        l_slope=0,
+        l_intercept=counts[0],
+    )
+
+    peak_scale = max(counts) * np.sqrt(2 * np.pi) * baseline_width
+    for i in range(1, numpeaks + 1):
+        params[f"g{i}_amplitude"].value = peak_scale / (2**i)
+        params[f"g{i}_center"].value = centers[i - 1]
+        params[f"g{i}_center"].max = params[f"g{i}_center"].value * 1.3
+        params[f"g{i}_center"].min = params[f"g{i}_center"].value * 0.8
+
+        params[f"g{i}_sigma"].value = 0.5 * baseline_width
+        params[f"g{i}_sigma"].min = 0.3 * 0.5 * baseline_width
+        params[f"g{i}_sigma"].max = 2 * 0.5 * baseline_width
+
+        params[f"g{i}_amplitude"].min = 0
+
+    res = model.fit(counts, params=params, x=bin_centers, weights=1 / np.sqrt(counts))
+
     print(res.fit_report())
     return res
 
 
-def fit_alpha_gauss(values, binnum=20):
+def fit_alpha_gauss(
+    values: List[float], binnum: int = 20
+) -> Dict[str, lm.model.ModelResult]:
+    """
+    Performs a Gaussian fit to a given data set. The fitting process is repeated twice to
+    refine the center and standard deviation estimates, and provide a narrower fit range.
 
+    Args:
+        values (List[float]): List of values to perform the Gaussian fit on.
+        binnum (int, optional): The number of bins to use when creating the histogram. Defaults to 20.
+
+    Returns:
+        Dict[str, ModelResult]: A dictionary containing the range ('low', 'high', 'center') and the final fit result ('fit') from the Gaussian model.
+    """
+    # TODO fit_info should be a class
     f_range = {}
-    curr_hist = np.histogram(values, bins = binnum)
+    curr_hist = np.histogram(values, bins=binnum)
 
     counts = curr_hist[0]
     bins = curr_hist[1]
-    centers = (bins[1:] + bins[:-1])/2
-    f_range['center'] = centers[np.argmax(counts)]
+    centers = (bins[1:] + bins[:-1]) / 2
+    f_range["center"] = centers[np.argmax(counts)]
     std_guess = np.std(values)
     mean_guess = centers[np.argmax(counts)]
-    f_range['low'] = mean_guess - 0.25 * std_guess
-    f_range['high'] = mean_guess + 0.5 * std_guess
+    f_range["low"] = mean_guess - 0.25 * std_guess
+    f_range["high"] = mean_guess + 0.5 * std_guess
     # print(f_range['center'], f_range['low'], f_range['high'])
-    curr_peak_data = values[(values >= f_range['low']) & (values <= f_range['high'])]
+    curr_peak_data = values[(values >= f_range["low"]) & (values <= f_range["high"])]
 
     # high_val = 3.5
     # low_val = 2.4
     # center_val = (high_val - low_val) / 2.0
     # curr_peak_data = values[(values > low_val) & (values < high_val)]
-    curr_hist = np.histogram(curr_peak_data, bins = binnum)
+    curr_hist = np.histogram(curr_peak_data, bins=binnum)
     # plt.hist(curr_peak_data, bins = binnum)
     counts = curr_hist[0]
     bins = curr_hist[1]
-    centers = (bins[1:] + bins[:-1])/2.0
+    centers = (bins[1:] + bins[:-1]) / 2.0
     model = lm.models.GaussianModel()
-    params = model.make_params(amplitude=max(counts), center=mean_guess, sigma=std_guess)
-    res = model.fit(counts, params=params, x=centers, weights=np.sqrt(1/counts), nan_policy='omit')
+    params = model.make_params(
+        amplitude=max(counts), center=mean_guess, sigma=std_guess
+    )
+    res = model.fit(
+        counts, params=params, x=centers, weights=np.sqrt(1 / counts), nan_policy="omit"
+    )
 
-    mean_guess = res.params['center'].value
-    std_guess = res.params['sigma'].value
-    f_range['low'] = mean_guess - 2.0 * std_guess
-    f_range['high'] = mean_guess + 3.0 * std_guess
-    curr_peak_data = values[(values >= f_range['low']) & (values <= f_range['high'])]
-    curr_hist = np.histogram(curr_peak_data, bins = binnum)
+    mean_guess = res.params["center"].value
+    std_guess = res.params["sigma"].value
+    f_range["low"] = mean_guess - 2.0 * std_guess
+    f_range["high"] = mean_guess + 3.0 * std_guess
+    curr_peak_data = values[(values >= f_range["low"]) & (values <= f_range["high"])]
+    curr_hist = np.histogram(curr_peak_data, bins=binnum)
     counts = curr_hist[0]
     bins = curr_hist[1]
-    centers = (bins[1:] + bins[:-1])/2.0
+    centers = (bins[1:] + bins[:-1]) / 2.0
     model = lm.models.GaussianModel()
-    params = model.make_params(amplitude=max(counts), center=mean_guess, sigma=std_guess)
-    res = model.fit(counts, params=params, x=centers, weights=np.sqrt(1/counts), nan_policy='omit')
+    params = model.make_params(
+        amplitude=max(counts), center=mean_guess, sigma=std_guess
+    )
+    res = model.fit(
+        counts, params=params, x=centers, weights=np.sqrt(1 / counts), nan_policy="omit"
+    )
 
-    f_range['fit'] = res
+    f_range["fit"] = res
     return f_range
 
-def plot_fit(fit_info, values, binnum = 20, plot_hists = True, label = None):
-    fit_data = values[(values >= fit_info['low']) & (values <= fit_info['high'])]
-    numvalues = len(fit_data)
-    h = 3.49*(numvalues)**(-1/3) * np.std(fit_data)
-    binnum = int(np.ceil((max(fit_data) - min(fit_data))/h))
-    if plot_hists:
-        curr_hist = plt.hist(fit_data, bins = binnum)
-    x = np.linspace(fit_info['low'],fit_info['high'],num=200)
-    plt.plot(x, fit_info['fit'].eval(params=fit_info['fit'].params, x=x), color='red', label = label)
 
-def get_mode(hist_data):
+def plot_fit(
+    fit_info: Dict[str, lm.model.ModelResult],
+    values: np.ndarray,
+    binnum: int = 20,
+    plot_hists: bool = True,
+    label: str | None = None,
+) -> None:
+    """
+    Plots the histogram of the data and the Gaussian fit.
+
+    Args:
+        fit_info (Dict[str, ModelResult]): A dictionary containing the range ('low', 'high', 'center') and
+                                           the final fit result ('fit') from the Gaussian model.
+        values (List[float]): List of values to plot in the histogram.
+        binnum (int, optional): The number of bins to use when creating the histogram. Defaults to 20.
+        plot_hists (bool, optional): If True, the histogram is plotted. Defaults to True.
+        label (str, optional): Label for the Gaussian fit line. Defaults to None.
+    """
+    fit_data = values[(values >= fit_info["low"]) & (values <= fit_info["high"])]
+    numvalues = len(fit_data)
+    h = 3.49 * (numvalues) ** (-1 / 3) * np.std(fit_data)
+    binnum = int(np.ceil((max(fit_data) - min(fit_data)) / h))
+    if plot_hists:
+        curr_hist = plt.hist(fit_data, bins=binnum)
+    x = np.linspace(fit_info["low"], fit_info["high"], num=200)
+    plt.plot(
+        x,
+        fit_info["fit"].eval(params=fit_info["fit"].params, x=x),
+        color="red",
+        label=label,
+    )
+
+
+def get_mode(hist_data: Tuple[np.ndarray, np.ndarray]) -> Tuple[float, int]:
+    """
+    Determines the mode (the value that appears most often) from histogram data.
+
+    Args:
+        hist_data (Tuple[np.ndarray, np.ndarray]): A tuple containing the counts per bin and the bin edges, typically the output of a numpy histogram function.
+
+    Returns:
+        Tuple[float, int]: The center of the bin with the highest count (mode) and the maximum count.
+    """
     counts = hist_data[0]
     bins = hist_data[1]
-    centers = (bins[1:] + bins[:-1])/2.0
+    centers = (bins[1:] + bins[:-1]) / 2.0
     max_index = np.argmax(counts)
     return centers[max_index], np.amax(counts)
 
 
 # takes in measurement info, and processes it at waveform level
-#constructs different histograms, and does gaussian fits
+# constructs different histograms, and does gaussian fits
 class WaveformProcessor:
-    def __init__(self, info, centers, run_info_self = None,
-                 run_info_solicit = None, baseline_correct = False,
-                 cutoff = (0,np.infty), numpeaks = 4, no_solicit = False,
-                 offset_num = 0):
-        
+    def __init__(
+        self,
+        info: MeasurementInfo,
+        centers: List[float] | np.ndarray,
+        run_info_self: Optional[RunInfo] = None,
+        run_info_solicit: Optional[RunInfo] = None,
+        baseline_correct: bool = False,
+        cutoff: Tuple[float, float] = (0, np.infty),
+        numpeaks: int = 4,
+        no_solicit: bool = False,
+        offset_num: int = 0,
+    ):
+        """
+        Initializes the WaveformProcessor class with the provided parameters.
+
+        Args:
+            info (MeasurementInfo): Class containing info regarding measurement.
+            centers (List[float]): Initial guesses for centroid of each gaussian.
+            run_info_self (Optional[RunInfo]): RunInfo class containing SPE or Alpha data.
+            run_info_solicit (Optional[RunInfo]): RunInfo class containing baseline data.
+            baseline_correct (bool): Boolean value indicating if baseline correction needs to be applied. Defaults to False.
+            cutoff (Tuple[float, float]): Low and high cutoff values. Defaults to (0,np.infty).
+            numpeaks (int): The number of peaks you want to fit. Defaults to 4.
+            no_solicit (bool): A flag indicating if there is no solicited waveform available. Defaults to False.
+            offset_num (int): Offset number for the waveform. Defaults to 0.
+        """
+
         self.baseline_correct = baseline_correct
         self.info = info
         self.run_info_self = run_info_self
@@ -298,7 +496,7 @@ class WaveformProcessor:
             self.baseline_mode = run_info_self.baseline_mode_mean
             # self.baseline_mode = 1 #PLACEHOLDER
             self.baseline_rms = run_info_self.baseline_mode_rms
-            self.baseline_std = 0.25*run_info_self.baseline_mode_std
+            self.baseline_std = 0.25 * run_info_self.baseline_mode_std
             self.baseline_err = run_info_self.baseline_mode_err
             self.baseline_rms = run_info_self.baseline_mode_rms
             # self.baseline_std = 1
@@ -307,72 +505,108 @@ class WaveformProcessor:
             self.run_info_solicit = run_info_solicit
             self.baseline_mode = run_info_solicit.baseline_mode
 
-    def process_h5(self):
+    def process_h5(self) -> None:
+        """
+        Processes the .h5 files associated with the WaveformProcessor instance.
+        The method extracts peak data and, if available, baseline data.
+        """
         for curr_file in self.run_info_self.hd5_files:
-            for curr_acquisition_name in self.run_info_self.acquisition_names[curr_file]:
+            for curr_acquisition_name in self.run_info_self.acquisition_names[
+                curr_file
+            ]:
                 # self.peak_values = np.array(self.run_info_self.peak_data[curr_file][curr_acquisition_name])
                 self.peak_values = np.array(self.run_info_self.all_peak_data)
-                self.peak_values = self.peak_values[(self.peak_values >= self.cutoff[0]) & (self.peak_values <= self.cutoff[1])] #peaks in a range
-                self.all = np.array(self.run_info_self.all_peak_data) #all peaks
+                self.peak_values = self.peak_values[
+                    (self.peak_values >= self.cutoff[0])
+                    & (self.peak_values <= self.cutoff[1])
+                ]  # peaks in a range
+                self.all = np.array(self.run_info_self.all_peak_data)  # all peaks
 
         if not self.no_solicit:
             for curr_file in self.run_info_solicit.hd5_files:
-                for curr_acquisition_name in self.run_info_solicit.acquisition_names[curr_file]:
+                for curr_acquisition_name in self.run_info_solicit.acquisition_names[
+                    curr_file
+                ]:
                     # try:
                     if self.run_info_solicit.specifyAcquisition:
-                            curr_acquisition_name = self.run_info_solicit.acquisition
-                    #except:
+                        curr_acquisition_name = self.run_info_solicit.acquisition
+                    # except:
                     else:
-                        self.baseline_values = np.array(self.run_info_solicit.peak_data[curr_file][curr_acquisition_name])
-                    self.baseline_values = np.array(self.run_info_solicit.peak_data[curr_file][curr_acquisition_name])
+                        self.baseline_values = np.array(
+                            self.run_info_solicit.peak_data[curr_file][
+                                curr_acquisition_name
+                            ]
+                        )
+                    self.baseline_values = np.array(
+                        self.run_info_solicit.peak_data[curr_file][
+                            curr_acquisition_name
+                        ]
+                    )
 
     # reads in the waveform data either from the raw data or from a pre-saved .csv file
-    def process(self, overwrite = False, do_spe = True, do_alpha = False):
+    def process(self, overwrite=False, do_spe=True, do_alpha=False):
         self.process_h5()
 
         if do_alpha:
-            self.peak_values = self.peak_values[self.peak_values > self.info.min_alpha_value]
+            self.peak_values = self.peak_values[
+                self.peak_values > self.info.min_alpha_value
+            ]
 
-        self.numbins = int(round(np.sqrt(len(self.peak_values)))) #!!! attr defined outside init
+        self.numbins = int(
+            round(np.sqrt(len(self.peak_values)))
+        )  #!!! attr defined outside init
         print(f"len: {len(self.peak_values)}")
         print(f"{self.numbins}")
         if self.no_solicit:
             self.baseline_mean = self.baseline_mode
-            self.baseline_std = 0.002 #arbitrary
-            print('baseline mode: ' + str(self.baseline_mode))
-            print('baseline std: ' + str(self.baseline_std))
+            self.baseline_std = 0.002  # arbitrary
+            print("baseline mode: " + str(self.baseline_mode))
+            print("baseline std: " + str(self.baseline_std))
         else:
             self.baseline_fit = fit_baseline_gauss(
-                    self.baseline_values,
-                    binnum = self.info.baseline_numbins,
-                    alpha = do_alpha
-                    )
-            self.baseline_std = self.baseline_fit['fit'].values['sigma']
-            self.baseline_mean = self.baseline_fit['fit'].values['center']
-            self.baseline_err = self.baseline_fit['fit'].params['center'].stderr
+                self.baseline_values, binnum=self.info.baseline_numbins, alpha=do_alpha
+            )
+            self.baseline_std = self.baseline_fit["fit"].values["sigma"]
+            self.baseline_mean = self.baseline_fit["fit"].values["center"]
+            self.baseline_err = self.baseline_fit["fit"].params["center"].stderr
             self.baseline_rms = np.sqrt(np.mean(self.baseline_values**2))
-            print('baseline mean: ' + str(self.baseline_mean))
-            print('baseline std: ' + str(self.baseline_std))
+            print("baseline mean: " + str(self.baseline_mean))
+            print("baseline std: " + str(self.baseline_std))
 
         if do_spe:
             self.peak_fit = fit_peaks_multigauss(
-                    self.peak_values,
-                    # self.baseline_mean,
-                    2.0 * self.baseline_std,
-                    # 0.002,
-                    # binnum = self.info.peaks_numbins,
-                    binnum = self.numbins,
-                    range_low = self.range_low,
-                    range_high = self.range_high,
-                    center = self.center,
-                    offset_num = self.offset_num
-                    )
+                self.peak_values,
+                # self.baseline_mean,
+                2.0 * self.baseline_std,
+                # 0.002,
+                # binnum = self.info.peaks_numbins,
+                binnum=self.numbins,
+                range_low=self.range_low,
+                range_high=self.range_high,
+                center=self.center,
+                offset_num=self.offset_num,
+            )
 
-            self.peak_locs = [self.peak_fit.params['g1_center'].value, self.peak_fit.params['g2_center'].value, self.peak_fit.params['g3_center'].value, self.peak_fit.params['g4_center'].value,]
+            self.peak_locs = [
+                self.peak_fit.params["g1_center"].value,
+                self.peak_fit.params["g2_center"].value,
+                self.peak_fit.params["g3_center"].value,
+                self.peak_fit.params["g4_center"].value,
+            ]
             print(self.peak_locs)
-            self.peak_sigmas = [self.peak_fit.params['g1_sigma'].value, self.peak_fit.params['g2_sigma'].value, self.peak_fit.params['g3_sigma'].value, self.peak_fit.params['g4_sigma'].value]
+            self.peak_sigmas = [
+                self.peak_fit.params["g1_sigma"].value,
+                self.peak_fit.params["g2_sigma"].value,
+                self.peak_fit.params["g3_sigma"].value,
+                self.peak_fit.params["g4_sigma"].value,
+            ]
             print(self.peak_sigmas)
-            self.peak_stds = [self.peak_fit.params['g1_center'].stderr, self.peak_fit.params['g2_center'].stderr, self.peak_fit.params['g3_center'].stderr, self.peak_fit.params['g4_center'].stderr]
+            self.peak_stds = [
+                self.peak_fit.params["g1_center"].stderr,
+                self.peak_fit.params["g2_center"].stderr,
+                self.peak_fit.params["g3_center"].stderr,
+                self.peak_fit.params["g4_center"].stderr,
+            ]
             print(self.peak_stds)
 
             # self.peak_err = [np.sqrt(sigma**2 - self.baseline_std**2) for sigma in self.peak_sigmas] #error on peak location as rms difference between peak and baseline width
@@ -381,9 +615,12 @@ class WaveformProcessor:
             self.peak_wgts = [1.0 / curr_std for curr_std in self.peak_stds]
             self.spe_num = []
 
-
-            self.resolution = [(self.peak_locs[i+1]-self.peak_locs[i])/np.sqrt(self.peak_sigmas[i]**2 + self.peak_sigmas[i+1]**2) for i in range(len(self.peak_locs)-1)]
-            print('sigma SNR: ' + str(self.resolution))
+            self.resolution = [
+                (self.peak_locs[i + 1] - self.peak_locs[i])
+                / np.sqrt(self.peak_sigmas[i] ** 2 + self.peak_sigmas[i + 1] ** 2)
+                for i in range(len(self.peak_locs) - 1)
+            ]
+            print("sigma SNR: " + str(self.resolution))
 
             for idx in range(self.numpeaks):
                 self.spe_num.append(float(idx + 1 + self.offset_num))
@@ -393,30 +630,56 @@ class WaveformProcessor:
             model = lm.models.LinearModel()
             params = model.make_params()
 
-            self.spe_res = model.fit(self.peak_locs[:self.numpeaks], params=params, x=self.spe_num, weights=self.peak_wgts[:self.numpeaks]) # creates linear fit model
-#
+            self.spe_res = model.fit(
+                self.peak_locs[: self.numpeaks],
+                params=params,
+                x=self.spe_num,
+                weights=self.peak_wgts[: self.numpeaks],
+            )  # creates linear fit model
+            #
 
-            print('SNR: ' + str(self.spe_res.params['slope'].value/self.baseline_mode))
-            print('SNR 2-3: ' + str((self.peak_locs[2]-self.peak_locs[1])/self.baseline_mode))
-            print('SNR 1-2: ' + str((self.peak_locs[1]-self.peak_locs[0])/self.baseline_mode))
+            print(
+                "SNR: " + str(self.spe_res.params["slope"].value / self.baseline_mode)
+            )
+            print(
+                "SNR 2-3: "
+                + str((self.peak_locs[2] - self.peak_locs[1]) / self.baseline_mode)
+            )
+            print(
+                "SNR 1-2: "
+                + str((self.peak_locs[1] - self.peak_locs[0]) / self.baseline_mode)
+            )
 
             if self.baseline_correct:
-                self.A_avg = np.mean(self.all) - self.spe_res.params['intercept'].value # spectrum specific baseline correction
-                #self.A_avg_err = self.A_avg * np.sqrt((sem(self.all) / np.mean(self.all))** 2 + (self.spe_res.params['intercept'].stderr / self.spe_res.params['intercept'].value)** 2)
-                self.A_avg_err = np.sqrt((sem(self.all))** 2 + (self.spe_res.params['intercept'].stderr)** 2)
+                self.A_avg = (
+                    np.mean(self.all) - self.spe_res.params["intercept"].value
+                )  # spectrum specific baseline correction
+                # self.A_avg_err = self.A_avg * np.sqrt((sem(self.all) / np.mean(self.all))** 2 + (self.spe_res.params['intercept'].stderr / self.spe_res.params['intercept'].value)** 2)
+                self.A_avg_err = np.sqrt(
+                    (sem(self.all)) ** 2
+                    + (self.spe_res.params["intercept"].stderr) ** 2
+                )
             else:
                 self.A_avg = np.mean(self.all)
-                self.A_avg_err = self.A_avg * np.sqrt((sem(self.all) / np.mean(self.all)) ** 2)
+                self.A_avg_err = self.A_avg * np.sqrt(
+                    (sem(self.all) / np.mean(self.all)) ** 2
+                )
 
-
-            self.CA = self.A_avg / self.spe_res.params['slope'].value - 1
+            self.CA = self.A_avg / self.spe_res.params["slope"].value - 1
             self.CA_err = self.CA * np.sqrt(
-                    (self.A_avg_err / self.A_avg) ** 2 +
-                    (self.spe_res.params['slope'].stderr / self.spe_res.params['slope'].value) ** 2)
+                (self.A_avg_err / self.A_avg) ** 2
+                + (
+                    self.spe_res.params["slope"].stderr
+                    / self.spe_res.params["slope"].value
+                )
+                ** 2
+            )
 
         if do_alpha:
-            self.alpha_fit = fit_alpha_gauss(self.peak_values, binnum = self.info.peaks_numbins)
-            self.alpha_res = self.alpha_fit['fit']
+            self.alpha_fit = fit_alpha_gauss(
+                self.peak_values, binnum=self.info.peaks_numbins
+            )
+            self.alpha_res = self.alpha_fit["fit"]
 
     def get_alpha_data(self):
         return self.peak_values
@@ -428,10 +691,10 @@ class WaveformProcessor:
         return self.alpha_res
 
     def get_baseline_fit(self):
-        return self.baseline_fit['fit']
+        return self.baseline_fit["fit"]
 
     def get_spe(self):
-        return (self.spe_res.params['slope'].value, self.spe_res.params['slope'].stderr)
+        return (self.spe_res.params["slope"].value, self.spe_res.params["slope"].stderr)
 
     def get_CA(self):
         return (self.CA, self.CA_err)
@@ -440,116 +703,159 @@ class WaveformProcessor:
         # print('average A error', self.A_avg_err)
         currCA = self.A_avg / spe - 1
         currCA_err = currCA * np.sqrt(
-                    (self.A_avg_err / self.A_avg) ** 2 +
-                    (spe_err / spe) ** 2)
+            (self.A_avg_err / self.A_avg) ** 2 + (spe_err / spe) ** 2
+        )
 
         return (currCA, currCA_err)
 
     def get_CA_rms(self, spe, spe_err):
         currCA = self.A_avg / spe - 1
-        Q_twi = self.peak_values - self.spe_res.params['intercept'].value
+        Q_twi = self.peak_values - self.spe_res.params["intercept"].value
         Q_1pe = spe
         sqrtval = Q_twi / Q_1pe - (currCA + 1)
         val = sqrtval * sqrtval
         rms = np.sqrt(np.mean(val))
         rms_err = rms * np.sqrt(
-                    (self.A_avg_err / self.A_avg) ** 2 +
-                    (spe_err / spe) ** 2)
+            (self.A_avg_err / self.A_avg) ** 2 + (spe_err / spe) ** 2
+        )
         return (rms, rms_err)
 
-    def get_alpha(self, sub_baseline = True):
-        alpha_value = self.alpha_res.params['center'].value
-        alpha_error = self.alpha_res.params['center'].stderr
+    def get_alpha(self, sub_baseline=True):
+        alpha_value = self.alpha_res.params["center"].value
+        alpha_error = self.alpha_res.params["center"].stderr
         if sub_baseline:
             baseline_value = self.baseline_mean
             baseline_error = self.baseline_err
             alpha_value -= baseline_value
-            alpha_error = np.sqrt(alpha_error * alpha_error + baseline_error * baseline_error)
+            alpha_error = np.sqrt(
+                alpha_error * alpha_error + baseline_error * baseline_error
+            )
         return alpha_value, alpha_error
 
     def get_alpha_std(self):
-        alpha_value = self.alpha_res.params['sigma'].value
-        alpha_error = self.alpha_res.params['sigma'].stderr
+        alpha_value = self.alpha_res.params["sigma"].value
+        alpha_error = self.alpha_res.params["sigma"].stderr
 
         return alpha_value, alpha_error
 
-    def plot_spe(self, with_baseline = True, baselinecolor = 'orange', peakcolor = 'blue', savefig = False, path = None):
+    def plot_spe(
+        self,
+        with_baseline=True,
+        baselinecolor="orange",
+        peakcolor="blue",
+        savefig=False,
+        path=None,
+    ):
         fig = plt.figure()
         fig.tight_layout()
-        plt.rc('font', size=22)
-        plt.errorbar(self.spe_num, self.peak_locs[:self.numpeaks], yerr = self.peak_stds[:self.numpeaks], fmt = '.', label = 'Self-Triggered Peaks', color = 'tab:' + peakcolor, markersize = 10)
+        plt.rc("font", size=22)
+        plt.errorbar(
+            self.spe_num,
+            self.peak_locs[: self.numpeaks],
+            yerr=self.peak_stds[: self.numpeaks],
+            fmt=".",
+            label="Self-Triggered Peaks",
+            color="tab:" + peakcolor,
+            markersize=10,
+        )
         if with_baseline:
             if self.no_solicit == False:
-                plt.errorbar(0, self.baseline_mean, yerr = self.baseline_err, fmt='.', label = 'Solicited Baseline Peak', color = 'tab:' + baselinecolor, markersize = 10)
+                plt.errorbar(
+                    0,
+                    self.baseline_mean,
+                    yerr=self.baseline_err,
+                    fmt=".",
+                    label="Solicited Baseline Peak",
+                    color="tab:" + baselinecolor,
+                    markersize=10,
+                )
             # else:
-                # plt.errorbar(0, self.baseline_mode, yerr = self.baseline_err, fmt='.', label = 'Solicited Baseline Peak', color = 'tab:' + baselinecolor, markersize = 10)
+            # plt.errorbar(0, self.baseline_mode, yerr = self.baseline_err, fmt='.', label = 'Solicited Baseline Peak', color = 'tab:' + baselinecolor, markersize = 10)
 
-
-        b = self.spe_res.params['intercept'].value
-        m = self.spe_res.params['slope'].value
+        b = self.spe_res.params["intercept"].value
+        m = self.spe_res.params["slope"].value
         x_values = np.linspace(0, len(self.spe_num) + 1, 20)
         y_values = m * x_values + b
-        plt.plot(x_values, y_values, '--', color = 'tab:' + peakcolor, label = 'Self-Triggered Fit')
+        plt.plot(
+            x_values,
+            y_values,
+            "--",
+            color="tab:" + peakcolor,
+            label="Self-Triggered Fit",
+        )
         # dely = self.spe_res.eval_uncertainty(x=x_values, sigma=1)
         # plt.fill_between(x_values, y_values+dely, y_values-dely)
         # plt.plot(self.spe_num, self.spe_res.best_fit, 'r', label='Self-Triggered Fit')
 
-        plt.xlabel('Photoelectron Peak Number')
-        plt.ylabel('Peak Location [V]')
+        plt.xlabel("Photoelectron Peak Number")
+        plt.ylabel("Peak Location [V]")
 
         plt.legend()
 
-        textstr = f'Date: {self.info.date}\n'
-        textstr += f'Condition: {self.info.condition}\n'
-        textstr += f'Bias: {self.info.bias:0.4} [V]\n'
-        textstr += f'RTD4: {self.info.temperature} [K]\n'
-        textstr += f'--\n'
-        textstr += f'''Slope: {self.spe_res.params['slope'].value:0.4} +- {self.spe_res.params['slope'].stderr:0.2} [V/p.e.]\n'''
-        textstr += f'''Intercept: {self.spe_res.params['intercept'].value:0.4} +- {self.spe_res.params['intercept'].stderr:0.2} [V]\n'''
-        textstr += rf'''Reduced $\chi^2$: {self.spe_res.redchi:0.4}'''
-        textstr += f'''\n'''
-        textstr += f'--\n'
+        textstr = f"Date: {self.info.date}\n"
+        textstr += f"Condition: {self.info.condition}\n"
+        textstr += f"Bias: {self.info.bias:0.4} [V]\n"
+        textstr += f"RTD4: {self.info.temperature} [K]\n"
+        textstr += f"--\n"
+        textstr += f"""Slope: {self.spe_res.params['slope'].value:0.4} +- {self.spe_res.params['slope'].stderr:0.2} [V/p.e.]\n"""
+        textstr += f"""Intercept: {self.spe_res.params['intercept'].value:0.4} +- {self.spe_res.params['intercept'].stderr:0.2} [V]\n"""
+        textstr += rf"""Reduced $\chi^2$: {self.spe_res.redchi:0.4}"""
+        textstr += f"""\n"""
+        textstr += f"--\n"
         if not self.no_solicit:
-            textstr += f'Baseline: {self.baseline_mean:0.4} +- {self.baseline_err:0.2} [V]'
+            textstr += (
+                f"Baseline: {self.baseline_mean:0.4} +- {self.baseline_err:0.2} [V]"
+            )
 
-        props = dict(boxstyle='round', facecolor='tab:' + peakcolor, alpha=0.4)
-        fig.text(0.6, 0.4, textstr, fontsize=20,
-                verticalalignment='top', bbox=props)
+        props = dict(boxstyle="round", facecolor="tab:" + peakcolor, alpha=0.4)
+        fig.text(0.6, 0.4, textstr, fontsize=20, verticalalignment="top", bbox=props)
 
         if savefig:
             plt.savefig(path)
             plt.close(fig)
 
-    def plot_baseline_histogram(self, with_fit = True, log_scale = False, color = 'orange', savefig = False, path = None):
+    def plot_baseline_histogram(
+        self, with_fit=True, log_scale=False, color="orange", savefig=False, path=None
+    ):
         fig = plt.figure()
-        plt.hist(self.baseline_values, bins = self.info.baseline_numbins, label = 'Solicited Baseline Data', color = 'tab:' + color)
+        plt.hist(
+            self.baseline_values,
+            bins=self.info.baseline_numbins,
+            label="Solicited Baseline Data",
+            color="tab:" + color,
+        )
         if with_fit:
-            plot_fit(self.baseline_fit, self.baseline_values, binnum = self.info.baseline_numbins, plot_hists = False, label = 'Solicited Baseline Fit')
+            plot_fit(
+                self.baseline_fit,
+                self.baseline_values,
+                binnum=self.info.baseline_numbins,
+                plot_hists=False,
+                label="Solicited Baseline Fit",
+            )
         # plt.legend(loc = 'center left')
-        plt.xlabel('Waveform Amplitude [V]')
-        plt.ylabel('Counts')
+        plt.xlabel("Waveform Amplitude [V]")
+        plt.ylabel("Counts")
         if log_scale:
-            plt.yscale('log')
-        textstr = f'Date: {self.info.date}\n'
-        textstr += f'Condition: {self.info.condition}\n'
-        textstr += f'Bias: {self.info.bias:0.4} [V]\n'
-        textstr += f'RTD4: {self.info.temperature} [K]\n'
-        textstr += f'--\n'
-        textstr += f'''Baseline Mean: {self.baseline_fit['fit'].params['center'].value:0.4} +- {self.baseline_fit['fit'].params['center'].stderr:0.1} [V]\n'''
-        textstr += f'''Baseline Sigma: {self.baseline_fit['fit'].params['sigma'].value:0.4} +- {self.baseline_fit['fit'].params['sigma'].stderr:0.1} [V]\n'''
-        textstr += f'''Reduced $\chi^2$: {self.baseline_fit['fit'].redchi:0.4}'''
+            plt.yscale("log")
+        textstr = f"Date: {self.info.date}\n"
+        textstr += f"Condition: {self.info.condition}\n"
+        textstr += f"Bias: {self.info.bias:0.4} [V]\n"
+        textstr += f"RTD4: {self.info.temperature} [K]\n"
+        textstr += f"--\n"
+        textstr += f"""Baseline Mean: {self.baseline_fit['fit'].params['center'].value:0.4} +- {self.baseline_fit['fit'].params['center'].stderr:0.1} [V]\n"""
+        textstr += f"""Baseline Sigma: {self.baseline_fit['fit'].params['sigma'].value:0.4} +- {self.baseline_fit['fit'].params['sigma'].stderr:0.1} [V]\n"""
+        textstr += f"""Reduced $\chi^2$: {self.baseline_fit['fit'].redchi:0.4}"""
 
-        plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-        props = dict(boxstyle='round', facecolor='tab:' + color, alpha=0.5)
-        fig.text(0.15, 0.9, textstr, fontsize=8,
-                verticalalignment='top', bbox=props)
+        plt.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
+        props = dict(boxstyle="round", facecolor="tab:" + color, alpha=0.5)
+        fig.text(0.15, 0.9, textstr, fontsize=8, verticalalignment="top", bbox=props)
         plt.tight_layout()
 
         if savefig:
             plt.savefig(path)
             plt.close(fig)
 
-#zoomed in version
+    # zoomed in version
     # def plot_peak_histograms(self, with_fit = True, log_scale = True, peakcolor = 'blue', savefig = False, path = None):
     #     fig = plt.figure()
 
@@ -597,111 +903,156 @@ class WaveformProcessor:
     #         plt.close(fig)
 
     # see entire hist
-    def plot_peak_histograms(self, with_fit = True, log_scale = True, peakcolor = 'blue', savefig = False, path = None):
-        fig = plt.figure()\
-
-        bin_width = (max(self.peak_values)-min(self.peak_values))/self.numbins
+    def plot_peak_histograms(
+        self, with_fit=True, log_scale=True, peakcolor="blue", savefig=False, path=None
+    ):
+        fig = plt.figure()
+        bin_width = (max(self.peak_values) - min(self.peak_values)) / self.numbins
         # print(bin_width)
 
-        total_num_bins = (max(self.all)-min(self.all))/bin_width
+        total_num_bins = (max(self.all) - min(self.all)) / bin_width
 
-        textstr = f'Date: {self.info.date}\n'
-        textstr += f'Condition: {self.info.condition}\n'
-        textstr += f'Bias: {self.info.bias} [V]\n'
-        textstr += f'RTD4: {self.info.temperature} [K]\n'
-        textstr += f'--\n'
-        textstr += f'''Peak 1: {self.peak_fit.params['g1_center'].value:0.2} +- {self.peak_fit.params['g1_center'].stderr:0.2}\n'''
-        textstr += f'''Peak 2: {self.peak_fit.params['g2_center'].value:0.2} +- {self.peak_fit.params['g2_center'].stderr:0.2}\n'''
-        textstr += f'''Peak 3: {self.peak_fit.params['g3_center'].value:0.2} +- {self.peak_fit.params['g3_center'].stderr:0.2}\n'''
-        textstr += f'''Peak 4: {self.peak_fit.params['g4_center'].value:0.2} +- {self.peak_fit.params['g4_center'].stderr:0.2}\n'''
-        textstr += f'''Reduced $\chi^2$: {self.peak_fit.redchi:0.2}\n'''
-        textstr += f'''SNR (quadrature): {self.resolution[0]:0.2}\n'''
-        textstr += f'''SNR 1-2 (mode): {(self.peak_locs[1]-self.peak_locs[0])/self.baseline_mode:0.2}\n'''
-        textstr += f'''SNR 2-3 (mode): {(self.peak_locs[2]-self.peak_locs[1])/self.baseline_mode:0.2}\n'''
+        textstr = f"Date: {self.info.date}\n"
+        textstr += f"Condition: {self.info.condition}\n"
+        textstr += f"Bias: {self.info.bias} [V]\n"
+        textstr += f"RTD4: {self.info.temperature} [K]\n"
+        textstr += f"--\n"
+        textstr += f"""Peak 1: {self.peak_fit.params['g1_center'].value:0.2} +- {self.peak_fit.params['g1_center'].stderr:0.2}\n"""
+        textstr += f"""Peak 2: {self.peak_fit.params['g2_center'].value:0.2} +- {self.peak_fit.params['g2_center'].stderr:0.2}\n"""
+        textstr += f"""Peak 3: {self.peak_fit.params['g3_center'].value:0.2} +- {self.peak_fit.params['g3_center'].stderr:0.2}\n"""
+        textstr += f"""Peak 4: {self.peak_fit.params['g4_center'].value:0.2} +- {self.peak_fit.params['g4_center'].stderr:0.2}\n"""
+        textstr += f"""Reduced $\chi^2$: {self.peak_fit.redchi:0.2}\n"""
+        textstr += f"""SNR (quadrature): {self.resolution[0]:0.2}\n"""
+        textstr += f"""SNR 1-2 (mode): {(self.peak_locs[1]-self.peak_locs[0])/self.baseline_mode:0.2}\n"""
+        textstr += f"""SNR 2-3 (mode): {(self.peak_locs[2]-self.peak_locs[1])/self.baseline_mode:0.2}\n"""
 
-        curr_hist = np.histogram(self.all, bins = self.numbins)
+        curr_hist = np.histogram(self.all, bins=self.numbins)
         counts = curr_hist[0]
         bins = curr_hist[1]
-        centers = (bins[1:] + bins[:-1])/2
-        plt.plot(np.linspace(self.cutoff[0],self.cutoff[1],len(self.peak_fit.best_fit)), self.peak_fit.best_fit, '-', label='best fit', color = 'red') #plot the best fit model func
+        centers = (bins[1:] + bins[:-1]) / 2
+        plt.plot(
+            np.linspace(self.cutoff[0], self.cutoff[1], len(self.peak_fit.best_fit)),
+            self.peak_fit.best_fit,
+            "-",
+            label="best fit",
+            color="red",
+        )  # plot the best fit model func
 
-        x = np.linspace(self.cutoff[0],self.cutoff[1],200)
-        plt.plot(x, self.peak_fit.best_values['l_intercept'] +  self.peak_fit.best_values['l_slope']*x, '-', label='best fit - line', color = 'blue') #plot linear component of best fit model func
+        x = np.linspace(self.cutoff[0], self.cutoff[1], 200)
+        plt.plot(
+            x,
+            self.peak_fit.best_values["l_intercept"]
+            + self.peak_fit.best_values["l_slope"] * x,
+            "-",
+            label="best fit - line",
+            color="blue",
+        )  # plot linear component of best fit model func
 
-        props = dict(boxstyle='round', facecolor='tab:' + peakcolor, alpha=0.4)
+        props = dict(boxstyle="round", facecolor="tab:" + peakcolor, alpha=0.4)
         # plt.scatter(centers, counts, s = 7, color = 'black')
-        plt.hist(self.all, bins = int(total_num_bins), color = 'tab:' + peakcolor)
+        plt.hist(self.all, bins=int(total_num_bins), color="tab:" + peakcolor)
 
-        fig.text(0.55, 0.925, textstr, fontsize=8,
-                verticalalignment='top', bbox=props)
-        plt.ylabel('Counts')
-        plt.xlabel('Pulse Amplitude [V]')
+        fig.text(0.55, 0.925, textstr, fontsize=8, verticalalignment="top", bbox=props)
+        plt.ylabel("Counts")
+        plt.xlabel("Pulse Amplitude [V]")
 
         if log_scale:
-            plt.ylim(1E-1)
-            plt.yscale('log')
+            plt.ylim(1e-1)
+            plt.yscale("log")
         plt.tight_layout()
 
         if savefig:
             plt.savefig(path)
             plt.close(fig)
 
-    def plot_alpha_histogram(self, with_fit = True, log_scale = False, peakcolor = 'purple'):
+    def plot_alpha_histogram(self, with_fit=True, log_scale=False, peakcolor="purple"):
         fig = plt.figure()
         fig.tight_layout()
-        plt.rc('font', size=22)
-        bin_density = self.info.peaks_numbins / (self.alpha_fit['high'] - self.alpha_fit['low'])
-        total_num_bins = bin_density * (np.amax(self.peak_values) - np.amin(self.peak_values))
-        plt.hist(self.peak_values, bins = int(total_num_bins), color = 'tab:' + peakcolor)
+        plt.rc("font", size=22)
+        bin_density = self.info.peaks_numbins / (
+            self.alpha_fit["high"] - self.alpha_fit["low"]
+        )
+        total_num_bins = bin_density * (
+            np.amax(self.peak_values) - np.amin(self.peak_values)
+        )
+        plt.hist(self.peak_values, bins=int(total_num_bins), color="tab:" + peakcolor)
         if with_fit:
-            plot_fit(self.alpha_fit, self.peak_values, binnum = self.info.peaks_numbins, plot_hists = False)
-#        plt.legend(loc = 'center left')
-        plt.xlabel('Waveform Amplitude [V]')
-        plt.ylabel('Counts')
+            plot_fit(
+                self.alpha_fit,
+                self.peak_values,
+                binnum=self.info.peaks_numbins,
+                plot_hists=False,
+            )
+        #        plt.legend(loc = 'center left')
+        plt.xlabel("Waveform Amplitude [V]")
+        plt.ylabel("Counts")
         plt.xlim(0.0)
         if log_scale:
-            plt.yscale('log')
-            plt.ylim(.1)
-        textstr = f'Date: {self.info.date}\n'
-        textstr += f'Condition: {self.info.condition}\n'
-        textstr += f'Bias: {self.info.bias:0.4} [V]\n'
-        textstr += f'RTD4: {self.info.temperature} [K]\n'
-        textstr += f'--\n'
-        textstr += f'''Alpha Peak Mean: {self.alpha_fit['fit'].params['center'].value:0.4} +- {self.alpha_fit['fit'].params['center'].stderr:0.1} [V]\n'''
-        textstr += f'''Alpha Peak Sigma: {self.alpha_fit['fit'].params['sigma'].value:0.4} +- {self.alpha_fit['fit'].params['sigma'].stderr:0.1} [V]\n'''
-        textstr += f'''Reduced $\chi^2$: {self.alpha_res.redchi:0.4}'''
+            plt.yscale("log")
+            plt.ylim(0.1)
+        textstr = f"Date: {self.info.date}\n"
+        textstr += f"Condition: {self.info.condition}\n"
+        textstr += f"Bias: {self.info.bias:0.4} [V]\n"
+        textstr += f"RTD4: {self.info.temperature} [K]\n"
+        textstr += f"--\n"
+        textstr += f"""Alpha Peak Mean: {self.alpha_fit['fit'].params['center'].value:0.4} +- {self.alpha_fit['fit'].params['center'].stderr:0.1} [V]\n"""
+        textstr += f"""Alpha Peak Sigma: {self.alpha_fit['fit'].params['sigma'].value:0.4} +- {self.alpha_fit['fit'].params['sigma'].stderr:0.1} [V]\n"""
+        textstr += f"""Reduced $\chi^2$: {self.alpha_res.redchi:0.4}"""
 
-        props = dict(boxstyle='round', facecolor='tab:' + peakcolor, alpha=0.4)
-        fig.text(0.175, 0.925, textstr, fontsize=20,
-                verticalalignment='top', bbox=props)
+        props = dict(boxstyle="round", facecolor="tab:" + peakcolor, alpha=0.4)
+        fig.text(
+            0.175, 0.925, textstr, fontsize=20, verticalalignment="top", bbox=props
+        )
         plt.show()
 
-    def plot_both_histograms(self, log_scale = True, density = True, alphas = False, baselinecolor = 'orange', peakcolor = 'blue', savefig = False, path = None):
+    def plot_both_histograms(
+        self,
+        log_scale=True,
+        density=True,
+        alphas=False,
+        baselinecolor="orange",
+        peakcolor="blue",
+        savefig=False,
+        path=None,
+    ):
         if self.no_solicit:
-            print('NO PRE BREAKDOWN DATA TO PLOT')
+            print("NO PRE BREAKDOWN DATA TO PLOT")
         fig = plt.figure()
-        plt.hist(self.baseline_values, bins = self.info.baseline_numbins, label = 'Solicited Baseline Data', density = density, color = 'tab:' + baselinecolor)
+        plt.hist(
+            self.baseline_values,
+            bins=self.info.baseline_numbins,
+            label="Solicited Baseline Data",
+            density=density,
+            color="tab:" + baselinecolor,
+        )
         if alphas:
-            bin_density = self.info.peaks_numbins / (self.alpha_fit['high'] - self.alpha_fit['low'])
+            bin_density = self.info.peaks_numbins / (
+                self.alpha_fit["high"] - self.alpha_fit["low"]
+            )
         else:
             bin_density = self.info.peaks_numbins / (4.0 * self.baseline_std)
-        #total_num_bins = bin_density * (np.amax(self.peak_values) - np.amin(self.peak_values))
+        # total_num_bins = bin_density * (np.amax(self.peak_values) - np.amin(self.peak_values))
         total_num_bins = self.info.peaks_numbins
-        plt.hist(self.peak_values, bins = int(total_num_bins), density = density, label = 'Self-Triggered Pulse Height Data', color = 'tab:' + peakcolor)
+        plt.hist(
+            self.peak_values,
+            bins=int(total_num_bins),
+            density=density,
+            label="Self-Triggered Pulse Height Data",
+            color="tab:" + peakcolor,
+        )
         if log_scale:
-            plt.ylim(1E-1)
-            plt.yscale('log')
-        plt.ylabel('Frequency' if density else 'Counts')
-        plt.xlabel('Amplitude [V]')
+            plt.ylim(1e-1)
+            plt.yscale("log")
+        plt.ylabel("Frequency" if density else "Counts")
+        plt.xlabel("Amplitude [V]")
 
         plt.legend()
-        textstr = f'Date: {self.info.date}\n'
-        textstr += f'Condition: {self.info.condition}\n'
-        textstr += f'Bias: {self.info.bias:0.4} [V]\n'
-        textstr += f'RTD4: {self.info.temperature} [K]'
-        props = dict(boxstyle='round', facecolor='tab:' + peakcolor, alpha=0.4)
-        fig.text(0.75, 0.75, textstr, fontsize=8,
-                verticalalignment='top', bbox=props)
+        textstr = f"Date: {self.info.date}\n"
+        textstr += f"Condition: {self.info.condition}\n"
+        textstr += f"Bias: {self.info.bias:0.4} [V]\n"
+        textstr += f"RTD4: {self.info.temperature} [K]"
+        props = dict(boxstyle="round", facecolor="tab:" + peakcolor, alpha=0.4)
+        fig.text(0.75, 0.75, textstr, fontsize=8, verticalalignment="top", bbox=props)
         plt.tight_layout()
 
         if savefig:
@@ -709,82 +1060,84 @@ class WaveformProcessor:
             plt.close(fig)
 
     # currently broken:
-    def plot_baseline_waveform_hist(self, num = -1, color = 'orange'):
+    def plot_baseline_waveform_hist(self, num=-1, color="orange"):
         fig = plt.figure()
-        waveform_data, waveform_times, num_w = get_baseline(self.info.solicit_path, self.info.peak_search_params)
-        plt.hist2d(waveform_times, waveform_data, bins = 100, norm=mpl.colors.LogNorm())
-        plt.xlabel(r'Time [$\mu$s]')
-        plt.ylabel('Waveform Amplitude [V]')
-        textstr = f'Date: {self.info.date}\n'
-        textstr += f'Condition: {self.info.condition}\n'
-        textstr += f'Bias: {self.info.bias:0.4} [V]\n'
-        textstr += f'RTD4: {self.info.temperature} [K]\n'
-        textstr += f'Superposition of {num_w} waveforms'
-        props = dict(boxstyle='round', facecolor='tab:' + color, alpha=0.5)
-        fig.text(0.6, 0.3, textstr, fontsize=8,
-                verticalalignment='top', bbox=props)
+        waveform_data, waveform_times, num_w = get_baseline(
+            self.info.solicit_path, self.info.peak_search_params
+        )
+        plt.hist2d(waveform_times, waveform_data, bins=100, norm=mpl.colors.LogNorm())
+        plt.xlabel(r"Time [$\mu$s]")
+        plt.ylabel("Waveform Amplitude [V]")
+        textstr = f"Date: {self.info.date}\n"
+        textstr += f"Condition: {self.info.condition}\n"
+        textstr += f"Bias: {self.info.bias:0.4} [V]\n"
+        textstr += f"RTD4: {self.info.temperature} [K]\n"
+        textstr += f"Superposition of {num_w} waveforms"
+        props = dict(boxstyle="round", facecolor="tab:" + color, alpha=0.5)
+        fig.text(0.6, 0.3, textstr, fontsize=8, verticalalignment="top", bbox=props)
         plt.tight_layout()
 
-    def plot_peak_waveform_hist(self, num = -1, color = 'blue'):
+    def plot_peak_waveform_hist(self, num=-1, color="blue"):
         fig = plt.figure()
-        waveform_data, waveform_times, num_w = get_peak_waveforms(self.info.selftrig_path, num)
-        plt.hist2d(waveform_times, waveform_data, bins = 1000, norm=mpl.colors.LogNorm())
-        plt.xlabel(r'Time [$\mu$s]')
-        plt.ylabel('Waveform Amplitude [V]')
-        textstr = f'Date: {self.info.date}\n'
-        textstr += f'Condition: {self.info.condition}\n'
-        textstr += f'Bias: {self.info.bias:0.4} [V]\n'
-        textstr += f'RTD4: {self.info.temperature} [K]\n'
-        textstr += f'Superposition of {num_w} waveforms'
-        props = dict(boxstyle='round', facecolor='tab:' + color, alpha=0.4)
+        waveform_data, waveform_times, num_w = get_peak_waveforms(
+            self.info.selftrig_path, num
+        )
+        plt.hist2d(waveform_times, waveform_data, bins=1000, norm=mpl.colors.LogNorm())
+        plt.xlabel(r"Time [$\mu$s]")
+        plt.ylabel("Waveform Amplitude [V]")
+        textstr = f"Date: {self.info.date}\n"
+        textstr += f"Condition: {self.info.condition}\n"
+        textstr += f"Bias: {self.info.bias:0.4} [V]\n"
+        textstr += f"RTD4: {self.info.temperature} [K]\n"
+        textstr += f"Superposition of {num_w} waveforms"
+        props = dict(boxstyle="round", facecolor="tab:" + color, alpha=0.4)
         low, high = plt.ylim()
         plt.ylim(low, 4.5)
-        fig.text(0.6, 0.9, textstr, fontsize=8,
-                verticalalignment='top', bbox=props)
+        fig.text(0.6, 0.9, textstr, fontsize=8, verticalalignment="top", bbox=props)
         plt.tight_layout()
 
-    def plot_waveform(self, i, wf_type = 'selftrig'):
-        if wf_type == 'solicit':
-            x, y = get_waveform(self.info.solicit_path + f'w{i}.txt')
-        elif wf_type == 'selftrig':
-            x, y = get_waveform(self.info.selftrig_path + f'w{i}.txt')
+    def plot_waveform(self, i, wf_type="selftrig"):
+        if wf_type == "solicit":
+            x, y = get_waveform(self.info.solicit_path + f"w{i}.txt")
+        elif wf_type == "selftrig":
+            x, y = get_waveform(self.info.selftrig_path + f"w{i}.txt")
         else:
-            print('Fuck You <3')
+            print("Fuck You <3")
             return
 
         fig = plt.figure()
         ax = fig.gca()
-        ax.plot(1,1)
+        ax.plot(1, 1)
 
         peaks, props = signal.find_peaks(y, **self.info.peak_search_params)
         for peak in peaks:
             plt.scatter(x[peak], y[peak])
-        ax.plot(x, y, 'b-')
-        ax.set_xlabel('Time (us)')
-        ax.set_ylabel('Amplitude (V)')
-        ax.set_title('Waveform ' + str(i) + ', ' + str(len(peaks)) + ' peaks')
+        ax.plot(x, y, "b-")
+        ax.set_xlabel("Time (us)")
+        ax.set_ylabel("Amplitude (V)")
+        ax.set_title("Waveform " + str(i) + ", " + str(len(peaks)) + " peaks")
         plt.draw_all()
         plt.show()
         return x, y
 
-    def plot_fft(self, i, wf_type = 'solicit'):
-        if wf_type == 'solicit':
-            x, y = get_waveform(self.info.solicit_path + f'w{i}.txt')
-        elif wf_type == 'selftrig':
-            x, y = get_waveform(self.info.selftrig_path + f'w{i}.txt')
+    def plot_fft(self, i, wf_type="solicit"):
+        if wf_type == "solicit":
+            x, y = get_waveform(self.info.solicit_path + f"w{i}.txt")
+        elif wf_type == "selftrig":
+            x, y = get_waveform(self.info.selftrig_path + f"w{i}.txt")
         else:
-            print('Fuck You <3')
+            print("Fuck You <3")
             return
 
         fig = plt.figure()
         ax = fig.gca()
-        ax.plot(1,1)
+        ax.plot(1, 1)
 
         N = len(x)
-        T = (x[-1]-x[0])/len(x)
+        T = (x[-1] - x[0]) / len(x)
         yf = fft(y)
-        xf = fftfreq(N, T)[:N//2]
-        ax.plot(xf, 2.0/N * np.abs(yf[0:N//2]))
-        ax.set_xlabel('Frequency (MHz)')
-        ax.set_ylabel('Amplitude')
-        ax.set_title(f'Fourier Transform of Waveform {i}')
+        xf = fftfreq(N, T)[: N // 2]
+        ax.plot(xf, 2.0 / N * np.abs(yf[0 : N // 2]))
+        ax.set_xlabel("Frequency (MHz)")
+        ax.set_ylabel("Amplitude")
+        ax.set_title(f"Fourier Transform of Waveform {i}")
