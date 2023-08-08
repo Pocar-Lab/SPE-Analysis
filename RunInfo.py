@@ -108,6 +108,7 @@ class RunInfo:
         prominence: float = 0.005,
         specifyAcquisition: bool = False,
         fourier: bool = False,
+        is_led: bool = True,
     ):
         # TODO:
         # combine acquisition and specify_acquisition inputs
@@ -154,6 +155,12 @@ class RunInfo:
         # holds all acquisition meta data, indexed first by file name then by acquisition name
         self.acquisition_meta_data = {}
         self.all_peak_data = []
+
+        self.led = is_led
+        if self.led:
+            self.all_dark_peak_data = []
+            self.all_led_peak_data = []
+        led_operating_v = self.run_meta_data[curr_file].get("RunNotes")
 
         self.acquisition = acquisition
         self.specifyAcquisition = specifyAcquisition
@@ -409,6 +416,94 @@ class RunInfo:
 
         plt.show()
         return all_peaks
+
+    def plot_led_dark_hists(self, temp_mean, temp_std, new=False):
+        if not self.led:
+            return
+        if new:
+            plt.figure()  # makes new
+        (n, b, p) = plt.hist(
+            self.all_peak_data, bins=1500, histtype="step", density=False, label="All "
+        )
+        (n1, b1, p1) = plt.hist(
+            self.all_led_peak_data,
+            bins=b,
+            histtype="step",
+            density=False,
+            label="LED on",
+        )
+        (n2, b2, p2) = plt.hist(
+            self.all_dark_peak_data,
+            bins=b,
+            histtype="step",
+            density=False,
+            label="LED off",
+        )
+        plt.legend()
+        for curr_file in self.hd5_files:
+            print(curr_file)
+            for curr_acquisition_name in self.acquisition_names[curr_file]:
+                print(curr_acquisition_name)
+
+        if not self.plot_waveforms:
+            font = {
+                "family": "serif",
+                "color": "black",
+                "weight": "normal",
+                "size": 14,
+            }
+            plt.xlabel("Amplitude (V)", fontdict=font)
+            plt.ylabel("Frequency", fontdict=font)
+            bias = self.bias
+            condition = self.condition
+            date = self.date
+            trig = self.trig
+            yrange = self.yrange
+            offset = self.offset
+
+            dark_count = float(len(self.all_dark_peak_data))
+            led_count = float(len(self.all_led_peak_data)) - dark_count
+
+            ratio1 = led_count / dark_count
+
+            self.led_ratio = ratio1
+
+            ratio2 = float(len(self.all_led_peak_data)) / dark_count
+            # print(ratio1)
+            # print(ratio2)
+
+            plt.annotate(
+                " Trig: "
+                + str(trig)
+                + "\n Range: "
+                + str(yrange)
+                + "\n Offset: "
+                + str(offset)
+                + "\n Ratio: "
+                + str(round(ratio1, 2)),
+                xy=(0.80, 0.60),
+                xycoords="axes fraction",
+                size=12,
+            )
+            # plt.title(str(date.decode('utf-8')) + ', ' + str(condition) + ', ' + temp_mean + ' $\pm$ ' + temp_std + ' K, ' + str(bias) + ' V', fontdict=font)
+            plt.title(
+                date
+                + ", "
+                + str(condition)
+                + ", "
+                + temp_mean
+                + " $\pm$ "
+                + temp_std
+                + " K, "
+                + str(bias)
+                + " V",
+                fontdict=font,
+            )  # old way
+            print(condition)
+            plt.subplots_adjust(top=0.9)
+            plt.yscale("log")
+            plt.tight_layout()
+            plt.show()
 
     def get_peak_data(self) -> None:
         """
