@@ -20,7 +20,8 @@ from scipy.fft import fft, fftfreq
 from lmfit.models import LinearModel, GaussianModel, ExponentialModel
 from typing import Any, Dict, List, Tuple, Optional
 
-from RunInfo import RunInfo
+from RunInfo import *
+from RunInfoBaseline import RunInfoBaseline
 
 
 def get_waveform(w: str) -> tuple[list[float], list[float]]:
@@ -470,8 +471,8 @@ class WaveformProcessor:
         info: MeasurementInfo,
         centers: List[float] | np.ndarray,
         run_info_self: Optional[RunInfo] = None,
-        run_info_solicit: Optional[RunInfo] = None,
-        baseline_correct: bool = False,
+        run_info_solicit: Optional[RunInfoBaseline] = None,
+        baseline_correct: bool  = False,
         cutoff: Tuple[float, float] = (0, np.infty),
         numpeaks: int = 4,
         no_solicit: bool = False,
@@ -491,6 +492,8 @@ class WaveformProcessor:
             no_solicit (bool): A flag indicating if there is no solicited waveform available. Defaults to False.
             offset_num (int): The number of peaks to skip in the histogram. Defaults to 0.
         """
+
+        
 
         self.baseline_correct = baseline_correct
         self.info = info

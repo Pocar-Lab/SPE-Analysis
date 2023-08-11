@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Python: module RunInfo</title>
+</head><body>
+
+<table class="heading">
+<tr class="heading-text decor">
+<td class="title">&nbsp;<br><strong class="title">RunInfo</strong></td>
+<td class="extra"><a href=".">index</a><br><a href="file:/Users/lucb/Desktop/Research/nEXO/SPE-Analysis/RunInfo.py">/Users/lucb/Desktop/Research/nEXO/SPE-Analysis/RunInfo.py</a></td></tr></table>
+    <p></p>
+<p>
+<table class="section">
+<tr class="decor pkg-content-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Modules</strong></td></tr>
+    
+<tr><td class="decor pkg-content-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><table><tr><td class="multicolumn"><a href="h5py.html">h5py</a><br>
+<a href="scipy.interpolate.html">scipy.interpolate</a><br>
+<a href="matplotlib.html">matplotlib</a><br>
+</td><td class="multicolumn"><a href="numpy.html">numpy</a><br>
+<a href="scipy.optimize.html">scipy.optimize</a><br>
+<a href="peakutils.html">peakutils</a><br>
+</td><td class="multicolumn"><a href="matplotlib.pyplot.html">matplotlib.pyplot</a><br>
+<a href="pprint.html">pprint</a><br>
+<a href="scipy.signal.html">scipy.signal</a><br>
+</td><td class="multicolumn"><a href="scipy.stats.html">scipy.stats</a><br>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor index-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Classes</strong></td></tr>
+    
+<tr><td class="decor index-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl>
+<dt class="heading-text"><a href="builtins.html#object">builtins.object</a>
+</dt><dd>
+<dl>
+<dt class="heading-text"><a href="RunInfo.html#RunInfo">RunInfo</a>
+</dt></dl>
+</dd>
+</dl>
+ <p>
+<table class="section">
+<tr class="decor title-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><a name="RunInfo">class <strong>RunInfo</strong></a>(<a href="builtins.html#object">builtins.object</a>)</td></tr>
+    
+<tr><td class="decor title-decor" rowspan=2><span class="code">&nbsp;&nbsp;&nbsp;</span></td>
+<td class="decor title-decor" colspan=2><span class="code"><a href="#RunInfo">RunInfo</a>(f:&nbsp;list,&nbsp;acquisition:&nbsp;str&nbsp;=&nbsp;'placeholder',&nbsp;do_filter:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;plot_waveforms:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;upper_limit:&nbsp;float&nbsp;=&nbsp;4.4,&nbsp;baseline_correct:&nbsp;str&nbsp;=&nbsp;'',&nbsp;prominence:&nbsp;float&nbsp;=&nbsp;0.005,&nbsp;specifyAcquisition:&nbsp;bool&nbsp;=&nbsp;False,&nbsp;fourier:&nbsp;bool&nbsp;=&nbsp;False)<br>
+&nbsp;<br>
+<br>&nbsp;</span></td></tr>
+<tr><td>&nbsp;</td>
+<td class="singlecolumn">Methods defined here:<br>
+<dl><dt><a name="RunInfo-__init__"><strong>__init__</strong></a>(self, f: list, acquisition: str = 'placeholder', do_filter: bool = False, plot_waveforms: bool = False, upper_limit: float = 4.4, baseline_correct: str = '', prominence: float = 0.005, specifyAcquisition: bool = False, fourier: bool = False)</dt><dd><span class="code">Extract&nbsp;raw&nbsp;waveform&nbsp;data&nbsp;from&nbsp;either&nbsp;txt&nbsp;or&nbsp;h5&nbsp;files.&nbsp;Apply&nbsp;filtering&nbsp;and&nbsp;baseline&nbsp;correciton<br>
+to&nbsp;waveforms.&nbsp;Can&nbsp;process&nbsp;alpha&nbsp;pulse&nbsp;waveforms,&nbsp;SPE&nbsp;waveforms&nbsp;(in&nbsp;LXe&nbsp;or&nbsp;Vacuum),&nbsp;or&nbsp;baseline&nbsp;data.<br>
+Records&nbsp;alpha&nbsp;pulse&nbsp;heights,&nbsp;SPE&nbsp;pulse&nbsp;heights,&nbsp;or&nbsp;aggregate&nbsp;y-axis&nbsp;data&nbsp;respectively.<br>
+Can&nbsp;also&nbsp;collect&nbsp;baseline&nbsp;info&nbsp;from&nbsp;SPE&nbsp;data&nbsp;in&nbsp;the&nbsp;absence&nbsp;of&nbsp;dedicated&nbsp;baseline&nbsp;data&nbsp;(why?).<br>
+Optionally&nbsp;plots&nbsp;waveforms&nbsp;to&nbsp;inspect&nbsp;data&nbsp;for&nbsp;tuning&nbsp;peak&nbsp;finding&nbsp;algo.<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;f&nbsp;list:&nbsp;list&nbsp;of&nbsp;h5&nbsp;file&nbsp;names<br>
+&nbsp;&nbsp;&nbsp;&nbsp;acquisition&nbsp;(str,&nbsp;optional):&nbsp;specified&nbsp;file&nbsp;name.&nbsp;Defaults&nbsp;to&nbsp;'placeholder'.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;do_filter&nbsp;(bool,&nbsp;optional):&nbsp;activates&nbsp;butterworth&nbsp;lowpass&nbsp;filter&nbsp;if&nbsp;True.&nbsp;Defaults&nbsp;to&nbsp;False.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;plot_waveforms&nbsp;(bool,&nbsp;optional):&nbsp;plots&nbsp;waveforms&nbsp;if&nbsp;True.&nbsp;Defaults&nbsp;to&nbsp;False.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;upper_limit&nbsp;(float,&nbsp;optional):&nbsp;amplitude&nbsp;threshold&nbsp;for&nbsp;discarding&nbsp;waveforms.&nbsp;Defaults&nbsp;to&nbsp;4.4.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;baseline_correct&nbsp;(str,&nbsp;optional):&nbsp;if&nbsp;"mode"&nbsp;uses&nbsp;mode&nbsp;subtraction,&nbsp;if&nbsp;"peakutils"&nbsp;uses&nbsp;2nd&nbsp;degree&nbsp;polyfit&nbsp;subtraction,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;falsey&nbsp;does&nbsp;not&nbsp;do&nbsp;baseline&nbsp;correction.&nbsp;Defaults&nbsp;to&nbsp;"".<br>
+&nbsp;&nbsp;&nbsp;&nbsp;prominence&nbsp;(float,&nbsp;optional):&nbsp;parameter&nbsp;used&nbsp;for&nbsp;peak&nbsp;finding&nbsp;algo.&nbsp;Defaults&nbsp;to&nbsp;0.005.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;specifyAcquisition&nbsp;(bool,&nbsp;optional):&nbsp;if&nbsp;True,&nbsp;uses&nbsp;acquisition&nbsp;to&nbsp;extract&nbsp;just&nbsp;one&nbsp;acquisition&nbsp;dataset.&nbsp;Defaults&nbsp;to&nbsp;False.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;fourier&nbsp;(bool,&nbsp;optional):&nbsp;if&nbsp;True&nbsp;performs&nbsp;fourier&nbsp;frequency&nbsp;subtraction.&nbsp;Defaults&nbsp;to&nbsp;False.<br>
+&nbsp;<br>
+Raises:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;TypeError:&nbsp;_description_</span></dd></dl>
+
+<dl><dt><a name="RunInfo-average_all_waveforms"><strong>average_all_waveforms</strong></a>(self) -&gt; tuple</dt><dd><span class="code">Calculates&nbsp;and&nbsp;returns&nbsp;the&nbsp;average&nbsp;of&nbsp;waveform&nbsp;data&nbsp;from&nbsp;multiple&nbsp;acquisitions&nbsp;across&nbsp;several&nbsp;files.<br>
+&nbsp;<br>
+The&nbsp;function&nbsp;iterates&nbsp;over&nbsp;all&nbsp;files&nbsp;and&nbsp;their&nbsp;respective&nbsp;acquisitions,&nbsp;collects&nbsp;the&nbsp;waveform&nbsp;data,<br>
+calculates&nbsp;the&nbsp;average&nbsp;across&nbsp;all&nbsp;collected&nbsp;waveforms,&nbsp;and&nbsp;returns&nbsp;this&nbsp;average&nbsp;alongside&nbsp;the&nbsp;time&nbsp;data<br>
+of&nbsp;the&nbsp;last&nbsp;processed&nbsp;acquisition.<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tuple:&nbsp;A&nbsp;tuple&nbsp;consisting&nbsp;of&nbsp;two&nbsp;NumPy&nbsp;arrays:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;The&nbsp;first&nbsp;element&nbsp;is&nbsp;the&nbsp;averaged&nbsp;waveform&nbsp;data&nbsp;across&nbsp;all&nbsp;acquisitions&nbsp;and&nbsp;files.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;The&nbsp;second&nbsp;element&nbsp;is&nbsp;the&nbsp;time&nbsp;data&nbsp;of&nbsp;the&nbsp;last&nbsp;processed&nbsp;acquisition.</span></dd></dl>
+
+<dl><dt><a name="RunInfo-get_data"><strong>get_data</strong></a>(self) -&gt; None</dt><dd><span class="code">Collects&nbsp;peak&nbsp;data&nbsp;and&nbsp;stores&nbsp;as&nbsp;a&nbsp;dict&nbsp;in&nbsp;self.<strong>peak_data</strong></span></dd></dl>
+
+<dl><dt><a name="RunInfo-get_peaks"><strong>get_peaks</strong></a>(self, filename: str, acquisition_name: str) -&gt; list[float]</dt><dd><span class="code">Uses&nbsp;scipy.signal.find_peaks&nbsp;to&nbsp;find&nbsp;the&nbsp;peaks&nbsp;of&nbsp;the&nbsp;data.<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;filename&nbsp;(str):&nbsp;Name&nbsp;of&nbsp;file&nbsp;to&nbsp;analyze<br>
+&nbsp;&nbsp;&nbsp;&nbsp;acquisition_name&nbsp;(str):&nbsp;Name&nbsp;of&nbsp;particular&nbsp;acquisition<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;list:&nbsp;List&nbsp;of&nbsp;peak&nbsp;heights.</span></dd></dl>
+
+<dl><dt><a name="RunInfo-plot_hists"><strong>plot_hists</strong></a>(self, temp_mean: str, temp_std: str, new: bool = False) -&gt; None</dt><dd><span class="code">Plot&nbsp;histograms&nbsp;of&nbsp;file.&nbsp;Plots&nbsp;will&nbsp;display&nbsp;when&nbsp;called.&nbsp;No&nbsp;return&nbsp;value<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;temp_mean&nbsp;(str):&nbsp;Used&nbsp;in&nbsp;label&nbsp;of&nbsp;title.&nbsp;Mean&nbsp;of&nbsp;data&nbsp;(?)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;temp_std&nbsp;(str):&nbsp;Used&nbsp;in&nbsp;label&nbsp;of&nbsp;title.&nbsp;Error&nbsp;of&nbsp;mean<br>
+&nbsp;&nbsp;&nbsp;&nbsp;new&nbsp;(bool,&nbsp;optional):&nbsp;Whether&nbsp;or&nbsp;not&nbsp;to&nbsp;create&nbsp;new&nbsp;figure.&nbsp;Defaults&nbsp;to&nbsp;False.</span></dd></dl>
+
+<dl><dt><a name="RunInfo-plot_peak_waveform_hist"><strong>plot_peak_waveform_hist</strong></a>(self, num=-1, color='blue') -&gt; None</dt><dd><span class="code">Plot&nbsp;peak&nbsp;waveforms&nbsp;as&nbsp;a&nbsp;2D&nbsp;histogram.&nbsp;The&nbsp;function&nbsp;does&nbsp;not&nbsp;return&nbsp;any&nbsp;value.<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;num&nbsp;(int,&nbsp;optional):&nbsp;The&nbsp;number&nbsp;of&nbsp;waveforms&nbsp;to&nbsp;process&nbsp;for&nbsp;each&nbsp;acquisition.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;If&nbsp;set&nbsp;to&nbsp;-1&nbsp;(default),&nbsp;all&nbsp;waveforms&nbsp;are&nbsp;processed.&nbsp;If&nbsp;set&nbsp;to&nbsp;a&nbsp;positive&nbsp;integer,<br>
+&nbsp;&nbsp;&nbsp;&nbsp;only&nbsp;that&nbsp;many&nbsp;waveforms&nbsp;are&nbsp;processed&nbsp;for&nbsp;each&nbsp;acquisition.<br>
+&nbsp;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;color&nbsp;(str,&nbsp;optional):&nbsp;The&nbsp;color&nbsp;to&nbsp;be&nbsp;used&nbsp;for&nbsp;the&nbsp;information&nbsp;box&nbsp;in&nbsp;the&nbsp;plot.&nbsp;Defaults&nbsp;to&nbsp;'blue'.</span></dd></dl>
+
+<hr>
+Data descriptors defined here:<br>
+<dl><dt><strong>__dict__</strong></dt>
+<dd><span class="code">dictionary&nbsp;for&nbsp;instance&nbsp;variables&nbsp;(if&nbsp;defined)</span></dd>
+</dl>
+<dl><dt><strong>__weakref__</strong></dt>
+<dd><span class="code">list&nbsp;of&nbsp;weak&nbsp;references&nbsp;to&nbsp;the&nbsp;object&nbsp;(if&nbsp;defined)</span></dd>
+</dl>
+</td></tr></table></td></tr></table><p>
+<table class="section">
+<tr class="decor functions-decor heading-text">
+<td class="section-title" colspan=3>&nbsp;<br><strong class="bigsection">Functions</strong></td></tr>
+    
+<tr><td class="decor functions-decor"><span class="code">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td><td>&nbsp;</td>
+<td class="singlecolumn"><dl><dt><a name="-get_data"><strong>get_data</strong></a>(h5path: str, groupname: str) -&gt; numpy.ndarray</dt><dd><span class="code">Extrats&nbsp;data&nbsp;from&nbsp;an&nbsp;h5&nbsp;file&nbsp;provided&nbsp;by&nbsp;h5&nbsp;path<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;h5path&nbsp;(str):&nbsp;Path&nbsp;to&nbsp;h5&nbsp;file.<br>
+&nbsp;&nbsp;&nbsp;&nbsp;groupname&nbsp;(str):&nbsp;Group&nbsp;name&nbsp;of&nbsp;desired&nbsp;group&nbsp;in&nbsp;h5&nbsp;file<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;np.ndarray&nbsp;:&nbsp;waveform&nbsp;data</span></dd></dl>
+ <dl><dt><a name="-get_grp_meta"><strong>get_grp_meta</strong></a>(h5path: str, groupname: str) -&gt; dict</dt><dd><span class="code">Get&nbsp;metadata&nbsp;of&nbsp;specified&nbsp;group<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;h5path&nbsp;(str):&nbsp;Path&nbsp;to&nbsp;h5&nbsp;file<br>
+&nbsp;&nbsp;&nbsp;&nbsp;groupname&nbsp;(str):&nbsp;Name&nbsp;of&nbsp;group&nbsp;to&nbsp;accquire&nbsp;metadata&nbsp;from<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;dict:&nbsp;hdf5&nbsp;group&nbsp;metadata</span></dd></dl>
+ <dl><dt><a name="-get_grp_names"><strong>get_grp_names</strong></a>(h5path: str) -&gt; list</dt><dd><span class="code">Get&nbsp;names&nbsp;of&nbsp;groups&nbsp;in&nbsp;specified&nbsp;h5&nbsp;file<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;h5path&nbsp;(str):&nbsp;Path&nbsp;to&nbsp;h5&nbsp;file<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;list&nbsp;:&nbsp;acquisition&nbsp;names</span></dd></dl>
+ <dl><dt><a name="-get_mode"><strong>get_mode</strong></a>(hist_data: list) -&gt; tuple[float, float]</dt><dd><span class="code">Get&nbsp;the&nbsp;mode&nbsp;of&nbsp;histogram&nbsp;data<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;hist_data&nbsp;(list&nbsp;or&nbsp;np.array):&nbsp;Histogram&nbsp;data<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;tuple[float,&nbsp;float]:&nbsp;value&nbsp;(in&nbsp;volts),&nbsp;number&nbsp;of&nbsp;counts</span></dd></dl>
+ <dl><dt><a name="-get_run_meta"><strong>get_run_meta</strong></a>(h5path: str) -&gt; dict</dt><dd><span class="code">Get&nbsp;metadata&nbsp;for&nbsp;specific&nbsp;run<br>
+&nbsp;<br>
+Args:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;h5path&nbsp;(str):&nbsp;path&nbsp;to&nbsp;h5&nbsp;file<br>
+&nbsp;<br>
+Returns:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;dict&nbsp;:&nbsp;hdf5&nbsp;run&nbsp;metadata</span></dd></dl>
+</td></tr></table>
+</body></html>

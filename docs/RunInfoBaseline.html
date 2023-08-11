@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>RunInfoBaseline API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>RunInfoBaseline</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">from RunInfo import *
+
+
+class RunInfoBaseline(RunInfo):
+    def __init__(
+        self,
+        f: list,
+        acquisition: str = &#34;placeholder&#34;,
+        do_filter: bool = False,
+        plot_waveforms: bool = False,
+        upper_limit: float = 4.4,
+        baseline_correct: str = &#34;&#34;,
+        prominence: float = 0.005,
+        specifyAcquisition: bool = False,
+        fourier: bool = False,
+    ):
+        self.peak_search_params = {
+            &#34;height&#34;: 0.0,  # SPE
+            &#34;threshold&#34;: None,  # SPE
+            &#34;distance&#34;: None,  # SPE
+            &#34;prominence&#34;: prominence,
+            &#34;width&#34;: None,  # SPE
+            &#34;wlen&#34;: 100,  # SPE
+            &#34;rel_height&#34;: None,  # SPE
+            &#34;plateau_size&#34;: None,  # SPE
+            # &#39;distance&#39;:10 #ADDED 2/25/2023
+        }
+
+        super().__init__(
+            f,
+            acquisition,
+            do_filter,
+            plot_waveforms,
+            upper_limit,
+            baseline_correct,
+            prominence,
+            specifyAcquisition,
+            fourier,
+        )
+
+    def get_peaks(self, filename: str, acquisition_name: str) -&gt; list:
+        &#34;&#34;&#34;Aggregates y-axis data of all solicited waveforms after optionally
+        filtering (why?), baseline subtracting (why?), and removing first
+        100 data points (why?). Also optionally plots waveforms.
+
+        Args:
+            filename (str): path on disk of hdf5 data to be processed
+            acquisition_name (str): name of acquisition to be processed
+
+        Returns:
+            list: concatened list of all amplitude values for all waveforms
+        &#34;&#34;&#34;
+        all_peaks = []
+        curr_data = self.acquisitions_data[filename][acquisition_name]
+        time = self.acquisitions_time[filename][acquisition_name]
+        window_length = time[-1] - time[0]
+        num_points = float(len(time))
+        fs = num_points / window_length
+        # print(fs)
+        num_wavefroms = np.shape(curr_data)[1]
+        print(f&#34;num_wavefroms: {num_wavefroms}&#34;)
+        if (
+            self.plot_waveforms
+        ):  # TODO replace w/ num_wavefroms if not self.plot_waveforms else 20
+            num_wavefroms = 20
+        for idx in range(num_wavefroms):
+            if idx % 100 == 0:
+                print(idx)
+
+            amp = curr_data[:, idx]
+            if (
+                np.amax(amp) &gt; self.upper_limit
+            ):  # skips waveform if amplitude exceeds upper_limit
+                continue
+
+            if self.baseline_correct:
+                use_bins = np.linspace(-self.upper_limit, self.upper_limit, 1000)
+                curr_hist = np.histogram(amp, bins=use_bins)
+                baseline_level, _ = get_mode(curr_hist)
+                amp = amp - baseline_level
+                self.baseline_mode = baseline_level
+
+            if self.do_filter:
+                sos = signal.butter(3, 4e5, btype=&#34;lowpass&#34;, fs=fs, output=&#34;sos&#34;)
+                filtered = signal.sosfilt(sos, amp)
+                amp = filtered
+
+            # peaks, props = signal.find_peaks(amp, **self.peak_search_params)
+            if self.plot_waveforms:
+                if self.fourier:
+                    fourier = np.fft.fft(amp)
+                    n = amp.size
+                    duration = 1e-4
+                    freq = np.fft.fftfreq(n, d=duration / n)
+                    colors = [
+                        &#34;b&#34;,
+                        &#34;g&#34;,
+                        &#34;r&#34;,
+                        &#34;m&#34;,
+                        &#34;c&#34;,
+                        &#34;y&#34;,
+                        &#34;k&#34;,
+                        &#34;aquamarine&#34;,
+                        &#34;pink&#34;,
+                        &#34;gray&#34;,
+                    ]
+                    marker, stemlines, baseline = plt.stem(
+                        freq,
+                        np.abs(fourier),
+                        linefmt=colors[0],
+                        use_line_collection=True,
+                        markerfmt=&#34; &#34;,
+                    )
+                    plt.setp(
+                        stemlines,
+                        linestyle=&#34;-&#34;,
+                        linewidth=1,
+                        color=colors[0],
+                        alpha=5 / num_wavefroms,
+                    )  # num_wavefroms always 20?
+                    plt.yscale(&#34;log&#34;)
+                    plt.show()
+                else:
+                    plt.title(acquisition_name)
+                    plt.tight_layout()
+                    plt.plot(time, amp)
+                    plt.show()
+            amp = list(amp[100:])
+            all_peaks += amp
+        return all_peaks
+
+    def get_data(self) -&gt; None:
+        &#34;&#34;&#34;Get peak data and add as a dict to self.peak_data. No return value.&#34;&#34;&#34;
+        self.peak_data = {}
+        for curr_file in self.hd5_files:
+            self.peak_data[curr_file] = {}
+            for curr_acquisition_name in self.acquisition_names[curr_file]:
+                if self.specifyAcquisition:
+                    curr_acquisition_name = self.acquisition
+                curr_peaks = self.get_peaks(curr_file, curr_acquisition_name)
+                self.peak_data[curr_file][curr_acquisition_name] = curr_peaks
+                if self.plot_waveforms or self.specifyAcquisition:
+                    break</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="RunInfoBaseline.RunInfoBaseline"><code class="flex name class">
+<span>class <span class="ident">RunInfoBaseline</span></span>
+<span>(</span><span>f: list, acquisition: str = 'placeholder', do_filter: bool = False, plot_waveforms: bool = False, upper_limit: float = 4.4, baseline_correct: str = '', prominence: float = 0.005, specifyAcquisition: bool = False, fourier: bool = False)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Extract raw waveform data from either txt or h5 files. Apply filtering and baseline correciton
+to waveforms. Can process alpha pulse waveforms, SPE waveforms (in LXe or Vacuum), or baseline data.
+Records alpha pulse heights, SPE pulse heights, or aggregate y-axis data respectively.
+Can also collect baseline info from SPE data in the absence of dedicated baseline data (why?).
+Optionally plots waveforms to inspect data for tuning peak finding algo.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt>f list: list of h5 file names</dt>
+<dt><strong><code>acquisition</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>specified file name. Defaults to 'placeholder'.</dd>
+<dt><strong><code>do_filter</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>activates butterworth lowpass filter if True. Defaults to False.</dd>
+<dt><strong><code>plot_waveforms</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>plots waveforms if True. Defaults to False.</dd>
+<dt><strong><code>upper_limit</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>amplitude threshold for discarding waveforms. Defaults to 4.4.</dd>
+<dt><strong><code>baseline_correct</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>if "mode" uses mode subtraction, if "peakutils" uses 2nd degree polyfit subtraction,
+if falsey does not do baseline correction. Defaults to "".</dd>
+<dt><strong><code>prominence</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>parameter used for peak finding algo. Defaults to 0.005.</dd>
+<dt><strong><code>specifyAcquisition</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>if True, uses acquisition to extract just one acquisition dataset. Defaults to False.</dd>
+<dt><strong><code>fourier</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>if True performs fourier frequency subtraction. Defaults to False.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>TypeError</code></dt>
+<dd><em>description</em></dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class RunInfoBaseline(RunInfo):
+    def __init__(
+        self,
+        f: list,
+        acquisition: str = &#34;placeholder&#34;,
+        do_filter: bool = False,
+        plot_waveforms: bool = False,
+        upper_limit: float = 4.4,
+        baseline_correct: str = &#34;&#34;,
+        prominence: float = 0.005,
+        specifyAcquisition: bool = False,
+        fourier: bool = False,
+    ):
+        self.peak_search_params = {
+            &#34;height&#34;: 0.0,  # SPE
+            &#34;threshold&#34;: None,  # SPE
+            &#34;distance&#34;: None,  # SPE
+            &#34;prominence&#34;: prominence,
+            &#34;width&#34;: None,  # SPE
+            &#34;wlen&#34;: 100,  # SPE
+            &#34;rel_height&#34;: None,  # SPE
+            &#34;plateau_size&#34;: None,  # SPE
+            # &#39;distance&#39;:10 #ADDED 2/25/2023
+        }
+
+        super().__init__(
+            f,
+            acquisition,
+            do_filter,
+            plot_waveforms,
+            upper_limit,
+            baseline_correct,
+            prominence,
+            specifyAcquisition,
+            fourier,
+        )
+
+    def get_peaks(self, filename: str, acquisition_name: str) -&gt; list:
+        &#34;&#34;&#34;Aggregates y-axis data of all solicited waveforms after optionally
+        filtering (why?), baseline subtracting (why?), and removing first
+        100 data points (why?). Also optionally plots waveforms.
+
+        Args:
+            filename (str): path on disk of hdf5 data to be processed
+            acquisition_name (str): name of acquisition to be processed
+
+        Returns:
+            list: concatened list of all amplitude values for all waveforms
+        &#34;&#34;&#34;
+        all_peaks = []
+        curr_data = self.acquisitions_data[filename][acquisition_name]
+        time = self.acquisitions_time[filename][acquisition_name]
+        window_length = time[-1] - time[0]
+        num_points = float(len(time))
+        fs = num_points / window_length
+        # print(fs)
+        num_wavefroms = np.shape(curr_data)[1]
+        print(f&#34;num_wavefroms: {num_wavefroms}&#34;)
+        if (
+            self.plot_waveforms
+        ):  # TODO replace w/ num_wavefroms if not self.plot_waveforms else 20
+            num_wavefroms = 20
+        for idx in range(num_wavefroms):
+            if idx % 100 == 0:
+                print(idx)
+
+            amp = curr_data[:, idx]
+            if (
+                np.amax(amp) &gt; self.upper_limit
+            ):  # skips waveform if amplitude exceeds upper_limit
+                continue
+
+            if self.baseline_correct:
+                use_bins = np.linspace(-self.upper_limit, self.upper_limit, 1000)
+                curr_hist = np.histogram(amp, bins=use_bins)
+                baseline_level, _ = get_mode(curr_hist)
+                amp = amp - baseline_level
+                self.baseline_mode = baseline_level
+
+            if self.do_filter:
+                sos = signal.butter(3, 4e5, btype=&#34;lowpass&#34;, fs=fs, output=&#34;sos&#34;)
+                filtered = signal.sosfilt(sos, amp)
+                amp = filtered
+
+            # peaks, props = signal.find_peaks(amp, **self.peak_search_params)
+            if self.plot_waveforms:
+                if self.fourier:
+                    fourier = np.fft.fft(amp)
+                    n = amp.size
+                    duration = 1e-4
+                    freq = np.fft.fftfreq(n, d=duration / n)
+                    colors = [
+                        &#34;b&#34;,
+                        &#34;g&#34;,
+                        &#34;r&#34;,
+                        &#34;m&#34;,
+                        &#34;c&#34;,
+                        &#34;y&#34;,
+                        &#34;k&#34;,
+                        &#34;aquamarine&#34;,
+                        &#34;pink&#34;,
+                        &#34;gray&#34;,
+                    ]
+                    marker, stemlines, baseline = plt.stem(
+                        freq,
+                        np.abs(fourier),
+                        linefmt=colors[0],
+                        use_line_collection=True,
+                        markerfmt=&#34; &#34;,
+                    )
+                    plt.setp(
+                        stemlines,
+                        linestyle=&#34;-&#34;,
+                        linewidth=1,
+                        color=colors[0],
+                        alpha=5 / num_wavefroms,
+                    )  # num_wavefroms always 20?
+                    plt.yscale(&#34;log&#34;)
+                    plt.show()
+                else:
+                    plt.title(acquisition_name)
+                    plt.tight_layout()
+                    plt.plot(time, amp)
+                    plt.show()
+            amp = list(amp[100:])
+            all_peaks += amp
+        return all_peaks
+
+    def get_data(self) -&gt; None:
+        &#34;&#34;&#34;Get peak data and add as a dict to self.peak_data. No return value.&#34;&#34;&#34;
+        self.peak_data = {}
+        for curr_file in self.hd5_files:
+            self.peak_data[curr_file] = {}
+            for curr_acquisition_name in self.acquisition_names[curr_file]:
+                if self.specifyAcquisition:
+                    curr_acquisition_name = self.acquisition
+                curr_peaks = self.get_peaks(curr_file, curr_acquisition_name)
+                self.peak_data[curr_file][curr_acquisition_name] = curr_peaks
+                if self.plot_waveforms or self.specifyAcquisition:
+                    break</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>RunInfo.RunInfo</li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="RunInfoBaseline.RunInfoBaseline.get_data"><code class="name flex">
+<span>def <span class="ident">get_data</span></span>(<span>self) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get peak data and add as a dict to self.peak_data. No return value.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_data(self) -&gt; None:
+    &#34;&#34;&#34;Get peak data and add as a dict to self.peak_data. No return value.&#34;&#34;&#34;
+    self.peak_data = {}
+    for curr_file in self.hd5_files:
+        self.peak_data[curr_file] = {}
+        for curr_acquisition_name in self.acquisition_names[curr_file]:
+            if self.specifyAcquisition:
+                curr_acquisition_name = self.acquisition
+            curr_peaks = self.get_peaks(curr_file, curr_acquisition_name)
+            self.peak_data[curr_file][curr_acquisition_name] = curr_peaks
+            if self.plot_waveforms or self.specifyAcquisition:
+                break</code></pre>
+</details>
+</dd>
+<dt id="RunInfoBaseline.RunInfoBaseline.get_peaks"><code class="name flex">
+<span>def <span class="ident">get_peaks</span></span>(<span>self, filename: str, acquisition_name: str) ‑> list</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Aggregates y-axis data of all solicited waveforms after optionally
+filtering (why?), baseline subtracting (why?), and removing first
+100 data points (why?). Also optionally plots waveforms.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>filename</code></strong> :&ensp;<code>str</code></dt>
+<dd>path on disk of hdf5 data to be processed</dd>
+<dt><strong><code>acquisition_name</code></strong> :&ensp;<code>str</code></dt>
+<dd>name of acquisition to be processed</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>list</code></dt>
+<dd>concatened list of all amplitude values for all waveforms</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_peaks(self, filename: str, acquisition_name: str) -&gt; list:
+    &#34;&#34;&#34;Aggregates y-axis data of all solicited waveforms after optionally
+    filtering (why?), baseline subtracting (why?), and removing first
+    100 data points (why?). Also optionally plots waveforms.
+
+    Args:
+        filename (str): path on disk of hdf5 data to be processed
+        acquisition_name (str): name of acquisition to be processed
+
+    Returns:
+        list: concatened list of all amplitude values for all waveforms
+    &#34;&#34;&#34;
+    all_peaks = []
+    curr_data = self.acquisitions_data[filename][acquisition_name]
+    time = self.acquisitions_time[filename][acquisition_name]
+    window_length = time[-1] - time[0]
+    num_points = float(len(time))
+    fs = num_points / window_length
+    # print(fs)
+    num_wavefroms = np.shape(curr_data)[1]
+    print(f&#34;num_wavefroms: {num_wavefroms}&#34;)
+    if (
+        self.plot_waveforms
+    ):  # TODO replace w/ num_wavefroms if not self.plot_waveforms else 20
+        num_wavefroms = 20
+    for idx in range(num_wavefroms):
+        if idx % 100 == 0:
+            print(idx)
+
+        amp = curr_data[:, idx]
+        if (
+            np.amax(amp) &gt; self.upper_limit
+        ):  # skips waveform if amplitude exceeds upper_limit
+            continue
+
+        if self.baseline_correct:
+            use_bins = np.linspace(-self.upper_limit, self.upper_limit, 1000)
+            curr_hist = np.histogram(amp, bins=use_bins)
+            baseline_level, _ = get_mode(curr_hist)
+            amp = amp - baseline_level
+            self.baseline_mode = baseline_level
+
+        if self.do_filter:
+            sos = signal.butter(3, 4e5, btype=&#34;lowpass&#34;, fs=fs, output=&#34;sos&#34;)
+            filtered = signal.sosfilt(sos, amp)
+            amp = filtered
+
+        # peaks, props = signal.find_peaks(amp, **self.peak_search_params)
+        if self.plot_waveforms:
+            if self.fourier:
+                fourier = np.fft.fft(amp)
+                n = amp.size
+                duration = 1e-4
+                freq = np.fft.fftfreq(n, d=duration / n)
+                colors = [
+                    &#34;b&#34;,
+                    &#34;g&#34;,
+                    &#34;r&#34;,
+                    &#34;m&#34;,
+                    &#34;c&#34;,
+                    &#34;y&#34;,
+                    &#34;k&#34;,
+                    &#34;aquamarine&#34;,
+                    &#34;pink&#34;,
+                    &#34;gray&#34;,
+                ]
+                marker, stemlines, baseline = plt.stem(
+                    freq,
+                    np.abs(fourier),
+                    linefmt=colors[0],
+                    use_line_collection=True,
+                    markerfmt=&#34; &#34;,
+                )
+                plt.setp(
+                    stemlines,
+                    linestyle=&#34;-&#34;,
+                    linewidth=1,
+                    color=colors[0],
+                    alpha=5 / num_wavefroms,
+                )  # num_wavefroms always 20?
+                plt.yscale(&#34;log&#34;)
+                plt.show()
+            else:
+                plt.title(acquisition_name)
+                plt.tight_layout()
+                plt.plot(time, amp)
+                plt.show()
+        amp = list(amp[100:])
+        all_peaks += amp
+    return all_peaks</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="RunInfoBaseline.RunInfoBaseline" href="#RunInfoBaseline.RunInfoBaseline">RunInfoBaseline</a></code></h4>
+<ul class="">
+<li><code><a title="RunInfoBaseline.RunInfoBaseline.get_data" href="#RunInfoBaseline.RunInfoBaseline.get_data">get_data</a></code></li>
+<li><code><a title="RunInfoBaseline.RunInfoBaseline.get_peaks" href="#RunInfoBaseline.RunInfoBaseline.get_peaks">get_peaks</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>

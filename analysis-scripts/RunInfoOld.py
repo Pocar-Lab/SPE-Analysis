@@ -96,217 +96,8 @@ def get_mode(hist_data: list or np.array) -> tuple[float, float]:
     return centers[max_index], np.amax(counts)
 
 
-class RunInfoParent:
-    def __init__(
-        self,
-        f: list,
-        acquisition: str = "placeholder",
-        do_filter: bool = False,
-        plot_waveforms: bool = False,
-        upper_limit: float = 4.4,
-        baseline_correct: bool = False,
-        prominence: float = 0.005,
-        specifyAcquisition: bool = False,
-        fourier: bool = False,
-    ):
-        # TODO:
-        # combine acquisition and specify_acquisition inputs
-        # baseline_correct should allow for choice of peakutils vs mode or mean subtraction
-        #
-
-        """Extract raw waveform data from either txt or h5 files. Apply filtering and baseline correciton
-        to waveforms. Can process alpha pulse waveforms, SPE waveforms (in LXe or Vacuum), or baseline data.
-        Records alpha pulse heights, SPE pulse heights, or aggregate y-axis data respectively.
-        Can also collect baseline info from SPE data in the absence of dedicated baseline data (why?).
-        Optionally plots waveforms to inspect data for tuning peak finding algo.
-
-        Args:
-            f list: list of h5 file names
-            acquisition (str, optional): specified file name. Defaults to 'placeholder'.
-            is_solicit (bool, optional): specified whether data is solicited, AKA 'empty' baseline data. Defaults to False.
-            do_filter (bool, optional): activates butterworth lowpass filter if True. Defaults to False.
-            plot_waveforms (bool, optional): plots waveforms if True. Defaults to False.
-            upper_limit (float, optional): amplitude threshold for discarding waveforms. Defaults to 4.4.
-            baseline_correct (bool, optional): baseline corrects waveforms if True. Defaults to False.
-            prominence (float, optional): parameter used for peak finding algo. Defaults to 0.005.
-            specifyAcquisition (bool, optional): if True, uses acquisition to extract just one acquisition dataset. Defaults to False.
-            fourier (bool, optional): if True performs fourier frequency subtraction. Defaults to False.
-
-        Raises:
-            TypeError: _description_
-        """
-        if not isinstance(f, list):
-            raise TypeError(
-                "Files must be a in a list"
-            )  # TODO replace with list conversion
-            # f = [f]
-        self.do_filter = do_filter
-        self.plot_waveforms = plot_waveforms
-        self.hd5_files = f
-        self.upper_limit = upper_limit
-        self.baseline_correct = baseline_correct
-        # holds all acquisition data index by first file name then by acquisition name
-        self.acquisitions_data = {}
-        # holds all acquisition names indexed by file name indexed by file name then by acquisition name
-        self.acquisition_names = {}
-        # holds acquisition time axis for all acquisitions in a single acquisition data array
-        self.acquisitions_time = {}
-        # holds all acquisition meta data, indexed first by file name then by acquisition name
-        self.acquisition_meta_data = {}
-        self.all_peak_data = []
-
-        self.acquisition = acquisition
-        self.specifyAcquisition = specifyAcquisition
-        self.fourier = fourier
-        self.prominence = prominence
-        self.baseline_levels = []  # list of mode of waveforms
-
-        for curr_file in self.hd5_files:
-            self.acquisition_names[curr_file] = get_grp_names(curr_file)
-            # for curr_acquisition_name in self.acquisition_names[curr_file]:
-
-        # holds all run data indexed by file name
-        self.run_meta_data = {}
-        for curr_file in self.hd5_files:
-            self.acquisition_names[curr_file] = get_grp_names(curr_file)
-            self.acquisitions_time[curr_file] = {}
-            self.acquisitions_data[curr_file] = {}
-            self.acquisition_meta_data[curr_file] = {}
-
-            self.run_meta_data[curr_file] = get_run_meta(curr_file)
-            print(f"Run Meta: {self.run_meta_data[curr_file]}")
-
-            # TODO simplify reducency, if single acquisition given put it in a list
-            if specifyAcquisition:
-                curr_data = get_data(curr_file, acquisition)
-                self.acquisitions_data[curr_file][acquisition] = curr_data[:, 1:]
-                self.acquisitions_time[curr_file][acquisition] = curr_data[:, 0]
-                self.acquisition_meta_data[curr_file][acquisition] = get_grp_meta(
-                    curr_file, acquisition
-                )
-                # print(f"Group Meta: {self.acquisition_meta_data[curr_file][acquisition]}")
-                pprint.pprint(self.acquisition_meta_data[curr_file][acquisition])
-                self.bias = self.acquisition_meta_data[curr_file][acquisition][
-                    "Bias(V)"
-                ]
-                self.condition = "LXe"
-                self.date = self.acquisition_meta_data[curr_file][acquisition][
-                    "AcquisitionStart"
-                ]
-                self.trig = self.acquisition_meta_data[curr_file][acquisition][
-                    "LowerLevel"
-                ]
-                self.yrange = self.acquisition_meta_data[curr_file][acquisition][
-                    "Range"
-                ]
-                self.offset = self.acquisition_meta_data[curr_file][acquisition][
-                    "Offset"
-                ]
-
-            else:
-                for curr_acquisition_name in self.acquisition_names[curr_file]:
-                    curr_data = get_data(curr_file, curr_acquisition_name)
-                    self.acquisitions_data[curr_file][
-                        curr_acquisition_name
-                    ] = curr_data[:, 1:]
-                    self.acquisitions_time[curr_file][
-                        curr_acquisition_name
-                    ] = curr_data[:, 0]
-                    self.acquisition_meta_data[curr_file][
-                        curr_acquisition_name
-                    ] = get_grp_meta(curr_file, curr_acquisition_name)
-                    # pprint.pprint(self.acquisition_meta_data[curr_file][curr_acquisition_name])
-                    self.bias = self.acquisition_meta_data[curr_file][
-                        curr_acquisition_name
-                    ]["Bias(V)"]
-                    self.condition = "LXe"
-                    self.date = self.acquisition_meta_data[curr_file][
-                        curr_acquisition_name
-                    ]["AcquisitionStart"]
-                    self.trig = self.acquisition_meta_data[curr_file][
-                        curr_acquisition_name
-                    ]["LowerLevel"]
-                    self.yrange = self.acquisition_meta_data[curr_file][
-                        curr_acquisition_name
-                    ]["Range"]
-                    self.offset = self.acquisition_meta_data[curr_file][
-                        curr_acquisition_name
-                    ]["Offset"]
-
-        self.baseline_mode_err = sem(self.baseline_levels)
-        self.baseline_mode_std = np.std(self.baseline_levels)
-        self.baseline_mode_mean = np.mean(self.baseline_levels)
-        rms = [i**2 for i in self.baseline_levels]
-        self.baseline_mode_rms = np.sqrt(np.mean(np.sum(rms)))
-
-    def plot_hists(self) -> None:
-        pass
-
-    def get_peaks(self) -> None:
-        pass
-
-    def get_data(self) -> None:
-        """
-        Collects peak data and stores as a dict in self.peak_data
-        """
-        self.peak_data = {}
-        for curr_file in self.hd5_files:
-            self.peak_data[curr_file] = {}
-            for curr_acquisition_name in self.acquisition_names[curr_file]:
-                if self.specifyAcquisition:
-                    curr_acquisition_name = self.acquisition
-                curr_peaks = self.get_peaks(curr_file, curr_acquisition_name)
-                self.peak_data[curr_file][curr_acquisition_name] = curr_peaks
-                self.all_peak_data = self.all_peak_data + curr_peaks
-                if self.plot_waveforms or self.specifyAcquisition:
-                    break
-
-    def plot_peak_waveform(self) -> None:
-        pass
-
-    def average_all_waveforms(self) -> tuple:
-        return (1, 1)
-
-
-class RunInfoSolicit(RunInfoParent):
-    def __init__(
-        self,
-        f: list,
-        acquisition: str = "placeholder",
-        do_filter: bool = False,
-        plot_waveforms: bool = False,
-        upper_limit: float = 4.4,
-        baseline_correct: bool = False,
-        prominence: float = 0.005,
-        specifyAcquisition: bool = False,
-        fourier: bool = False,
-    ):
-        super().__init__(
-            f,
-            acquisition,
-            do_filter,
-            plot_waveforms,
-            upper_limit,
-            baseline_correct,
-            prominence,
-            specifyAcquisition,
-            fourier,
-        )
-        self.peak_search_params = {
-            "height": 0.0,  # SPE
-            "threshold": None,  # SPE
-            "distance": None,  # SPE
-            "prominence": prominence,
-            "width": None,  # SPE
-            "wlen": 100,  # SPE
-            "rel_height": None,  # SPE
-            "plateau_size": None,  # SPE
-            # 'distance':10 #ADDED 2/25/2023
-        }
-        self.get_data()
-
-
 class RunInfo:
+    # Done
     def __init__(
         self,
         f: list,
@@ -476,6 +267,7 @@ class RunInfo:
                 + str(self.baseline_mode_err)
             )
 
+    # Done
     def plot_hists(self, temp_mean: str, temp_std: str, new: bool = False) -> None:
         """Plot histograms of file. Plots will display when called. No return value
 
@@ -540,7 +332,7 @@ class RunInfo:
             plt.tight_layout()
             plt.show()
 
-    #
+    # Done
     def get_peaks(self, filename: str, acquisition_name: str) -> list[float]:
         """Uses scipy.signal.find_peaks to find the peaks of the data.
 
@@ -621,6 +413,7 @@ class RunInfo:
         plt.show()
         return all_peaks
 
+    # Done
     def get_peak_data(self) -> None:
         """
         Collects peak data and stores as a dict in self.peak_data
