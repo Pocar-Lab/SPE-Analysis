@@ -16,7 +16,7 @@ import matplotlib as mpl
 import peakutils
 from scipy.stats import sem
 import pprint
-
+from typing import Any, Dict, List, Tuple, Optional
 # %%
 
 
@@ -105,6 +105,7 @@ class RunInfo:
         plot_waveforms: bool = False,
         upper_limit: float = 4.4,
         baseline_correct: bool = False,
+        poly_correct: bool = False,
         prominence: float = 0.005,
         specifyAcquisition: bool = False,
         fourier: bool = False,
@@ -145,6 +146,7 @@ class RunInfo:
         self.hd5_files = f
         self.upper_limit = upper_limit
         self.baseline_correct = baseline_correct
+        self.poly_correct = poly_correct
         # holds all acquisition data index by first file name then by acquisition name
         self.acquisitions_data = {}
         # holds all acquisition names indexed by file name indexed by file name then by acquisition name
@@ -349,7 +351,7 @@ class RunInfo:
         fs = num_points / window_length
         num_wavefroms = np.shape(curr_data)[1]
         if self.plot_waveforms:
-            num_wavefroms = 30
+            num_wavefroms = 10
         # if self.plot_waveforms:
         #     fig = plt.figure()
         #     fig, axs = plt.subplots(1, 2)
@@ -374,15 +376,17 @@ class RunInfo:
             # self.baseline_rms.append(np.sqrt(np.mean(np.sum(rms))))
 
             if self.baseline_correct:
-                # baseline_level = peakutils.baseline(amp, deg=2)
-                # amp = amp - baseline_level
+                if self.poly_correct:
+                    baseline_level = peakutils.baseline(amp, deg=2)
+                    amp = amp - baseline_level
 
                 use_bins = np.linspace(-self.upper_limit, self.upper_limit, 1000)
                 curr_hist = np.histogram(amp, bins=use_bins)
                 baseline_level, max_counts = get_mode(curr_hist)
                 # self.baseline_mode = baseline_level
-                #                print('baseline:', baseline_level)
+                # print('baseline:', baseline_level)
                 amp = amp - baseline_level
+                
 
             if self.do_filter and np.shape(amp) != (0,):
                 #            sos = signal.butter(3, 1E6, btype = 'lowpass', fs = fs, output = 'sos')

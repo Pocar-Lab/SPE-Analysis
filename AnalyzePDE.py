@@ -14,8 +14,10 @@ import pandas as pd
 from ProcessWaveforms_MultiGaussian import WaveformProcessor
 
 
+# def CA_func(x, A, B, C):
+#     return (A * np.exp(B*(x)) + 1.0) / (1.0 + A) - 1.0 + C
 def CA_func(x, A, B):
-    return (A * np.exp(B * x) + 1.0) / (1.0 + A) - 1.0
+    return (A * np.exp(B*(x)) + 1.0) / (1.0 + A) - 1.0
 
 
 class SPE_data:
@@ -116,20 +118,22 @@ class SPE_data:
 
         for b, db in zip(self.bias_vals, self.bias_err):
             curr_ov = b - self.v_bd
-            curr_ov_err = np.sqrt(db * db + self.v_bd_err * self.v_bd_err)
+            curr_ov_err = np.sqrt(db * db)
             self.ov.append(curr_ov)
             self.ov_err.append(curr_ov_err)
 
+        # self.bias_vals.append(self.v_bd)
+        # self.bias_err.append(self.v_bd_err)
+        
+        # self.ov.append(0.0)
+        # self.ov_err.append(self.v_bd_err)
+        
         self.ov = np.array(self.ov)
-        print(self.ov)
         self.ov_err = np.array(self.ov_err)
-        for wp, curr_bias, curr_bias_err in zip(
-            self.campaign, self.bias_vals, self.bias_err
-        ):
-            curr_spe = self.spe_res.eval(params=self.spe_res.params, x=curr_bias)
-            curr_spe_err = self.spe_res.eval_uncertainty(
-                x=curr_bias, params=self.spe_res.params, sigma=1
-            )[0]
+        
+        spe = self.spe_res.eval(params=self.spe_res.params, x=self.bias_vals)
+        spe_err = self.spe_res.eval_uncertainty(params=self.spe_res.params, x=self.bias_vals, sigma=1)
+        for wp, curr_bias, curr_spe, curr_spe_err in zip(self.campaign, self.bias_vals, spe, spe_err):
             curr_CA_val, curr_CA_err = wp.get_CA_spe(curr_spe, curr_spe_err)
             curr_CA_rms_val, curr_CA_rms_err = wp.get_CA_rms(curr_spe, curr_spe_err)
             self.CA_vals.append(curr_CA_val)
@@ -137,16 +141,29 @@ class SPE_data:
             self.CA_rms_vals.append(curr_CA_rms_val)
             self.CA_rms_err.append(curr_CA_rms_err)
 
-        self.CA_vals = np.array(self.CA_vals)
-        self.CA_err = np.array(self.CA_err)
+#include interpolated v_bd value in CA model fit
+        # bias_inclusive_bd = np.append(self.bias_vals,self.v_bd)
+        # bias_inclusive_bd_err = np.append(self.bias_err,self.v_bd_err)
+        
+        # self.ov = np.append(self.ov, 0.0)
+        # self.bias_err = np.append(self.ov_err,self.v_bd_err)
+        # self.CA_vals.append(0.0) #no CA activity at v_bd by definition
+        # self.CA_err.append(self.campaign[0].get_baseline_fit().params["sigma"].value)
+        
+        # self.CA_vals = np.array(self.CA_vals)
+        # self.CA_err = np.array(self.CA_err)
 
-        self.CA_rms_vals = np.array(self.CA_rms_vals)
-        self.CA_rms_err = np.array(self.CA_rms_err)
+        # self.CA_rms_vals = np.array(self.CA_rms_vals)
+        # self.CA_rms_err = np.array(self.CA_rms_err)
 
         # i am stinky
 
         CA_model = lm.Model(CA_func)
-        CA_params = CA_model.make_params(A=1, B=0.1)
+        # CA_params = CA_model.make_params(A=1, B= 1, C = 0)
+        CA_params = CA_model.make_params(A=1, B=1)
+        # CA_params['A'].min = 0.1
+        # CA_params['C'].min = -5
+        # CA_params['C'].max = 5
         CA_wgts = [1.0 / curr_std for curr_std in self.CA_err]
         self.CA_res = CA_model.fit(
             self.CA_vals, params=CA_params, x=self.ov, weights=CA_wgts
@@ -272,7 +289,7 @@ class SPE_data:
             data_y,
             xerr=data_x_err,
             yerr=data_y_err,
-            markersize=10,
+            markersize=6,
             fmt=".",
             label=data_label,
         )
@@ -326,12 +343,14 @@ class SPE_data:
         fig = plt.figure()
 
         data_x = self.ov
-        data_x_err = self.ov_err
+        data_x_err = self.bias_err
         data_y = self.CA_vals
         data_y_err = self.CA_err
 
-        fit_x = np.linspace(0.0, np.amax(self.ov) + 1.0, num=100)
+        fit_x = np.linspace(0, np.amax(self.ov) + 1.0, num=100)
         fit_y = self.CA_res.eval(params=self.CA_res.params, x=fit_x)
+        # fit_y = [CA_func(x, self.CA_res.params['A'].value, self.CA_res.params['B'].value, self.CA_res.params['C'].value) for x in fit_x]
+        # print(self.CA_res.params['A'].value)
         fit_y_err = self.CA_res.eval_uncertainty(
             x=fit_x, params=self.CA_res.params, sigma=1
         )
@@ -368,10 +387,10 @@ class SPE_data:
         else:
             textstr += f"Filtering: None\n"
         textstr += f"--\n"
-        textstr += f"""A: {self.CA_res.params['A'].value:0.3f} $\pm$ {self.CA_res.params['A'].stderr:0.3f}\n"""
+        textstr += f"""A: {self.CA_res.params['A'].value:0.3} $\pm$ {self.CA_res.params['A'].stderr:0.3}\n"""
         textstr += f"""B: {self.CA_res.params['B'].value:0.2} $\pm$ {self.CA_res.params['B'].stderr:0.2}\n"""
+        # textstr += f"""C: {self.CA_res.params['C'].value:0.2} $\pm$ {self.CA_res.params['C'].stderr:0.2}\n"""
         textstr += rf"""Reduced $\chi^2$: {self.CA_res.redchi:0.4}"""
-
         props = dict(boxstyle="round", facecolor=color, alpha=0.4)
         fig.text(0.15, 0.65, textstr, fontsize=8, verticalalignment="top", bbox=props)
         plt.tight_layout()
@@ -403,8 +422,8 @@ class SPE_data:
         color = "tab:" + color
         fig = plt.figure()
 
-        data_x = self.ov
-        data_x_err = self.ov_err
+        data_x = self.bias_vals
+        data_x_err = self.bias_err
         data_y = self.CA_rms_vals
         data_y_err = self.CA_rms_err
 
@@ -418,7 +437,7 @@ class SPE_data:
             label=r"$\sqrt{\frac{\sum_{i=1}^{N}\left(\frac{A_i}{\bar{A}_{1 PE}}-\left(\langle\Lambda\rangle+1\right)\right)^2}{N}}$",
         )
 
-        x_label = "Overvoltage [V]"
+        x_label = "Bias voltage [V]"
         y_label = "RMS CAs [PE]"
         plt.xlabel(x_label)
         plt.ylabel(y_label)
@@ -427,8 +446,8 @@ class SPE_data:
         textstr += f"Condition: {self.campaign[0].info.condition}\n"
         textstr += f"RTD4: {self.campaign[0].info.temperature} [K]\n"
         if self.filtered:
-            # textstr += f'Filtering: Lowpass, 400kHz\n'
-            textstr += f"Filtering: Bandpass [1E4, 1E6]\n"
+            textstr += f'Filtering: Lowpass, 400kHz\n'
+            # textstr += f"Filtering: Bandpass [1E4, 1E6]\n"
         else:
             textstr += f"Filtering: None\n"
 
@@ -501,7 +520,8 @@ class Alpha_data:
 
         for wp in self.campaign:
             self.bias_vals.append(wp.info.bias)
-            self.bias_err.append(0.005)
+            self.bias_err.append(0.0025 * wp.info.bias + 0.015)
+            # self.bias_err.append(0.005)
             curr_alpha = wp.get_alpha()
             self.alpha_vals.append(curr_alpha[0])
             self.alpha_err.append(curr_alpha[1])
@@ -560,10 +580,10 @@ class Alpha_data:
         color = "tab:" + color
         fig = plt.figure()
         fig.tight_layout()
-        plt.rc("font", size=22)
+        plt.rc("font", size=12)
 
-        data_x = self.ov
-        data_x_err = self.ov_err
+        data_x = self.bias_vals
+        data_x_err = self.bias_err
         data_y = self.alpha_vals
         data_y_err = self.alpha_err
 
@@ -582,8 +602,9 @@ class Alpha_data:
             fmt=".",
             color=color,
         )
-
-        plt.xlabel("Overvoltage [V]")
+        x_label = "Bias voltage [V]"
+        plt.xlabel("Bias voltage [V]")
+        y_label = "Alpha Pulse Amplitude [V]"
         plt.ylabel("Alpha Pulse Amplitude [V]")
         textstr = f"Date: {self.campaign[0].info.date}\n"
         textstr += f"Condition: {self.campaign[0].info.condition}\n"
@@ -597,8 +618,10 @@ class Alpha_data:
         # textstr += f'''B: {self.CA_res.params['B'].value:0.2} $\pm$ {self.CA_res.params['B'].stderr:0.2}\n'''
         # textstr += rf'''Reduced $\chi^2$: {self.CA_res.redchi:0.4}'''
 
+        plt.grid(True)
+
         props = dict(boxstyle="round", facecolor=color, alpha=0.4)
-        fig.text(0.75, 0.25, textstr, fontsize=8, verticalalignment="top", bbox=props)
+        fig.text(0.15, 0.75, textstr, fontsize=18, verticalalignment="top", bbox=props)
         if out_file:
             data = {
                 x_label: data_x,
@@ -654,7 +677,7 @@ class Alpha_data:
         #     textstr += f'Filtering: None\n'
 
         props = dict(boxstyle="round", facecolor=color, alpha=0.4)
-        fig.text(0.75, 0.25, textstr, fontsize=8, verticalalignment="top", bbox=props)
+        fig.text(0.3, 0.4, textstr, fontsize=18, verticalalignment="top", bbox=props)
         plt.xlim(0, np.amax(self.ov) + 1.0)
         ylow, yhigh = plt.ylim()
         plt.ylim(-1, yhigh * 1.1)
@@ -721,7 +744,7 @@ class Alpha_data:
         textstr += f"RTD4: {self.campaign[0].info.temperature} [K]"
 
         props = dict(boxstyle="round", facecolor=color, alpha=0.4)
-        fig.text(0.75, 0.25, textstr, fontsize=8, verticalalignment="top", bbox=props)
+        fig.text(0.3, 0.4, textstr, fontsize=18, verticalalignment="top", bbox=props)
         plt.xlim(0, np.amax(self.ov) + 1.0)
         ylow, yhigh = plt.ylim()
         plt.ylim(-0.01, yhigh * 1.1)
@@ -729,6 +752,8 @@ class Alpha_data:
             plt.legend(loc="lower left")
         plt.tight_layout()
         if out_file:
+            x_label = "Overvoltage [V]"
+            y_label = "Photon Detection Efficiency"
             data = {
                 x_label: data_x,
                 x_label + " error": data_x_err,

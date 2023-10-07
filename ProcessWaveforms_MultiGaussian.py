@@ -468,7 +468,7 @@ class WaveformProcessor:
     def __init__(
         self,
         info: MeasurementInfo,
-        centers: List[float] | np.ndarray,
+        centers: List[float] | np.ndarray = [], #initializes centers as an empty list (so code still works for alpha data)
         run_info_self: Optional[RunInfo] = None,
         run_info_solicit: Optional[RunInfo] = None,
         baseline_correct: bool = False,
@@ -530,6 +530,7 @@ class WaveformProcessor:
                     (self.peak_values >= self.cutoff[0])
                     & (self.peak_values <= self.cutoff[1])
                 ]  # peaks in a range
+                self.all = np.array(self.run_info_self.all_peak_data) #all peaks
                 
 
         if not self.no_solicit:
@@ -599,9 +600,9 @@ class WaveformProcessor:
                     cutoff = self.cutoff
                     )
 
-            self.peak_locs = [self.peak_fit.params[f'g{i}_center'].value for i in range(1, numpeaks + 1)]
-            self.peak_sigmas = [self.peak_fit.params[f'g{i}_sigma'].value for i in range(1, numpeaks + 1)]
-            self.peak_stds = [self.peak_fit.params[f'g{i}_center'].stderr for i in range(1, numpeaks + 1)]
+            self.peak_locs = [self.peak_fit.params[f'g{i}_center'].value for i in range(1, self.numpeaks + 1)]
+            self.peak_sigmas = [self.peak_fit.params[f'g{i}_sigma'].value for i in range(1, self.numpeaks + 1)]
+            self.peak_stds = [self.peak_fit.params[f'g{i}_center'].stderr for i in range(1, self.numpeaks + 1)]
             
             
 
@@ -645,17 +646,17 @@ class WaveformProcessor:
 
             if self.baseline_correct:
                 self.A_avg = (
-                    np.mean(self.peak_values) - self.spe_res.params["intercept"].value
+                    np.mean(self.all) - self.spe_res.params["intercept"].value
                 )  # spectrum specific baseline correction
                 # self.A_avg_err = self.A_avg * np.sqrt((sem(self.all) / np.mean(self.all))** 2 + (self.spe_res.params['intercept'].stderr / self.spe_res.params['intercept'].value)** 2)
                 self.A_avg_err = np.sqrt(
-                    (sem(self.peak_values)) ** 2
+                    (sem(self.all)) ** 2
                     + (self.spe_res.params["intercept"].stderr) ** 2
                 )
             else:
-                self.A_avg = np.mean(self.peak_values)
+                self.A_avg = np.mean(self.all)
                 self.A_avg_err = self.A_avg * np.sqrt(
-                    (sem(self.peak_values) / np.mean(self.peak_values)) ** 2
+                    (sem(self.peak_values) / np.mean(self.all)) ** 2
                 )
 
             self.CA = self.A_avg / self.spe_res.params["slope"].value - 1
@@ -673,6 +674,7 @@ class WaveformProcessor:
                 self.peak_values, binnum=self.info.peaks_numbins
             )
             self.alpha_res = self.alpha_fit["fit"]
+    
 
     def get_alpha_data(self):
        """Retrieves the alpha pulse peak heights.
@@ -722,7 +724,7 @@ class WaveformProcessor:
         """
         return (self.CA, self.CA_err)
 
-    def get_CA_spe(self, spe: float, spe_err: float) -> Tuple[float, float]
+    def get_CA_spe(self, spe: float, spe_err: float) -> Tuple[float, float]:
         """Computes the Correlated Avalanche (CA) factor and its error based on given spe and its error.
 
         Args:
@@ -812,7 +814,8 @@ class WaveformProcessor:
         """       
         fig = plt.figure()
         fig.tight_layout()
-        plt.rc("font", size=22)
+        
+        plt.rc("font", size=12)
         plt.errorbar(
             self.spe_num,
             self.peak_locs[: self.numpeaks],
@@ -853,8 +856,8 @@ class WaveformProcessor:
 
         plt.xlabel("Photoelectron Peak Number")
         plt.ylabel("Peak Location [V]")
-
         plt.legend()
+        plt.grid(True)
 
         textstr = f"Date: {self.info.date}\n"
         textstr += f"Condition: {self.info.condition}\n"
@@ -865,14 +868,15 @@ class WaveformProcessor:
         textstr += f"""Intercept: {self.spe_res.params['intercept'].value:0.4} +- {self.spe_res.params['intercept'].stderr:0.2} [V]\n"""
         textstr += rf"""Reduced $\chi^2$: {self.spe_res.redchi:0.4}"""
         textstr += f"""\n"""
-        textstr += f"--\n"
+        # textstr += f"--\n"
         if not self.no_solicit:
             textstr += (
                 f"Baseline: {self.baseline_mean:0.4} +- {self.baseline_err:0.2} [V]"
             )
 
         props = dict(boxstyle="round", facecolor="tab:" + peakcolor, alpha=0.4)
-        fig.text(0.6, 0.4, textstr, fontsize=20, verticalalignment="top", bbox=props)
+        fig.text(0.6, 0.48, textstr, fontsize=8, verticalalignment="top", bbox=props)
+        fig.tight_layout()
 
         if savefig:
             plt.savefig(path)
@@ -926,7 +930,7 @@ class WaveformProcessor:
 
         plt.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         props = dict(boxstyle="round", facecolor="tab:" + color, alpha=0.5)
-        fig.text(0.15, 0.9, textstr, fontsize=8, verticalalignment="top", bbox=props)
+        fig.text(0.15, 0.9, textstr, fontsize=10, verticalalignment="top", bbox=props)
         plt.tight_layout()
 
         if savefig:
@@ -1012,7 +1016,15 @@ class WaveformProcessor:
         textstr += f"""Peak 1: {self.peak_fit.params['g1_center'].value:0.2} +- {self.peak_fit.params['g1_center'].stderr:0.2}\n"""
         textstr += f"""Peak 2: {self.peak_fit.params['g2_center'].value:0.2} +- {self.peak_fit.params['g2_center'].stderr:0.2}\n"""
         textstr += f"""Peak 3: {self.peak_fit.params['g3_center'].value:0.2} +- {self.peak_fit.params['g3_center'].stderr:0.2}\n"""
-        textstr += f"""Peak 4: {self.peak_fit.params['g4_center'].value:0.2} +- {self.peak_fit.params['g4_center'].stderr:0.2}\n"""
+        if self.numpeaks > 3:
+            textstr += f"""Peak 4: {self.peak_fit.params['g4_center'].value:0.2} +- {self.peak_fit.params['g4_center'].stderr:0.2}\n"""
+        textstr += f"--\n"
+        textstr += f"""Peak 1 $\sigma$: {self.peak_fit.params['g1_sigma'].value:0.2} +- {self.peak_fit.params['g1_sigma'].stderr:0.2}\n"""
+        textstr += f"""Peak 2 $\sigma$: {self.peak_fit.params['g2_sigma'].value:0.2} +- {self.peak_fit.params['g2_sigma'].stderr:0.2}\n"""
+        textstr += f"""Peak 3 $\sigma$: {self.peak_fit.params['g3_sigma'].value:0.2} +- {self.peak_fit.params['g3_sigma'].stderr:0.2}\n"""
+        if self.numpeaks > 3:
+            textstr += f"""Peak 4 $\sigma$: {self.peak_fit.params['g4_sigma'].value:0.2} +- {self.peak_fit.params['g4_sigma'].stderr:0.2}\n"""
+        textstr += f"--\n"
         textstr += f"""Reduced $\chi^2$: {self.peak_fit.redchi:0.2}\n"""
         textstr += f"""SNR (quadrature): {self.resolution[0]:0.2}\n"""
         textstr += f"""SNR 1-2 (mode): {(self.peak_locs[1]-self.peak_locs[0])/self.baseline_mode:0.2}\n"""
@@ -1044,9 +1056,11 @@ class WaveformProcessor:
         # plt.scatter(centers, counts, s = 7, color = 'black')
         plt.hist(self.peak_values, bins=int(total_num_bins), color="tab:" + peakcolor)
 
-        fig.text(0.55, 0.925, textstr, fontsize=8, verticalalignment="top", bbox=props)
+        fig.text(0.57, 0.925, textstr, fontsize=10, verticalalignment="top", bbox=props)
         plt.ylabel("Counts")
         plt.xlabel("Pulse Amplitude [V]")
+        
+        plt.grid(True)
 
         if log_scale:
             plt.ylim(1e-1)
@@ -1073,7 +1087,7 @@ class WaveformProcessor:
         """      
         fig = plt.figure()
         fig.tight_layout()
-        plt.rc("font", size=22)
+        plt.rc("font", size=12)
         bin_density = self.info.peaks_numbins / (
             self.alpha_fit["high"] - self.alpha_fit["low"]
         )
@@ -1106,8 +1120,9 @@ class WaveformProcessor:
 
         props = dict(boxstyle="round", facecolor="tab:" + peakcolor, alpha=0.4)
         fig.text(
-            0.175, 0.925, textstr, fontsize=20, verticalalignment="top", bbox=props
+            0.175, 0.85, textstr, fontsize=10, verticalalignment="top", bbox=props
         )
+        plt.grid(True)
         plt.show()
 
     def plot_both_histograms(
@@ -1156,7 +1171,7 @@ class WaveformProcessor:
         # total_num_bins = bin_density * (np.amax(self.peak_values) - np.amin(self.peak_values))
         total_num_bins = self.info.peaks_numbins
         plt.hist(
-            self.peak_values,
+            self.all,
             bins=int(total_num_bins),
             density=density,
             label="Self-Triggered Pulse Height Data",
@@ -1167,14 +1182,14 @@ class WaveformProcessor:
             plt.yscale("log")
         plt.ylabel("Frequency" if density else "Counts")
         plt.xlabel("Amplitude [V]")
-
+        plt.grid(True)
         plt.legend()
         textstr = f"Date: {self.info.date}\n"
         textstr += f"Condition: {self.info.condition}\n"
         textstr += f"Bias: {self.info.bias:0.4} [V]\n"
         textstr += f"RTD4: {self.info.temperature} [K]"
         props = dict(boxstyle="round", facecolor="tab:" + peakcolor, alpha=0.4)
-        fig.text(0.75, 0.75, textstr, fontsize=8, verticalalignment="top", bbox=props)
+        fig.text(0.5, 0.5, textstr, fontsize=10, verticalalignment="top", bbox=props)
         plt.tight_layout()
 
         if savefig:
