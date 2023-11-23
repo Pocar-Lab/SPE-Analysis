@@ -517,6 +517,9 @@ class Alpha_data:
         self.bias_err = []
         self.alpha_vals = []
         self.alpha_err = []
+        
+        self.sigma_vals = []
+        self.sigma_err = []
 
         for wp in self.campaign:
             self.bias_vals.append(wp.info.bias)
@@ -525,6 +528,9 @@ class Alpha_data:
             curr_alpha = wp.get_alpha()
             self.alpha_vals.append(curr_alpha[0])
             self.alpha_err.append(curr_alpha[1])
+            curr_sigma = wp.get_sigma()
+            self.sigma_vals.append(curr_sigma[0])
+            self.sigma_err.append(curr_sigma[1])            
 
         self.bias_vals = np.array(self.bias_vals)
         self.bias_err = np.array(self.bias_err)
@@ -543,10 +549,27 @@ class Alpha_data:
         self.ov = np.array(self.ov)
         self.ov_err = np.array(self.ov_err)
 
+        self.sigma_vals = np.array(self.sigma_vals)
+        self.sigma_err = np.array(self.sigma_err)
+
         self.CA_vals, self.CA_err = self.spe_data.get_CA_ov(self.ov)
         self.spe_vals, self.spe_err = self.spe_data.get_spe_ov(self.ov)
         print("CA Vals: " + str(self.CA_vals))
         print("SPE Vals: " + str(self.spe_vals))
+
+# in p.e. units
+        self.sigma_in_spe_units = self.sigma_vals/self.spe_vals * self.spe_data.invC/self.invC
+        self.sigma_in_spe_units_err = self.sigma_in_spe_units * np.sqrt((self.sigma_err * self.sigma_err)/(self.sigma_vals * self.sigma_vals) 
+                                                                        + (self.spe_err*self.spe_err)/(self.spe_vals*self.spe_vals) 
+                                                                        + (self.invC_err*self.invC_err)/(self.invC*self.invC) 
+                                                                        + (self.spe_data.invC_err*self.spe_data.invC_err)/(self.spe_data.invC*self.spe_data.invC)
+                                                                        )
+        self.alpha_in_spe_units = self.alpha_vals/self.spe_vals * self.spe_data.invC/self.invC
+        self.alpha_in_spe_units_err = self.alpha_in_spe_units * np.sqrt((self.alpha_err * self.alpha_err)/(self.alpha_vals * self.alpha_vals) 
+                                                                        + (self.spe_err*self.spe_err)/(self.spe_vals*self.spe_vals) 
+                                                                        + (self.invC_err*self.invC_err)/(self.invC*self.invC) 
+                                                                        + (self.spe_data.invC_err*self.spe_data.invC_err)/(self.spe_data.invC*self.spe_data.invC) 
+                                                                        )                                                                        
 
         self.num_det_photons = (
             self.alpha_vals
@@ -562,7 +585,7 @@ class Alpha_data:
             + (self.CA_err * self.CA_err) / (self.CA_vals * self.CA_vals)
         )
 
-    def plot_alpha(self, color: str = "purple", out_file: str = None) -> None:
+    def plot_alpha(self, color: str = "purple", units = "Volts", x = "Bias", out_file: str = None) -> None:
         """
         Plot the alpha data as a function of overvoltage.
 
@@ -582,11 +605,25 @@ class Alpha_data:
         fig.tight_layout()
         plt.rc("font", size=12)
 
-        data_x = self.bias_vals
-        data_x_err = self.bias_err
-        data_y = self.alpha_vals
-        data_y_err = self.alpha_err
-
+        
+        if x == "OV":
+            data_x = self.ov
+            data_x_err = self.bias_err
+            x_label = "Overvoltage [V]"
+        if x == "Bias":
+            data_x = self.bias_vals
+            data_x_err = self.bias_err
+            x_label = "Bias voltage [V]"
+        
+        if units == "Volts":
+            data_y = self.alpha_vals
+            data_y_err = self.alpha_err
+            y_label = "Alpha Pulse Amplitude [V]"
+        if units == "PE":
+            data_y = self.alpha_in_spe_units
+            data_y_err = self.alpha_in_spe_units_err
+            y_label = "Alpha Amplitude [p.e.]"
+            
         # fit_x = np.linspace(0.0, np.amax(self.ov) + 1.0, num = 100)
         # fit_y = self.CA_res.eval(params=self.CA_res.params, x = fit_x)
         # fit_y_err = self.CA_res.eval_uncertainty(x = fit_x, params = self.CA_res.params, sigma = 1)
@@ -602,10 +639,81 @@ class Alpha_data:
             fmt=".",
             color=color,
         )
-        x_label = "Bias voltage [V]"
-        plt.xlabel("Bias voltage [V]")
-        y_label = "Alpha Pulse Amplitude [V]"
-        plt.ylabel("Alpha Pulse Amplitude [V]")
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
+        textstr = f"Date: {self.campaign[0].info.date}\n"
+        textstr += f"Condition: {self.campaign[0].info.condition}\n"
+        textstr += f"RTD4: {self.campaign[0].info.temperature} [K]"
+        # if self.filtered:
+        #     textstr += f'Filtering: Lowpass, 400kHz\n'
+        # else:
+        #     textstr += f'Filtering: None\n'
+        # textstr += f'--\n'
+        # textstr += f'''A: {self.CA_res.params['A'].value:0.3f} $\pm$ {self.CA_res.params['A'].stderr:0.3f}\n'''
+        # textstr += f'''B: {self.CA_res.params['B'].value:0.2} $\pm$ {self.CA_res.params['B'].stderr:0.2}\n'''
+        # textstr += rf'''Reduced $\chi^2$: {self.CA_res.redchi:0.4}'''
+
+        plt.grid(True)
+
+        props = dict(boxstyle="round", facecolor=color, alpha=0.4)
+        fig.text(0.15, 0.75, textstr, fontsize=12, verticalalignment="top", bbox=props)
+        if out_file:
+            data = {
+                x_label: data_x,
+                x_label + " error": data_x_err,
+                y_label: data_y,
+                y_label + " error": data_y_err,
+            }
+            df = pd.DataFrame(data)
+            df.to_csv(out_file)
+        plt.show()
+        
+        
+    def plot_sigma(self, color: str = "purple", units = "Volts", x = "Bias", out_file: str = None) -> None:
+        """
+        Plot the fitted alpha sigmas as a function of overvoltage.
+
+        Parameters:
+        color (str, optional): The color to use for the data points. Default is 'purple'.
+        out_file (str, optional): The name of the file to save the plot to. If None, the plot is not saved to a file. Default is None.
+
+        Returns:
+        None
+        """
+        color = "tab:" + color
+        fig = plt.figure()
+        fig.tight_layout()
+        plt.rc("font", size=12)
+        
+        if x == "OV":
+            data_x = self.ov
+            data_x_err = self.bias_err
+            x_label = "Overvoltage [V]"
+        if x == "Bias":
+            data_x = self.bias_vals
+            data_x_err = self.bias_err
+            x_label = "Bias voltage [V]"
+        
+        if units == "Volts":
+            data_y = self.sigma_vals
+            data_y_err = self.sigma_err
+            y_label = "Fitted Pulse Sigma [V]"
+        if units == "PE":
+            data_y = self.sigma_in_spe_units
+            data_y_err = self.sigma_in_spe_units_err
+            y_label = "Fitted Pulse Sigma [p.e.]"
+
+        plt.errorbar(
+            data_x,
+            data_y,
+            xerr=data_x_err,
+            yerr=data_y_err,
+            markersize=10,
+            fmt=".",
+            color=color,
+        )
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
         textstr = f"Date: {self.campaign[0].info.date}\n"
         textstr += f"Condition: {self.campaign[0].info.condition}\n"
         textstr += f"RTD4: {self.campaign[0].info.temperature} [K]"
