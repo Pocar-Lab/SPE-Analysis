@@ -760,7 +760,7 @@ class Alpha_data:
         fig = plt.figure()
 
         data_x = self.ov
-        data_x_err = self.ov_err
+        data_x_err = self.bias_err
         data_y = self.num_det_photons
         data_y_err = self.num_det_photons_err
 
@@ -790,6 +790,18 @@ class Alpha_data:
         ylow, yhigh = plt.ylim()
         plt.ylim(-1, yhigh * 1.1)
         plt.tight_layout()
+
+        if out_file:
+            x_label = "Overvoltage [V]"
+            y_label = "Number of Detected Photons"
+            data = {
+                x_label: data_x,
+                x_label + " error": data_x_err,
+                y_label: data_y,
+                y_label + " error": data_y_err,
+            }
+            df = pd.DataFrame(data)
+            df.to_csv(out_file)
 
     def plot_PDE(
         self,
