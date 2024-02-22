@@ -470,22 +470,24 @@ class RunInfo:
         plt.show()
         return all_peaks
 
-    def get_peak_data(self) -> None:
-        """
-        Collects peak data and stores as a dict in self.peak_data
-        """
+    def get_peak_data(self):
+        """ collects peak data and puts in dict """
         self.peak_data = {}
         for curr_file in self.hd5_files:
             self.peak_data[curr_file] = {}
             for curr_acquisition_name in self.acquisition_names[curr_file]:
-                if (
-                    self.specifyAcquisition
-                ):  # TODO fix, rm specify, put acquision into names list in init
+                if self.specifyAcquisition:
                     curr_acquisition_name = self.acquisition
-                curr_peaks = self.get_peaks(curr_file, curr_acquisition_name)
+                if self.led:
+                    curr_peaks, curr_dark_peaks, curr_led_peaks = self.get_peaks(curr_file, curr_acquisition_name)
+                else:
+                    curr_peaks = self.get_peaks(curr_file, curr_acquisition_name)
                 self.peak_data[curr_file][curr_acquisition_name] = curr_peaks
                 self.all_peak_data = self.all_peak_data + curr_peaks
-                if self.plot_waveforms or self.specifyAcquisition:
+                if self.led:
+                    self.all_dark_peak_data = self.all_dark_peak_data + curr_dark_peaks
+                    self.all_led_peak_data = self.all_led_peak_data + curr_led_peaks
+                if self.plot_waveforms == True or self.specifyAcquisition:
                     break
 
     def get_peaks_solicit(self, filename: str, acquisition_name: str) -> list:
