@@ -386,15 +386,16 @@ class RunInfo:
 
     def get_peaks(self, filename: str, acquisition_name: str) -> list[float]:
         """Uses scipy.signal.find_peaks to find the peaks of the data.
-
         Args:
             filename (str): Name of file to analyze
             acquisition_name (str): Name of particular acquisition
-
         Returns:
             list: List of peak heights.
         """
         all_peaks = []
+        if self.led:
+            dark_peaks = []
+            led_peaks = []
         print(filename, acquisition_name)
         curr_data = self.acquisitions_data[filename][acquisition_name]
         time = self.acquisitions_time[filename][acquisition_name]
@@ -403,30 +404,19 @@ class RunInfo:
         fs = num_points / window_length
         num_wavefroms = np.shape(curr_data)[1]
         if self.plot_waveforms:
-            num_wavefroms = 20
-        # if self.plot_waveforms:
-        #     fig = plt.figure()
-        #     fig, axs = plt.subplots(1, 2)
+            num_wavefroms = 50
         for idx in range(num_wavefroms):
-            # for idx in range(num_wavefroms if not self.plot_waveforms else 300):
-            #            idx = idx + 8000 #uncomment if plotting waveforms and want to see waveforms at different indices
+#            idx = idx + 8000 #uncomment if plotting waveforms and want to see waveforms at different indices
             time = self.acquisitions_time[filename][acquisition_name]
             if idx % 1000 == 0:
                 print(idx)
-
             amp = curr_data[:, idx]
             if np.amax(amp) > self.upper_limit:
                 continue
-
-            # peaks, props = signal.find_peaks(amp, height = 0.0, prominence = 0.3) #***
-
-            use_bins = np.linspace(-self.upper_limit, self.upper_limit, 1000)
-            curr_hist = np.histogram(amp, bins=use_bins)
+            use_bins = np.linspace(-self.upper_limit, self.upper_limit, 1000) #added code for alpha
+            curr_hist = np.histogram(amp, bins = use_bins)
             baseline_mode_raw, max_counts = get_mode(curr_hist)
             self.baseline_levels.append(baseline_mode_raw)
-            # rms = [i**2 for i in amp[(amp <= self.prominence)]]
-            # self.baseline_rms.append(np.sqrt(np.mean(np.sum(rms))))
-
             if self.baseline_correct:
                 if self.poly_correct:
                     baseline_level = peakutils.baseline(amp, deg=2)
@@ -438,37 +428,35 @@ class RunInfo:
                 # self.baseline_mode = baseline_level
                 # print('baseline:', baseline_level)
                 amp = amp - baseline_level
-                
 
             if self.do_filter and np.shape(amp) != (0,):
-                #            sos = signal.butter(3, 1E6, btype = 'lowpass', fs = fs, output = 'sos')
-                sos = signal.butter(
-                    3, 4e5, btype="lowpass", fs=fs, output="sos"
-                )  # SPE dark/10g
+                sos = signal.butter(3, 4E5, btype = 'lowpass', fs = fs, output = 'sos') # SPE dark/10g 
                 filtered = signal.sosfilt(sos, amp)
-                amp = filtered
-                
-            #implement cut
-            # if np.amax(amp) > self.upper_cut:
-                    # continue
-
-            peaks, props = signal.find_peaks(
-                amp, **self.peak_search_params
-            )  # peak search algorithm
-
+                amp = filtered                            
+            peaks, props = signal.find_peaks(amp, **self.peak_search_params)
             if self.plot_waveforms:
                 plt.title(acquisition_name)
                 plt.tight_layout()
-                if len(peaks) > 0:  # only plot peaks
-                    plt.plot(time, amp)
+                if len(peaks) > 0:  #only plot peaks
+                    plt.plot(time,amp)
                     for peak in peaks:
-                        plt.plot(time[peaks], amp[peaks], ".")
-
+                        plt.plot(time[peaks], amp[peaks], '.')
+            if self.led:
+                led_time_thresh = (time[-1] + time[1]) / 2.0
             for peak in peaks:
                 all_peaks.append(amp[peak])
-
-        plt.show()
-        return all_peaks
+                if self.led:
+                    curr_time = time[peak]
+                    if curr_time < led_time_thresh:
+                        dark_peaks.append(amp[peak])
+                    else:
+                        led_peaks.append(amp[peak])
+        if self.led:
+            print(f'LED off: {np.mean(dark_peaks)} $+-$  {np.std(dark_peaks,ddof=1)/np.sqrt(len(dark_peaks))}')
+            print(f'LED on: {np.mean(led_peaks)} $+-$  {np.std(led_peaks,ddof=1)/np.sqrt(len(led_peaks))}')
+            return all_peaks, dark_peaks, led_peaks
+        else:
+            return all_peaks
 
     def get_peak_data(self):
         """ collects peak data and puts in dict """
