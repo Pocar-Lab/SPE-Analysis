@@ -345,7 +345,7 @@ def fit_peaks_multigauss(
     #constraints for sigma
     for peak in range(low_peak, high_peak + 1):
         model.set_param_hint('g' + str(peak) + '_sigma', value = 0.5 * baseline_width, min = 0, max = baseline_width)
-        print('max sigma ', baseline_width)
+
     #constraints for amplitude
     g_amplitude = [np.amax(counts)*np.sqrt(2*np.pi)*baseline_width/(2**num) for num in range(low_peak, high_peak + 1)]
     g_amplitude_index = 0
@@ -1227,3 +1227,38 @@ class WaveformProcessor:
         plt.ylim(low, 4.5)
         fig.text(0.6, 0.9, textstr, fontsize=8, verticalalignment="top", bbox=props)
         plt.tight_layout()
+        
+    def get_subtract_hist_mean(self, data1, data2, numbins = 2000, plot = False):
+        if plot:
+            plt.figure()
+            (n, b, p) = plt.hist(data1, bins = numbins, density = False, label = 'LED-On', histtype='step')
+            plt.axvline(x = np.mean(data1), color = 'blue')
+            print('LED on hist: ' + str(np.mean(data1)))
+            print('LED off hist: ' + str(np.mean(data2)))
+            plt.axvline(x = np.mean(data2), color = 'orange')
+            plt.hist(data2, bins = b, density = False, label = 'LED-Off', histtype='step')
+        counts1, bins1 = np.histogram(data1, bins = numbins, density = False)
+        counts2, bins2 = np.histogram(data2, bins = bins1, density = False)
+        centers = (bins1[1:] + bins1[:-1])/2
+        subtracted_counts = counts1 - counts2
+        
+        if plot:
+            plt.step(centers, subtracted_counts, label = 'subtracted hist')
+            plt.legend()
+
+    
+        big_n = np.sum(subtracted_counts)
+        norm_subtract_hist = subtracted_counts / big_n
+
+        # weights = 1.0 / subtracted_counts / 
+        mean_value = np.sum(centers * norm_subtract_hist)
+        ca_value = mean_value / self.spe_res.params['slope'].value - 1
+        print('CA: ', ca_value)
+
+        if plot:
+            plt.title(f'Bias: 35V, mean_value: {mean_value}')
+            plt.axvline(x = mean_value, color = 'green')  
+        # mean_err = np.sum((centers/big_n) ** 2)(subtracted_counts) + (np.sum(subtracted_counts*centers)/(big_n)**2) ** 2 * (np.sum(subtracted_counts)) #overestimation
+        a = np.sum(subtracted_counts * centers)
+        mean_err = np.sqrt(np.sum( ((a - centers * big_n)/ big_n ** 2) ** 2 * (counts1 + counts2)))
+        return (mean_value, mean_err)
