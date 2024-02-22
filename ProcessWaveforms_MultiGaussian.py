@@ -345,7 +345,7 @@ def fit_peaks_multigauss(
     #constraints for sigma
     for peak in range(low_peak, high_peak + 1):
         model.set_param_hint('g' + str(peak) + '_sigma', value = 0.5 * baseline_width, min = 0, max = baseline_width)
-
+        print('max sigma ', baseline_width)
     #constraints for amplitude
     g_amplitude = [np.amax(counts)*np.sqrt(2*np.pi)*baseline_width/(2**num) for num in range(low_peak, high_peak + 1)]
     g_amplitude_index = 0
@@ -1227,7 +1227,7 @@ class WaveformProcessor:
         plt.ylim(low, 4.5)
         fig.text(0.6, 0.9, textstr, fontsize=8, verticalalignment="top", bbox=props)
         plt.tight_layout()
-        
+
     def get_subtract_hist_mean(self, data1, data2, numbins = 2000, plot = False):
         if plot:
             plt.figure()
