@@ -19,7 +19,7 @@ import glob
 from scipy.fft import fft, fftfreq
 from lmfit.models import LinearModel, GaussianModel, ExponentialModel
 from typing import Any, Dict, List, Tuple, Optional
-
+import pprint
 from RunInfo import RunInfo
 
 
@@ -329,6 +329,7 @@ def fit_peaks_multigauss(
     model = model + LinearModel(prefix= 'l_')
     g_center = centers[:(peak_range[1]-peak_range[0]+1)]
     print('CENTER GUESSES TO BE USED IN FIT: ',g_center)
+    
     #constraints for center    
     g_center_index = 0
     for peak in range(low_peak, high_peak + 1):
@@ -345,7 +346,7 @@ def fit_peaks_multigauss(
     #constraints for sigma
     for peak in range(low_peak, high_peak + 1):
         model.set_param_hint('g' + str(peak) + '_sigma', value = 0.5 * baseline_width, min = 0, max = baseline_width)
-        print('max sigma ', baseline_width)
+
     #constraints for amplitude
     g_amplitude = [np.amax(counts)*np.sqrt(2*np.pi)*baseline_width/(2**num) for num in range(low_peak, high_peak + 1)]
     g_amplitude_index = 0
@@ -525,13 +526,10 @@ class WaveformProcessor:
         # options for if you forgot to take pre-breakdown data.......
         if no_solicit:
             self.baseline_mode = run_info_self.baseline_mode_mean
-            # self.baseline_mode = 1 #PLACEHOLDER
             self.baseline_rms = run_info_self.baseline_mode_rms
             self.baseline_std = 0.25 * run_info_self.baseline_mode_std
             self.baseline_err = run_info_self.baseline_mode_err
             self.baseline_rms = run_info_self.baseline_mode_rms
-            # self.baseline_std = 1
-            # self.baseline_err = 1
         else:
             self.run_info_solicit = run_info_solicit
             self.baseline_mode = run_info_solicit.baseline_mode
@@ -597,13 +595,12 @@ class WaveformProcessor:
         else:
             self.numbins = int(np.sqrt(len(self.peak_values))) 
           #!!! attr defined outside init
-        print(f"len: {len(self.peak_values)}")
-        print(f"{self.numbins}")
+
         if self.no_solicit:
             self.baseline_mean = self.baseline_mode
             self.baseline_std = 0.002  # arbitrary
             print("baseline mode: " + str(self.baseline_mode))
-            print("baseline std: " + str(self.baseline_std))
+            print("dummy standard deviation: " + str(self.baseline_std))
         else:
             self.baseline_fit = fit_baseline_gauss(
                 self.baseline_values, binnum=self.info.baseline_numbins, alpha=do_alpha
@@ -612,8 +609,8 @@ class WaveformProcessor:
             self.baseline_mean = self.baseline_fit["fit"].values["center"]
             self.baseline_err = self.baseline_fit["fit"].params["center"].stderr
             self.baseline_rms = np.sqrt(np.mean(self.baseline_values**2))
-            print("baseline mean: " + str(self.baseline_mean))
-            print("baseline std: " + str(self.baseline_std))
+            print("baseline mean (center): " + str(self.baseline_mean))
+            print("baseline sigma (std): " + str(self.baseline_std))
 
         if do_spe:
             self.peak_fit = fit_peaks_multigauss(
@@ -625,12 +622,27 @@ class WaveformProcessor:
                     )
 
             self.peak_locs = [self.peak_fit.params['g' + str(idx + 1) + '_center'].value for idx in range(self.low_peak-1, self.high_peak)]
-            print('peak locations: ', self.peak_locs)
+            #pprint.pprint('peak locations from fit: '+ str(self.peak_locs))
             self.peak_sigmas = [self.peak_fit.params['g' + str(idx + 1) + '_sigma'].value for idx in range(self.low_peak-1, self.high_peak)]
-            # print(self.peak_sigmas)
+            #pprint.pprint('peak sigmas (widths) from fit: '+ str(self.peak_sigmas))
             self.peak_stds = [self.peak_fit.params['g' + str(idx + 1) + '_center'].stderr for idx in range(self.low_peak-1, self.high_peak)]
-        
+            self.peak_sigmas_stds = [self.peak_fit.params['g' + str(idx + 1) + '_sigma'].stderr for idx in range(self.low_peak-1, self.high_peak)]
+            
+            #check if any of the fitted sigmas are less than the sigma of baseline noise (unphysical):
+            for s in self.peak_sigmas:
+                if s < self.baseline_std:
+                    print('WARNING! Fitted sigma ' + str(s) + ' is less than baseline sigma ' + str(self.baseline_std) +'!')
+                    
+            for i in range(len(self.peak_stds)):
+                if type(self.peak_stds[i]) == None: 
+                    print('WARNING! Fit failed to return a standard error on the peak locations and returned None! Setting std = 1')
+                    self.peak_stds[i] = 1.0
+                if type(self.peak_sigmas_stds[i]) == None: 
+                    print('WARNING! Fit failed to return a standard error on the peak sigmas and returned None! Setting std = 1')
+                    self.peak_sigmas_stds[i] = 1
+    
             self.peak_wgts = [1.0 / curr_std for curr_std in self.peak_stds]
+
             self.spe_num = []
 
             self.resolution = [
@@ -654,10 +666,9 @@ class WaveformProcessor:
                 x=self.spe_num,
                 weights=self.peak_wgts[: self.numpeaks],
             )  # creates linear fit model
-            #
 
             print(
-                "SNR: " + str(self.spe_res.params["slope"].value / self.baseline_mode)
+                "SNR (SPE amplitude/baseline mode): " + str(self.spe_res.params["slope"].value / self.baseline_mode)
             )
             print(
                 "SNR 2-3: "
@@ -684,13 +695,16 @@ class WaveformProcessor:
                 )
 
             if self.run_info_self.led:
-                print('trueeeeee')
+                print('led: trueeeeee')
                 led_data = self.run_info_self.all_led_peak_data
                 dark_data = self.run_info_self.all_dark_peak_data
                 self.A_subtract_avg, self.A_substract_avg_err = self.get_subtract_hist_mean(led_data, dark_data, plot = False)
                 if self.subtraction_method:
+                    print('computing CA from subtracted histogram...')
                     self.A_avg = self.A_subtract_avg
                     self.A_avg_err = self.A_substract_avg_err
+                else:
+                    print('computing CA using total histogram...')
 
             self.CA = self.A_avg / self.spe_res.params["slope"].value - 1
             self.CA_err = self.CA * np.sqrt(
@@ -701,8 +715,10 @@ class WaveformProcessor:
                 )
                 ** 2
             )
+            print('CA at this bias voltage: mean of all amplitudes / SPE amplitude (gain slope) = '+str(self.CA) + ' +/- ' + str(self.CA_err))
 
         if do_alpha:
+            print('processing alpha data...')
             self.alpha_fit = fit_alpha_gauss(
                 self.peak_values, binnum=self.info.peaks_numbins
             )
@@ -995,7 +1011,6 @@ class WaveformProcessor:
         """    
         
         fig = plt.figure()
-        # total_num_bins = self.numbins
         bin_density = int(np.sqrt(len(self.peak_values))) / (self.range_high - self.range_low)
         # if self.peak_range != (1,4): #if doing 4 peaks, the bin number are calculated using proper stats
             # bin_density = self.info.peaks_numbins / (self.range_high - self.range_low)
@@ -1012,13 +1027,15 @@ class WaveformProcessor:
         for peak in range(0,len(self.peak_sigmas)):
             actual_peak = self.peak_range[0] + peak
             # actual_peak = peak + 1
-            textstr += f'''Peak {actual_peak}: {self.peak_fit.params['g' + str(actual_peak) + '_center'].value:0.2} $\pm$ {self.peak_fit.params['g' + str(actual_peak) + '_center'].stderr:0.2}\n'''
+            if type(self.peak_fit.params['g' + str(actual_peak) + '_center'].stderr) != None:
+                textstr += f'''Peak {actual_peak}: {self.peak_fit.params['g' + str(actual_peak) + '_center'].value:0.2} $\pm$ {self.peak_fit.params['g' + str(actual_peak) + '_center'].stderr:0.2}\n'''
         textstr += f'--\n'
         textstr += 'Peak Width (\u03C3) [V]\n'
         for peak in range(0,len(self.peak_sigmas)):
             actual_peak = self.peak_range[0] + peak
             curr_sigma_err = self.peak_fit.params['g' + str(actual_peak) + '_sigma'].stderr
-            textstr += f'''{peak + 1}: {round(self.peak_sigmas[peak],5)} $\pm$ {curr_sigma_err:0.2}\n'''
+            if type(curr_sigma_err)==float:
+                textstr += f'''{peak + 1}: {round(self.peak_sigmas[peak],5)} $\pm$ {curr_sigma_err:0.2}\n'''
         textstr += f'--\n'    
         textstr += f'''Reduced $\chi^2$: {self.peak_fit.redchi:0.2}\n'''
         curr_hist = np.histogram(self.peak_values, bins = self.numbins)
@@ -1034,7 +1051,7 @@ class WaveformProcessor:
         props = dict(boxstyle='round', facecolor='tab:' + peakcolor, alpha=0.4)
         plt.hist(self.peak_values, bins = int(total_num_bins), color = 'tab:' + peakcolor) #zoom
         # plt.hist(self.all, bins = int(total_num_bins), color = 'tab:' + peakcolor)
-        fig.text(0.70, 0.925, textstr, fontsize=8,
+        fig.text(0.55, 0.92, textstr, fontsize=8,
                 verticalalignment='top', bbox=props)
         plt.ylabel('Counts')
         plt.xlabel('Pulse Amplitude [V]')
@@ -1106,11 +1123,12 @@ class WaveformProcessor:
         self,
         log_scale: bool = True,
         density: bool = True,
-        alphas: bool = False,
+        # alphas: bool = False,
         baselinecolor: str = "orange",
         peakcolor: str = "blue",
         savefig: bool = False,
         path: Optional[str] = None,
+        with_fit: bool = False,
     ):
         """Plots histograms for both baseline and peak values.
 
@@ -1123,7 +1141,6 @@ class WaveformProcessor:
         Args:
             log_scale (bool, optional): If True, sets the y-axis to a logarithmic scale. Defaults to True.
             density (bool, optional): If True, normalizes the histogram to form a probability density. Defaults to True.
-            alphas (bool, optional): If True, includes alpha peaks in the histogram. Defaults to False.
             baselinecolor (str, optional): The color of the baseline histogram bars. Defaults to "orange".
             peakcolor (str, optional): The color of the peak histogram bars. Defaults to "blue".
             savefig (bool, optional): If True, saves the plot to the file specified in 'path'. Defaults to False.
@@ -1132,21 +1149,19 @@ class WaveformProcessor:
         if self.no_solicit:
             print("NO PRE BREAKDOWN DATA TO PLOT")
         fig = plt.figure()
+        
+        #plot baseline hist
         plt.hist(
             self.baseline_values,
-            bins=self.info.baseline_numbins,
+            bins=int(np.sqrt(len(self.baseline_values))),
             label="Solicited Baseline Data",
             density=density,
             color="tab:" + baselinecolor,
         )
-        if alphas:
-            bin_density = self.info.peaks_numbins / (
-                self.alpha_fit["high"] - self.alpha_fit["low"]
-            )
-        else:
-            bin_density = self.info.peaks_numbins / (4.0 * self.baseline_std)
-        # total_num_bins = bin_density * (np.amax(self.peak_values) - np.amin(self.peak_values))
-        total_num_bins = self.info.peaks_numbins
+
+        #determine the total number of bins so the histogram and the fit match
+        bin_density = int(np.sqrt(len(self.peak_values))) / (self.range_high - self.range_low) # number of bins = sqrt(total counts)
+        total_num_bins = bin_density * (np.amax(self.all) - np.amin(self.all))
         plt.hist(
             self.all,
             bins=int(total_num_bins),
@@ -1160,14 +1175,40 @@ class WaveformProcessor:
         plt.ylabel("Frequency" if density else "Counts")
         plt.xlabel("Amplitude [V]")
         plt.grid(True)
-        plt.legend()
-        textstr = f"Date: {self.info.date}\n"
-        textstr += f"Condition: {self.info.condition}\n"
+        plt.legend(loc = 'upper right')
+        textstr = f"Condition: {self.info.condition}\n"
         textstr += f"Bias: {self.info.bias:0.4} [V]\n"
         textstr += f"RTD4: {self.info.temperature} [K]"
         props = dict(boxstyle="round", facecolor="tab:" + peakcolor, alpha=0.4)
-        fig.text(0.5, 0.5, textstr, fontsize=10, verticalalignment="top", bbox=props)
+        fig.text(0.6, 0.27, textstr, fontsize=10, verticalalignment="top", bbox=props)
         plt.tight_layout()
+        
+        if with_fit:
+            curr_hist = np.histogram(self.peak_values, bins = self.numbins)
+            bins = curr_hist[1]
+            centers = (bins[1:] + bins[:-1])/2
+            y_line_fit = self.peak_fit.eval(x=centers)
+            plt.plot(centers, y_line_fit,'r-', label='best fit')
+            plt.plot(centers, self.peak_fit.best_values['l_intercept'] +  self.peak_fit.best_values['l_slope']*centers, 'b-', label='best fit - line')  
+            textstr = f"Date: {self.info.date}\n"
+            textstr += f'Peak Locations ($\mu$) [V]\n'
+            for peak in range(0,len(self.peak_sigmas)):
+                actual_peak = self.peak_range[0] + peak #ensures the plot displays the actual number of p.e. if first peak was skipped
+                textstr += f'''Peak {actual_peak}: {self.peak_fit.params['g' + str(actual_peak) + '_center'].value:0.2} $\pm$ {self.peak_fit.params['g' + str(actual_peak) + '_center'].stderr:0.2}\n'''
+            textstr += f'--\n'
+            textstr += 'Peak Width (\u03C3) [V]\n'
+            for peak in range(0,len(self.peak_sigmas)):
+                actual_peak = self.peak_range[0] + peak
+                curr_sigma_err = self.peak_fit.params['g' + str(actual_peak) + '_sigma'].stderr
+                textstr += f'''{peak + 1}: {round(self.peak_sigmas[peak],5)} $\pm$ {curr_sigma_err:0.2}\n'''
+            textstr += f'--\n'    
+            textstr += f'''Reduced $\chi^2$: {self.peak_fit.redchi:0.2}\n'''
+            
+            props = dict(boxstyle='round', facecolor="tab:" + peakcolor, alpha=0.4)
+            fig.text(0.6, 0.83, textstr, fontsize=9,
+                    verticalalignment='top', bbox=props)
+            
+        plt.grid(True)
 
         if savefig:
             plt.savefig(path)

@@ -423,8 +423,10 @@ class RunInfo:
             self.baseline_levels.append(baseline_mode_raw)
             if self.baseline_correct:
                 if self.poly_correct:
+                    print('using polynomial baseline correction...')
                     baseline_level = peakutils.baseline(amp, deg=2)
                     amp = amp - baseline_level
+
 
                 use_bins = np.linspace(-self.upper_limit, self.upper_limit, 1000)
                 curr_hist = np.histogram(amp, bins=use_bins)
@@ -515,7 +517,7 @@ class RunInfo:
             amp = curr_data[:, idx]
             if (
                 np.amax(amp) > self.upper_limit
-            ):  # skips waveform if amplitude exceeds upper_limit
+            ):  # skips waveform if amplitude exceeds upper_limit (shouldn't happen in ore-breakdown data, but...)
                 continue
 
             if self.baseline_correct:
@@ -530,7 +532,6 @@ class RunInfo:
                 filtered = signal.sosfilt(sos, amp)
                 amp = filtered
 
-            # peaks, props = signal.find_peaks(amp, **self.peak_search_params)
             if self.plot_waveforms:
                 if self.fourier:
                     fourier = np.fft.fft(amp)
