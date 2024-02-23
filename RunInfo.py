@@ -111,12 +111,11 @@ class RunInfo:
         specifyAcquisition: bool = False,
         fourier: bool = False,
         is_led: bool = False,
-        condition: str = "unspecified medium (GN/LXe/Vacuum)"
+        condition: str = "unspecified medium (GN/LXe/Vacuum)",
+        num_waveforms: float = 0
     ):
         # TODO:
         # combine acquisition and specify_acquisition inputs
-        # baseline_correct should allow for choice of peakutils vs mode or mean subtraction
-        #
 
         """Extract raw waveform data from either txt or h5 files. Apply filtering and baseline correciton
         to waveforms. Can process alpha pulse waveforms, SPE waveforms (in LXe or Vacuum), or baseline data.
@@ -135,6 +134,7 @@ class RunInfo:
             prominence (float, optional): parameter used for peak finding algo. Defaults to 0.005.
             specifyAcquisition (bool, optional): if True, uses acquisition to extract just one acquisition dataset. Defaults to False.
             fourier (bool, optional): if True performs fourier frequency subtraction. Defaults to False.
+            num_waveforms: (float, optional): number of oscilloscope traces to read in before stopping; default 0 reads everything
 
         Raises:
             TypeError: _description_
@@ -166,6 +166,7 @@ class RunInfo:
         self.fourier = fourier
         self.prominence = prominence
         self.baseline_levels = []  # list of mode of waveforms
+        self.num_waveforms = num_waveforms
         self.condition = condition
         
         if self.led: # initialize led on/off lists
@@ -266,7 +267,7 @@ class RunInfo:
 
         if not is_solicit:
             print(
-                "mean mode of amplitudes, standard deviation, SEM: "
+                "mean mode of amplitudes, standard deviation of modes, SEM: "
                 + str(self.baseline_mode_mean)
                 + ", "
                 + str(self.baseline_mode_std)
@@ -289,9 +290,9 @@ class RunInfo:
             self.all_peak_data, bins=1000, histtype="step", density=False
         )
         for curr_file in self.hd5_files:
-            print(curr_file)
+            print('now reading from file: ' + str(curr_file))
             for curr_acquisition_name in self.acquisition_names[curr_file]:
-                print(curr_acquisition_name)
+                print('acquisition: ' + str(curr_acquisition_name))
 
         if not self.plot_waveforms:
             font = {
@@ -348,9 +349,9 @@ class RunInfo:
         (n2, b2, p2) = plt.hist(self.all_dark_peak_data, bins = b, histtype = 'step', density = False, label = 'LED off')
         plt.legend()
         for curr_file in self.hd5_files:
-            print(curr_file)
+            print('filename: ' + str(curr_file))
             for curr_acquisition_name in self.acquisition_names[curr_file]:
-                print(curr_acquisition_name)
+                print('acquisition name: ' + str(curr_acquisition_name))
         if not self.plot_waveforms:
             font = {'family': 'serif', 'color':  'black', 'weight': 'normal', 'size': 14,}
             plt.xlabel('Amplitude (V)', fontdict = font)
@@ -396,20 +397,23 @@ class RunInfo:
         if self.led:
             dark_peaks = []
             led_peaks = []
-        print(filename, acquisition_name)
+        print('filename: ' + str(filename) + ', ' 'acquisition name: ' + str(acquisition_name))
         curr_data = self.acquisitions_data[filename][acquisition_name]
         time = self.acquisitions_time[filename][acquisition_name]
         window_length = time[-1] - time[0]
         num_points = float(len(time))
         fs = num_points / window_length
-        num_wavefroms = np.shape(curr_data)[1]
-        if self.plot_waveforms:
-            num_wavefroms = 50
+        if self.num_waveforms ==0:
+            print('reading all waveforms')
+            num_wavefroms = np.shape(curr_data)[1]
+        else:
+            num_wavefroms = self.num_waveforms
+            print('reading '+ str(num_wavefroms) + ' waveforms')
         for idx in range(num_wavefroms):
 #            idx = idx + 8000 #uncomment if plotting waveforms and want to see waveforms at different indices
             time = self.acquisitions_time[filename][acquisition_name]
             if idx % 1000 == 0:
-                print(idx)
+                print(str(idx)+ ' read so far')
             amp = curr_data[:, idx]
             if np.amax(amp) > self.upper_limit:
                 continue
@@ -496,16 +500,17 @@ class RunInfo:
         window_length = time[-1] - time[0]
         num_points = float(len(time))
         fs = num_points / window_length
-        # print(fs)
-        num_wavefroms = np.shape(curr_data)[1]
-        print(f"num_wavefroms: {num_wavefroms}")
-        if (
-            self.plot_waveforms
-        ):  # TODO replace w/ num_wavefroms if not self.plot_waveforms else 20
-            num_wavefroms = 70
+        if self.num_waveforms ==0:
+            print('reading all waveforms')
+            num_wavefroms = np.shape(curr_data)[1]
+        else:
+            print('reading ' + str(self.num_waveforms)+ ' waveforms')
+            num_wavefroms = self.num_waveforms
+        print(f"num_waveforms: {num_wavefroms}")
+
         for idx in range(num_wavefroms):
-            if idx % 100 == 0:
-                print(idx)
+            if idx % 500 == 0:
+                print('read ' + str(idx) + ' waveforms so far')
 
             amp = curr_data[:, idx]
             if (
@@ -606,15 +611,12 @@ class RunInfo:
                 window_length = time[-1] - time[0]
                 num_points = float(len(time))
                 fs = num_points / window_length
-                # print(fs)
                 if num < 1:
                     num_w = np.shape(curr_data)[1]
                 else:
                     num_w = num
-                # print(num_wavefroms)
 
                 for idx in range(num_w):
-                    # for idx in range(200):
                     if idx % 1000 == 0:
                         print(idx)
 
