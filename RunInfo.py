@@ -243,16 +243,16 @@ class RunInfo:
                     ]["Offset"]
 
         if not is_solicit:
+            '''searches for peaks using provided parameters'''
             self.peak_search_params = {
                 "height": 0.0,  # SPE
                 "threshold": None,  # SPE
                 "distance": None,  # SPE
-                "prominence": prominence,
+                "prominence": prominence, #specified by user
                 "width": None,  # SPE
                 "wlen": 100,  # SPE
                 "rel_height": None,  # SPE
                 "plateau_size": None,  # SPE
-                # 'distance':10 #ADDED 2/25/2023
             }
             self.get_peak_data()
         else:
@@ -274,7 +274,7 @@ class RunInfo:
                 + str(self.baseline_mode_err)
             )
 
-    def plot_hists(self, temp_mean: str, temp_std: str, new: bool = False) -> None:
+    def plot_hists(self, temp_mean: str = '', temp_std: str = '', new: bool = False) -> None:
         """Plot histograms of file. Plots will display when called. No return value
 
         Args:
@@ -338,7 +338,7 @@ class RunInfo:
             plt.tight_layout()
             plt.show()
 
-    def plot_led_dark_hists(self, temp_mean, temp_std, new = False):
+    def plot_led_dark_hists(self, temp_mean = '', temp_std = '', new = False):
         if not self.led:
             return
         if new:
