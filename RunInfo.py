@@ -111,6 +111,7 @@ class RunInfo:
         specifyAcquisition: bool = False,
         fourier: bool = False,
         is_led: bool = False,
+        condition: str = "unspecified medium (GN/LXe/Vacuum)"
     ):
         # TODO:
         # combine acquisition and specify_acquisition inputs
@@ -165,6 +166,7 @@ class RunInfo:
         self.fourier = fourier
         self.prominence = prominence
         self.baseline_levels = []  # list of mode of waveforms
+        self.condition = condition
         
         if self.led: # initialize led on/off lists
             self.all_dark_peak_data = []
@@ -198,7 +200,6 @@ class RunInfo:
                 self.bias = self.acquisition_meta_data[curr_file][acquisition][
                     "Bias(V)"
                 ]
-                self.condition = "LXe"
                 self.date = self.acquisition_meta_data[curr_file][acquisition][
                     "AcquisitionStart"
                 ]
@@ -228,7 +229,6 @@ class RunInfo:
                     self.bias = self.acquisition_meta_data[curr_file][
                         curr_acquisition_name
                     ]["Bias(V)"]
-                    self.condition = "LXe"
                     self.date = self.acquisition_meta_data[curr_file][
                         curr_acquisition_name
                     ]["AcquisitionStart"]
