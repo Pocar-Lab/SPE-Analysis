@@ -1122,7 +1122,7 @@ class WaveformProcessor:
     def plot_both_histograms(
         self,
         log_scale: bool = True,
-        density: bool = True,
+        density: bool = False,
         # alphas: bool = False,
         baselinecolor: str = "orange",
         peakcolor: str = "blue",
@@ -1140,7 +1140,7 @@ class WaveformProcessor:
 
         Args:
             log_scale (bool, optional): If True, sets the y-axis to a logarithmic scale. Defaults to True.
-            density (bool, optional): If True, normalizes the histogram to form a probability density. Defaults to True.
+            density (bool, optional): If True, normalizes the histogram to form a probability density. Defaults to False.
             baselinecolor (str, optional): The color of the baseline histogram bars. Defaults to "orange".
             peakcolor (str, optional): The color of the peak histogram bars. Defaults to "blue".
             savefig (bool, optional): If True, saves the plot to the file specified in 'path'. Defaults to False.
@@ -1149,18 +1149,19 @@ class WaveformProcessor:
         if self.no_solicit:
             print("NO PRE BREAKDOWN DATA TO PLOT")
         fig = plt.figure()
+
+        #determine the total number of bins so the histogram and the fit match
+        bin_density = int(np.sqrt(len(self.peak_values))) / (self.range_high - self.range_low) # number of bins = sqrt(total counts)
         
         #plot baseline hist
         plt.hist(
             self.baseline_values,
-            bins=int(np.sqrt(len(self.baseline_values))),
-            label="Solicited Baseline Data",
+            bins = int(bin_density * (np.amax(self.baseline_values) - np.amin(self.baseline_values))), #ensures baseline histogram is scaled to match pulse height spectrum
+            label="Pre-Breakdown Noise",
             density=density,
             color="tab:" + baselinecolor,
         )
-
-        #determine the total number of bins so the histogram and the fit match
-        bin_density = int(np.sqrt(len(self.peak_values))) / (self.range_high - self.range_low) # number of bins = sqrt(total counts)
+        
         total_num_bins = bin_density * (np.amax(self.all) - np.amin(self.all))
         plt.hist(
             self.all,
@@ -1169,6 +1170,7 @@ class WaveformProcessor:
             label="Self-Triggered Pulse Height Data",
             color="tab:" + peakcolor,
         )
+
         if log_scale:
             plt.ylim(1e-1)
             plt.yscale("log")
@@ -1180,9 +1182,9 @@ class WaveformProcessor:
         textstr += f"Bias: {self.info.bias:0.4} [V]\n"
         textstr += f"RTD4: {self.info.temperature} [K]"
         props = dict(boxstyle="round", facecolor="tab:" + peakcolor, alpha=0.4)
-        fig.text(0.6, 0.27, textstr, fontsize=10, verticalalignment="top", bbox=props)
+        fig.text(0.6, 0.33, textstr, fontsize=10, verticalalignment="top", bbox=props)
         plt.tight_layout()
-        
+
         if with_fit:
             curr_hist = np.histogram(self.peak_values, bins = self.numbins)
             bins = curr_hist[1]
