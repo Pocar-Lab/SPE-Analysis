@@ -19,6 +19,8 @@ from os.path import exists
 import ast
 import h5py
 
+plt.style.use('nexo.mplstyle')
+
 RTDS = ['RTD0', 'RTD1', 'RTD2', 'RTD3', 'RTD4']
 Pres = ['P1', 'P2', 'Flow', 'LXe', 'Heater']
 
