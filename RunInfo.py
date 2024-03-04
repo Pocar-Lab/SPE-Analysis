@@ -494,7 +494,7 @@ class RunInfo:
             acquisition_name (str): name of acquisition to be processed
 
         Returns:
-            list: concatened list of all amplitude values for all waveforms
+           list: concatened list of all amplitude values for all waveforms
         """
         all_peaks = []
         curr_data = self.acquisitions_data[filename][acquisition_name]
@@ -509,15 +509,12 @@ class RunInfo:
             print('reading ' + str(self.num_waveforms)+ ' waveforms')
             num_wavefroms = self.num_waveforms
         print(f"num_waveforms: {num_wavefroms}")
-
         for idx in range(num_wavefroms):
             if idx % 500 == 0:
                 print('read ' + str(idx) + ' waveforms so far')
 
             amp = curr_data[:, idx]
-            if (
-                np.amax(amp) > self.upper_limit
-            ):  # skips waveform if amplitude exceeds upper_limit (shouldn't happen in ore-breakdown data, but...)
+            if (np.amax(amp) > self.upper_limit):  # skips waveform if amplitude exceeds upper_limit
                 continue
 
             if self.baseline_correct:

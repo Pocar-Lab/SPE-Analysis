@@ -659,7 +659,6 @@ class WaveformProcessor:
             # linear fit to the peak locations
             model = lm.models.LinearModel()
             params = model.make_params()
-
             self.spe_res = model.fit(
                 self.peak_locs[: self.numpeaks],
                 params=params,
@@ -680,9 +679,7 @@ class WaveformProcessor:
             )
 
             if self.baseline_correct:
-                self.A_avg = (
-                    np.mean(self.all) - self.spe_res.params["intercept"].value
-                )  # spectrum specific baseline correction
+                self.A_avg = ( np.mean(self.all) - self.spe_res.params["intercept"].value)  # spectrum specific baseline correction
                 # self.A_avg_err = self.A_avg * np.sqrt((sem(self.all) / np.mean(self.all))** 2 + (self.spe_res.params['intercept'].stderr / self.spe_res.params['intercept'].value)** 2)
                 self.A_avg_err = np.sqrt(
                     (sem(self.all)) ** 2

@@ -323,6 +323,7 @@ class SPE_data:
             }
             df = pd.DataFrame(data)
             df.to_csv(out_file)
+        plt.show()
 
     def plot_CA(self, color: str = "blue", out_file: str = None) -> None:
         """
@@ -343,6 +344,7 @@ class SPE_data:
         fig = plt.figure()
 
         data_x = self.ov
+        # data_x = self.bias_vals
         data_x_err = self.bias_err
         data_y = self.CA_vals
         data_y_err = self.CA_err
@@ -403,6 +405,8 @@ class SPE_data:
             }
             df = pd.DataFrame(data)
             df.to_csv(out_file)
+        else:
+            plt.show()
 
     def plot_CA_rms(self, color: str = "blue", out_file: str = None) -> None:
         """
@@ -424,6 +428,8 @@ class SPE_data:
 
         data_x = self.bias_vals
         data_x_err = self.bias_err
+        # data_x = self.ov
+        # data_x_err = self.ov_err
         data_y = self.CA_rms_vals
         data_y_err = self.CA_rms_err
 
@@ -463,6 +469,8 @@ class SPE_data:
             }
             df = pd.DataFrame(data)
             df.to_csv(out_file)
+        else:
+            plt.show()
 
     # I HAVE A SECRET TO TELL YOU! (it was reed who wrote that message and thwy are pinning it on me)
 
@@ -760,7 +768,7 @@ class Alpha_data:
         fig = plt.figure()
 
         data_x = self.ov
-        data_x_err = self.bias_err
+        data_x_err = self.bias_err # use error from voltage source, not over correlated error from OV
         data_y = self.num_det_photons
         data_y_err = self.num_det_photons_err
 
