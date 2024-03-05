@@ -179,7 +179,7 @@ class RunInfo:
         self.num_waveforms = num_waveforms
         self.condition = condition
         self.do_peak_find = do_peak_find
-        self.poly_correct_degree
+        self.poly_correct_degree = poly_correct_degree
         
         if self.led: # initialize led on/off lists
             self.all_dark_peak_data = []
