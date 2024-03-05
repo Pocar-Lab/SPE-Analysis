@@ -108,11 +108,17 @@ class RunInfo:
         baseline_correct: bool = False,
         poly_correct: bool = False,
         prominence: float = 0.005,
+        distance: float = None,
+        width: float = None,
+        wlen: float = 100,
+        threshold: float = None,
         specifyAcquisition: bool = False,
         fourier: bool = False,
         is_led: bool = False,
         condition: str = "unspecified medium (GN/LXe/Vacuum)",
-        num_waveforms: float = 0
+        num_waveforms: float = 0,
+        do_peak_find: bool = True,
+        poly_correct_degree: int = 2
     ):
         # TODO:
         # combine acquisition and specify_acquisition inputs
@@ -165,9 +171,15 @@ class RunInfo:
         self.specifyAcquisition = specifyAcquisition
         self.fourier = fourier
         self.prominence = prominence
+        self.distance = distance
+        self.width = width
+        self.wlen = wlen
+        self.threshold = threshold
         self.baseline_levels = []  # list of mode of waveforms
         self.num_waveforms = num_waveforms
         self.condition = condition
+        self.do_peak_find = do_peak_find
+        self.poly_correct_degree
         
         if self.led: # initialize led on/off lists
             self.all_dark_peak_data = []
@@ -247,12 +259,12 @@ class RunInfo:
             '''searches for peaks using provided parameters'''
             self.peak_search_params = {
                 "height": 0.0,  # SPE
-                "threshold": None,  # SPE
-                "distance": None,  # SPE
+                "threshold": threshold,  # SPE
+                "distance": distance,  # SPE
                 "prominence": prominence, #specified by user
-                "width": None,  # SPE
-                "wlen": 100,  # SPE
-                "rel_height": None,  # SPE
+                "width": width,  # SPE
+                "wlen": wlen,  # SPE
+                "rel_height": 1,  # SPE
                 "plateau_size": None,  # SPE
             }
             self.get_peak_data()
@@ -423,8 +435,8 @@ class RunInfo:
             self.baseline_levels.append(baseline_mode_raw)
             if self.baseline_correct:
                 if self.poly_correct:
-                    print('using polynomial baseline correction...')
-                    baseline_level = peakutils.baseline(amp, deg=2)
+                    #print('using polynomial baseline correction...')
+                    baseline_level = peakutils.baseline(amp, deg=self.poly_correct_degree)
                     amp = amp - baseline_level
 
 
@@ -434,12 +446,21 @@ class RunInfo:
                 # self.baseline_mode = baseline_level
                 # print('baseline:', baseline_level)
                 amp = amp - baseline_level
+                self.baseline_mode = baseline_level
 
             if self.do_filter and np.shape(amp) != (0,):
                 sos = signal.butter(3, 4E5, btype = 'lowpass', fs = fs, output = 'sos') # SPE dark/10g 
                 filtered = signal.sosfilt(sos, amp)
-                amp = filtered                            
-            peaks, props = signal.find_peaks(amp, **self.peak_search_params)
+                amp = filtered        
+
+            if self.do_peak_find:                    
+                peaks, props = signal.find_peaks(amp, **self.peak_search_params)
+                if self.plot_waveforms and self.num_waveforms < 200:
+                    if len(props["peak_heights"]) > 0:
+                        print('PEAK PROPERTIES:')
+                        pprint.pprint(props)
+            else:
+                all_peaks += list(amp)
             if self.plot_waveforms:
                 plt.title(acquisition_name)
                 plt.tight_layout()
@@ -449,14 +470,16 @@ class RunInfo:
                         plt.plot(time[peaks], amp[peaks], '.')
             if self.led:
                 led_time_thresh = (time[-1] + time[1]) / 2.0
-            for peak in peaks:
-                all_peaks.append(amp[peak])
-                if self.led:
-                    curr_time = time[peak]
-                    if curr_time < led_time_thresh:
-                        dark_peaks.append(amp[peak])
-                    else:
-                        led_peaks.append(amp[peak])
+                
+            if self.do_peak_find:
+                for peak in peaks:
+                    all_peaks.append(amp[peak])
+                    if self.led:
+                        curr_time = time[peak]
+                        if curr_time < led_time_thresh:
+                            dark_peaks.append(amp[peak])
+                        else:
+                            led_peaks.append(amp[peak])
         if self.led:
             print(f'LED off: {np.mean(dark_peaks)} $+-$  {np.std(dark_peaks,ddof=1)/np.sqrt(len(dark_peaks))}')
             print(f'LED on: {np.mean(led_peaks)} $+-$  {np.std(led_peaks,ddof=1)/np.sqrt(len(led_peaks))}')

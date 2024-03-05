@@ -335,14 +335,17 @@ def fit_peaks_multigauss(
     for peak in range(low_peak, high_peak + 1):
         if peak == low_peak:
             model.set_param_hint('g' + str(peak) + '_center', value = g_center[g_center_index], min = range_low, max = baseline_width + g_center[g_center_index])
+            # model.set_param_hint('g' + str(peak) + '_center', value = g_center[g_center_index], min = range_low, max = g_center[g_center_index + 1])
             g_center_index += 1
         elif peak == high_peak:
             g_center_last = len(g_center) - 1 #last index of g_center
             model.set_param_hint('g' + str(peak) + '_center', value = g_center[g_center_last], min = g_center[g_center_last] - baseline_width, max = range_high)
+            # model.set_param_hint('g' + str(peak) + '_center', value = g_center[g_center_last], min = g_center[g_center_last - 1], max = range_high)
         else: 
             model.set_param_hint('g' + str(peak) + '_center', value = g_center[ g_center_index], min = g_center[g_center_index] - baseline_width, max = baseline_width + g_center[g_center_index])
+            # model.set_param_hint('g' + str(peak) + '_center', value = g_center[ g_center_index], min = g_center[g_center_index - 1], max = g_center[g_center_index + 1])
             g_center_index += 1
-            # print('max ', baseline_width + g_center[g_center_index])
+
     #constraints for sigma
     for peak in range(low_peak, high_peak + 1):
         model.set_param_hint('g' + str(peak) + '_sigma', value = 0.5 * baseline_width, min = 0, max = baseline_width)
@@ -360,7 +363,7 @@ def fit_peaks_multigauss(
     params = model.make_params()
     # params.pretty_print()
     res = model.fit(counts, params=params, x=bin_centers, weights = 1/np.sqrt(counts), nan_policy='omit')
-    # print(res.fit_report())
+    print(res.fit_report())
     return res
 
 
@@ -437,6 +440,7 @@ def plot_fit(
     binnum: int = 20,
     plot_hists: bool = True,
     label: str | None = None,
+    color: str = "red"
 ) -> None:
     """
     Plots the histogram of the data and the Gaussian fit.
@@ -459,7 +463,7 @@ def plot_fit(
     plt.plot(
         x,
         fit_info["fit"].eval(params=fit_info["fit"].params, x=x),
-        color="red",
+        color=color,
         label=label,
     )
 
@@ -632,14 +636,17 @@ class WaveformProcessor:
             for s in self.peak_sigmas:
                 if s < self.baseline_std:
                     print('WARNING! Fitted sigma ' + str(s) + ' is less than baseline sigma ' + str(self.baseline_std) +'!')
-                    
+        
+            print(self.peak_stds)
             for i in range(len(self.peak_stds)):
-                if type(self.peak_stds[i]) == None: 
+                if type(self.peak_stds[i]) == None or self.peak_stds[i] is None: 
+                    print('standard error (center): ' +  str(self.peak_stds[i]))
                     print('WARNING! Fit failed to return a standard error on the peak locations and returned None! Setting std = 1')
                     self.peak_stds[i] = 1.0
-                if type(self.peak_sigmas_stds[i]) == None: 
+                if type(self.peak_sigmas_stds[i]) == None or self.peak_sigmas_stds[i] is None: 
+                    print('standard error (sigma): ' +  str(self.peak_sigmas_stds[i]))
                     print('WARNING! Fit failed to return a standard error on the peak sigmas and returned None! Setting std = 1')
-                    self.peak_sigmas_stds[i] = 1
+                    self.peak_sigmas_stds[i] = 1.0
     
             self.peak_wgts = [1.0 / curr_std for curr_std in self.peak_stds]
 
@@ -650,6 +657,7 @@ class WaveformProcessor:
                 / np.sqrt(self.peak_sigmas[i] ** 2 + self.peak_sigmas[i + 1] ** 2)
                 for i in range(len(self.peak_locs) - 1)
             ]
+            
             print("sigma SNR: " + str(self.resolution))
 
             for idx in range(self.low_peak-1, self.high_peak):
@@ -966,6 +974,7 @@ class WaveformProcessor:
                 binnum=self.info.baseline_numbins,
                 plot_hists=False,
                 label="Solicited Baseline Fit",
+                color = "green"
             )
         # plt.legend(loc = 'center left')
         plt.xlabel("Waveform Amplitude [V]")
@@ -1026,26 +1035,35 @@ class WaveformProcessor:
         textstr += f'Peak Locations ($\mu$) [V]\n'
         for peak in range(0,len(self.peak_sigmas)):
             actual_peak = self.peak_range[0] + peak
-            # actual_peak = peak + 1
-            if type(self.peak_fit.params['g' + str(actual_peak) + '_center'].stderr) != None:
+            print('creating plot legend...')
+            if self.peak_fit.params['g' + str(actual_peak) + '_center'].stderr is None:
+                continue
+            else:
                 textstr += f'''Peak {actual_peak}: {self.peak_fit.params['g' + str(actual_peak) + '_center'].value:0.2} $\pm$ {self.peak_fit.params['g' + str(actual_peak) + '_center'].stderr:0.2}\n'''
         textstr += f'--\n'
         textstr += 'Peak Width (\u03C3) [V]\n'
         for peak in range(0,len(self.peak_sigmas)):
             actual_peak = self.peak_range[0] + peak
             curr_sigma_err = self.peak_fit.params['g' + str(actual_peak) + '_sigma'].stderr
-            if type(curr_sigma_err)==float:
+            if curr_sigma_err is None:
+                continue
+            else:
                 textstr += f'''{peak + 1}: {round(self.peak_sigmas[peak],5)} $\pm$ {curr_sigma_err:0.2}\n'''
         textstr += f'--\n'    
         textstr += f'''Reduced $\chi^2$: {self.peak_fit.redchi:0.2}\n'''
+        textstr += r'$\frac{\mu_{i+1}-\mu_{i}}{\sqrt{\sigma_{i+1}+\sigma_{i}}}$ = '
+        textstr +=f' 1-2: {self.resolution[0]:0.2}; 2-3: {self.resolution[1]:0.2}'
+        if len(self.resolution)>2:
+            textstr +=f';\n 3-4: {self.resolution[2]:0.2}'
         curr_hist = np.histogram(self.peak_values, bins = self.numbins)
         # curr_hist = np.histogram(self.peak_values, bins = self.numbins)
         counts = curr_hist[0]
         bins = curr_hist[1]
         centers = (bins[1:] + bins[:-1])/2
         y_line_fit = self.peak_fit.eval(x=centers)
-
+        # y_line_fit = self.peak_fit.eval(x=np.linspace(self.cutoff[0], self.cutoff[1], 200))
         plt.plot(centers, y_line_fit,'r-', label='best fit')
+        #plt.plot(np.linspace(self.cutoff[0], self.cutoff[1], 200), y_line_fit,'r-', label='best fit')
         plt.plot(centers, self.peak_fit.best_values['l_intercept'] +  self.peak_fit.best_values['l_slope']*centers, 'b-', label='best fit - line')     
         plt.grid(True)
         props = dict(boxstyle='round', facecolor='tab:' + peakcolor, alpha=0.4)
@@ -1094,7 +1112,7 @@ class WaveformProcessor:
                 self.alpha_fit,
                 self.peak_values,
                 binnum=self.info.peaks_numbins,
-                plot_hists=False,
+                plot_hists=False
             )
         #        plt.legend(loc = 'center left')
         plt.xlabel("Waveform Amplitude [V]")
@@ -1129,6 +1147,7 @@ class WaveformProcessor:
         savefig: bool = False,
         path: Optional[str] = None,
         with_fit: bool = False,
+        with_baseline_fit: bool = False,
     ):
         """Plots histograms for both baseline and peak values.
 
@@ -1162,6 +1181,18 @@ class WaveformProcessor:
             color="tab:" + baselinecolor,
         )
         
+        if with_baseline_fit:
+            baseline_fit = fit_baseline_gauss(
+                    self.baseline_values, binnum=int(bin_density * (np.amax(self.baseline_values) - np.amin(self.baseline_values))), alpha=False)
+            plot_fit(
+                baseline_fit,
+                self.baseline_values,
+                binnum=self.info.baseline_numbins,
+                plot_hists=False,
+                label="Solicited Baseline Fit",
+                color = "green"
+            )
+        
         total_num_bins = bin_density * (np.amax(self.all) - np.amin(self.all))
         plt.hist(
             self.all,
@@ -1177,12 +1208,17 @@ class WaveformProcessor:
         plt.ylabel("Frequency" if density else "Counts")
         plt.xlabel("Amplitude [V]")
         plt.grid(True)
-        plt.legend(loc = 'upper right')
-        textstr = f"Condition: {self.info.condition}\n"
-        textstr += f"Bias: {self.info.bias:0.4} [V]\n"
-        textstr += f"RTD4: {self.info.temperature} [K]"
+
+        if not with_fit:
+            textstr = f"Condition: {self.info.condition}\n"
+            textstr += f"Bias: {self.info.bias:0.4} [V]\n"
+            textstr += f"RTD4: {self.info.temperature} [K]"
+        if with_baseline_fit:
+            textstr = f"""Baseline Mean: {baseline_fit['fit'].params['center'].value:0.4} +- {baseline_fit['fit'].params['center'].stderr:0.1} [V]\n"""
+            textstr += f"""Baseline Sigma: {baseline_fit['fit'].params['sigma'].value:0.4} +- {baseline_fit['fit'].params['sigma'].stderr:0.1} [V]\n"""
+            textstr += f"""Reduced $\chi^2$: {baseline_fit['fit'].redchi:0.4}"""
         props = dict(boxstyle="round", facecolor="tab:" + peakcolor, alpha=0.4)
-        fig.text(0.6, 0.33, textstr, fontsize=10, verticalalignment="top", bbox=props)
+        fig.text(0.2, 0.26, textstr, fontsize=9, verticalalignment="top", bbox=props)
         plt.tight_layout()
 
         if with_fit:
@@ -1193,6 +1229,9 @@ class WaveformProcessor:
             plt.plot(centers, y_line_fit,'r-', label='best fit')
             plt.plot(centers, self.peak_fit.best_values['l_intercept'] +  self.peak_fit.best_values['l_slope']*centers, 'b-', label='best fit - line')  
             textstr = f"Date: {self.info.date}\n"
+            textstr += f"Condition: {self.info.condition}\n"
+            textstr += f"Bias: {self.info.bias:0.4} [V]\n"
+            textstr += f"RTD4: {self.info.temperature} [K]\n"
             textstr += f'Peak Locations ($\mu$) [V]\n'
             for peak in range(0,len(self.peak_sigmas)):
                 actual_peak = self.peak_range[0] + peak #ensures the plot displays the actual number of p.e. if first peak was skipped
@@ -1207,9 +1246,9 @@ class WaveformProcessor:
             textstr += f'''Reduced $\chi^2$: {self.peak_fit.redchi:0.2}\n'''
             
             props = dict(boxstyle='round', facecolor="tab:" + peakcolor, alpha=0.4)
-            fig.text(0.6, 0.83, textstr, fontsize=9,
+            fig.text(0.61, 0.7, textstr, fontsize=9,
                     verticalalignment='top', bbox=props)
-            
+        plt.legend(loc = 'upper right')   
         plt.grid(True)
 
         if savefig:
