@@ -11,7 +11,7 @@ savefig.bbox : tight
 savefig.pad_inches : 0.02
 legend.fontsize : 10
 legend.loc : upper left
-errorbar.capsize : 5
+errorbar.capsize : 2
 axes.autolimit_mode : round_numbers
 axes.xmargin : 0
 axes.ymargin : 0

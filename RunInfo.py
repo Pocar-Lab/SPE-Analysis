@@ -480,6 +480,13 @@ class RunInfo:
                             dark_peaks.append(amp[peak])
                         else:
                             led_peaks.append(amp[peak])
+            if self.do_peak_find == False and self.led:
+                    for i in range(len(time)):
+                        curr_time = time[i]
+                        if curr_time < led_time_thresh:
+                            dark_peaks.append(amp[i])
+                        else:
+                            led_peaks.append(amp[i])       
         if self.led:
             print(f'LED off: {np.mean(dark_peaks)} $+-$  {np.std(dark_peaks,ddof=1)/np.sqrt(len(dark_peaks))}')
             print(f'LED on: {np.mean(led_peaks)} $+-$  {np.std(led_peaks,ddof=1)/np.sqrt(len(led_peaks))}')

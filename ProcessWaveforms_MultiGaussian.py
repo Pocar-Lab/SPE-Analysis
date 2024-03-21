@@ -391,11 +391,11 @@ def fit_alpha_gauss(
     f_range["center"] = centers[np.argmax(counts)]
     std_guess = np.std(values)
     mean_guess = centers[np.argmax(counts)]
-    f_range["low"] = mean_guess - 0.25 * std_guess
+    print('center guess: ' + str(mean_guess) + ' with '+str(max(counts)) + ' counts')
+    f_range["low"] = mean_guess - 0.5 * std_guess
     f_range["high"] = mean_guess + 0.5 * std_guess
     # print(f_range['center'], f_range['low'], f_range['high'])
     curr_peak_data = values[(values >= f_range["low"]) & (values <= f_range["high"])]
-
     # high_val = 3.5
     # low_val = 2.4
     # center_val = (high_val - low_val) / 2.0
@@ -415,9 +415,10 @@ def fit_alpha_gauss(
 
     mean_guess = res.params["center"].value
     std_guess = res.params["sigma"].value
-    f_range["low"] = mean_guess - 2.0 * std_guess
-    f_range["high"] = mean_guess + 3.0 * std_guess
+    f_range["low"] = mean_guess - 2 * std_guess
+    f_range["high"] = mean_guess + 3 * std_guess
     curr_peak_data = values[(values >= f_range["low"]) & (values <= f_range["high"])]
+    print('fitting alpha peak in range ['+str(f_range['low']) + ', ' + str(f_range['high']) + ']' )
     curr_hist = np.histogram(curr_peak_data, bins=binnum)
     counts = curr_hist[0]
     bins = curr_hist[1]
@@ -731,7 +732,20 @@ class WaveformProcessor:
                 self.peak_values, binnum=self.info.peaks_numbins
             )
             self.alpha_res = self.alpha_fit["fit"]
+            self.sigma_value = self.alpha_res.params['sigma'].value
+            self.sigma_err = self.sigma = self.alpha_res.params['sigma'].stderr
     
+    def get_N(self):
+        return len(self.peak_values)
+    
+    def get_mean_val(self):
+        return np.mean(self.peak_values)
+    
+    def get_alpha_sigma(self):
+        return self.sigma_value
+    
+    def get_alpha_sigma_err(self):
+        return self.sigma_err
 
     def get_alpha_data(self):
        """Retrieves the alpha pulse peak heights.
@@ -1083,7 +1097,8 @@ class WaveformProcessor:
             plt.close(fig)    
 
 
-    def plot_alpha_histogram(self, with_fit: bool = True, log_scale: bool = False, peakcolor: str = "purple")-> None:
+    def plot_alpha_histogram(self, with_fit: bool = True, log_scale: bool = False, peakcolor: str = "purple", savefig: bool = False, 
+                path: Optional[str] = None)-> None:
         """Plots a histogram of alpha values with or without fitting.
 
         This method creates a histogram of alpha values (self.peak_values), calculated as the number of peaks (self.info.peaks_numbins) over the range of alpha fit (self.alpha_fit["high"] - self.alpha_fit["low"]). 
@@ -1136,6 +1151,9 @@ class WaveformProcessor:
         )
         plt.grid(True)
         plt.show()
+        
+        if savefig:
+            plt.savefig(path)  
 
     def plot_both_histograms(
         self,
@@ -1323,7 +1341,7 @@ class WaveformProcessor:
         counts2, bins2 = np.histogram(data2, bins = bins1, density = False)
         centers = (bins1[1:] + bins1[:-1])/2
         subtracted_counts = counts1 - counts2
-        
+        subtracted_counts[subtracted_counts < -0.2*max(subtracted_counts)] = 0
         if plot:
             plt.step(centers, subtracted_counts, label = 'subtracted hist')
             plt.legend()
