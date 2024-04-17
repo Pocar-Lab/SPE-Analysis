@@ -813,17 +813,19 @@ class WaveformProcessor:
         sigma_error = self.alpha_res.params['sigma'].stderr
         return sigma_value, sigma_error
 
-    def get_alpha(self, sub_baseline: bool = True) -> Tuple[float, float]:
+    def get_alpha(self, sub_baseline: bool = False) -> Tuple[float, float]:
         """Retrieves the center value and its error from the alpha fit results. It subtracts the baseline mean if sub_baseline is set to True.
 
         Args:
-            sub_baseline (bool, optional): If True, subtracts the baseline mean from the alpha center value. Defaults to True.
+            sub_baseline (bool, optional): If True, subtracts the baseline mean from the alpha center value. Defaults to False.
 
         Returns:
             Tuple[float, float]: A tuple containing the center value of alpha and its error.
         """
         alpha_value = self.alpha_res.params["center"].value
         alpha_error = self.alpha_res.params["center"].stderr
+        # old method of baseline subtraction which should not be used anymore
+        # see logbook post 13438 for more
         if sub_baseline:
             baseline_value = self.baseline_mean
             baseline_error = self.baseline_err
