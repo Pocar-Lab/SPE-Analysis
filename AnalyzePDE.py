@@ -881,13 +881,10 @@ class Alpha_data:
             plt.legend(loc="lower left")
         plt.tight_layout()
         if out_file:
-            x_label = "Overvoltage [V]"
-            y_label = "Photon Detection Efficiency"
             data = {
-                x_label: data_x,
-                x_label + " error": data_x_err,
-                y_label: data_y,
-                y_label + " error": data_y_err,
+                'ov': data_x, 'ov error': data_x_err,
+                'amps': self.alpha_vals, 'amps error': self.alpha_err,
+                'bias': self.bias_vals, 'bias err': self.bias_err
             }
             df = pd.DataFrame(data)
             df.to_csv(out_file)
