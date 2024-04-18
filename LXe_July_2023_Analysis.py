@@ -7,6 +7,8 @@ Created on Fri Jul 13 2023
 
 %load_ext autoreload
 %autoreload 2
+%autoindent
+
 import sys
 import numpy as np
 from MeasurementInfo import MeasurementInfo
@@ -45,7 +47,7 @@ for file in range(len(files)):
                             prominence=proms[file+i], plot_waveforms=False)
     # run_alpha_1us.plot_hists('','')
     runs_alpha_1us.append(run_alpha_1us)
-biases = [run.bias for run in runs_alpha_1us] # get all the bias voltages from RunInfo
+biases = [run.bias for run in runs_alpha_1us] # get all the bias voltages from RunInfo (enter manually if metadata is wrong)
 
 #%%
 campaign_alpha = []
@@ -70,18 +72,39 @@ for n in range(len(runs_alpha)):
     campaign_alpha.append(wp)
     # break
 
-v_bd = 27.69
-v_bd_err = 0.06
+#%%
+p = dill.Pickler(open("/media/ed/My Passport/ed/Alpha-July-2023.pickle","wb"))
+p.fast = True
+p.dump(campaign_alpha)
+
+p = dill.Unpickler(open("/media/ed/My Passport/ed/CA-july-12.pickle","rb"))
+p.fast = True
+spe = p.load()
+
+
+
+# v_bd = 27.69
+# v_bd_err = 0.06
+v_bd = 27.13
+v_bd_err = 0.225
 alpha_data = Alpha_data(campaign_alpha, invC_alpha_1us, invC_alpha_err_1us, spe, v_bd, v_bd_err)
+
+p = dill.Pickler(open("/media/ed/My Passport/ed/CA-july-12-alpha_data.pickle","wb"))
+p.fast = True
+p.dump(alpha_data)
+
+p = dill.Unpickler(open("/media/ed/My Passport/ed/CA-july-12-alpha_data.pickle","rb"))
+p.fast = True
+alpha_data = p.load()
 
 alpha_data.analyze_alpha()
 
 #%%
-alpha_data.plot_alpha()
+alpha_data.plot_alpha(out_file="july-2023-alpha_amp.csv")
 
 alpha_data.plot_num_det_photons()
 
 ##%% values based on Wesley's APS slides
 N = 5.49/(19.6E-6)
-PTE = 0.0042
+PTE = 0.005221
 alpha_data.plot_PDE(N*PTE)

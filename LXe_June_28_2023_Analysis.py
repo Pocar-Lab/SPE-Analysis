@@ -8,6 +8,8 @@ Created on Fri Jun  9 14:28:38 2023
 
 %load_ext autoreload
 %autoreload 2
+%autoindent
+
 import sys
 import numpy as np
 from MeasurementInfo import MeasurementInfo
@@ -25,7 +27,8 @@ from ProcessWaveforms_MultiGaussian import WaveformProcessor as WaveformProcesso
 import pickle
 import dill
 
-run_spe_solicited = RunInfo(['Run_1666778594.hdf5'],  specifyAcquisition = True, acquisition ='Acquisition_1666781843', do_filter = True, is_solicit = True, upper_limit = .5, baseline_correct = True)
+run_spe_solicited = RunInfo(['data/Run_1666778594.hdf5'],  specifyAcquisition = True, acquisition ='Acquisition_1666781843', do_filter = True, is_solicit = True, upper_limit = .5, baseline_correct = True)
+
 files = ['Acquisition_1666778815','Acquisition_1666779156','Acquisition_1666782030','Acquisition_1666780808','Acquisition_1666779491']
 proms = [0.035,0.04,0.04,0.05,0.055]
 upperlim = [4, 4, 4, 4, 4]
@@ -123,6 +126,7 @@ runs_alpha = runs_alpha_1us #change as needed
 bins = [36,35,34, 32,29,30, 33,32,37,35, 33,43,30]
 for i in range(len(runs_alpha)):
     info_alpha = MeasurementInfo()
+    # info_alpha.min_alpha_value =  0.029
     info_alpha.min_alpha_value = 0.3 if i > 8 else 0.029
     info_alpha.condition = 'LXe'
     info_alpha.date = runs_alpha[i].date
@@ -132,19 +136,19 @@ for i in range(len(runs_alpha)):
     info_alpha.peaks_numbins = bins[i]
     # print(f"{i=}")
     # print(f"{info_alpha.bias=}")
-    wp = WaveformProcessor(info_alpha, run_info_self = runs_alpha[i], baseline_correct = True, no_solicit = True, range_high = 10)
+    wp = WaveformProcessor(info_alpha, run_info_self = runs_alpha[i], baseline_correct = True, no_solicit = True, cutoff=(0,10))
     wp.process(do_spe = False, do_alpha = True)
     j, k = wp.get_alpha()
-    # wp.plot_alpha_histogram(peakcolor = 'blue')
+    wp.plot_alpha_histogram(peakcolor = 'blue')
     campaign_alpha.append(wp)
 
 #%%
 # with open('LED-SPE/campaign_alpha.pickle', 'wb') as f:
 #     dill.dump(campaign_alpha, f)
 
-# p = dill.Unpickler(open("LED-SPE/SPE-June-28.pickle","rb"))
-# p.fast = True
-# spe = p.load()
+p = dill.Unpickler(open("/run/media/ed/My Passport/ed/CA-july-12.pickle","rb"))
+p.fast = True
+spe = p.load()
 
 v_bd = 27.69
 v_bd_err = 0.06
@@ -159,5 +163,6 @@ alpha_data.plot_num_det_photons()
 
 ##%% values based on Wesley's APS slides
 N = 5.49/(19.6E-6)
-PTE = 0.0042
-alpha_data.plot_PDE(N*PTE)
+PTE = .005530 # diffusive reflector
+# PTE = .010736 # specular reflector
+alpha_data.plot_PDE(N*PTE, out_file='2023_June_28_Alpha-new.csv')
