@@ -798,6 +798,7 @@ class Alpha_data:
         ylow, yhigh = plt.ylim()
         plt.ylim(-1, yhigh * 1.1)
         plt.tight_layout()
+        plt.show()
 
         if out_file:
             x_label = "Overvoltage [V]"
