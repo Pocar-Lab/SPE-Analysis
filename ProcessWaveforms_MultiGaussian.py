@@ -329,7 +329,6 @@ def fit_peaks_multigauss(
     model = model + LinearModel(prefix= 'l_')
     g_center = centers[:(peak_range[1]-peak_range[0]+1)]
     print('CENTER GUESSES TO BE USED IN FIT: ',g_center)
-    
     #constraints for center    
     g_center_index = 0
     for peak in range(low_peak, high_peak + 1):
@@ -605,7 +604,7 @@ class WaveformProcessor:
             self.baseline_mean = self.baseline_mode
             self.baseline_std = 0.002  # arbitrary
             print("baseline mode: " + str(self.baseline_mode))
-            print("dummy standard deviation: " + str(self.baseline_std))
+            print("baseline std: " + str(self.baseline_std))
         else:
             self.baseline_fit = fit_baseline_gauss(
                 self.baseline_values, binnum=self.info.baseline_numbins, alpha=do_alpha
@@ -627,9 +626,9 @@ class WaveformProcessor:
                     )
 
             self.peak_locs = [self.peak_fit.params['g' + str(idx + 1) + '_center'].value for idx in range(self.low_peak-1, self.high_peak)]
-            #pprint.pprint('peak locations from fit: '+ str(self.peak_locs))
+            print('peak locations from fit: '+ str(self.peak_locs))
             self.peak_sigmas = [self.peak_fit.params['g' + str(idx + 1) + '_sigma'].value for idx in range(self.low_peak-1, self.high_peak)]
-            #pprint.pprint('peak sigmas (widths) from fit: '+ str(self.peak_sigmas))
+            print('peak sigmas (widths) from fit: '+ str(self.peak_sigmas))
             self.peak_stds = [self.peak_fit.params['g' + str(idx + 1) + '_center'].stderr for idx in range(self.low_peak-1, self.high_peak)]
             self.peak_sigmas_stds = [self.peak_fit.params['g' + str(idx + 1) + '_sigma'].stderr for idx in range(self.low_peak-1, self.high_peak)]
             
@@ -1159,7 +1158,7 @@ class WaveformProcessor:
         self,
         log_scale: bool = True,
         density: bool = False,
-        # alphas: bool = False,
+        alphas: bool = False,
         baselinecolor: str = "orange",
         peakcolor: str = "blue",
         savefig: bool = False,
@@ -1178,6 +1177,7 @@ class WaveformProcessor:
         Args:
             log_scale (bool, optional): If True, sets the y-axis to a logarithmic scale. Defaults to True.
             density (bool, optional): If True, normalizes the histogram to form a probability density. Defaults to False.
+            alphas (bool, optional): If True, includes alpha peaks in the histogram. Defaults to False.
             baselinecolor (str, optional): The color of the baseline histogram bars. Defaults to "orange".
             peakcolor (str, optional): The color of the peak histogram bars. Defaults to "blue".
             savefig (bool, optional): If True, saves the plot to the file specified in 'path'. Defaults to False.
