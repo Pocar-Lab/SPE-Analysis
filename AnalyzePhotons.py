@@ -20,7 +20,16 @@ import pandas as pd
 from typing import Any, Dict, List, Tuple, Optional
 from MeasurementInfo import MeasurementInfo
 #%%
-
+def errorprop(tupled_err1, tupled_err2, combo = "multiplication"):
+    val1, error1 = tupled_err1
+    val2, error2 = tupled_err2
+    if combo == "multiplication":
+        percent1 = error1/val1
+        percent2 = error2/val2
+        prop = np.sqrt(percent1**2 + percent2**2)
+    else:
+        prop = np.sqrt(error1**2+error2**2)
+    return prop
 #%%
 def get_v_bd(spe, spe_err, bias, bias_err): # gets v_bd of CA data
     model = lm.models.LinearModel()
@@ -154,10 +163,6 @@ class CorrelatedAvalancheProbability:
         
         data_x, data_x_err = data[:,0], data[:,1]
         data_y, data_y_err = data[:,2], data[:,3]
-        # data_x = self.x[0]
-        # data_x_err = self.x[1]
-        # data_y = self.y[0]
-        # data_y_err = self.y[1]
             
         CA_model = lm.Model(CA_func)
         CA_params = CA_model.make_params(A = 1, B = .1)
@@ -232,15 +237,122 @@ class SPEData:
         self.filtering = filtering
         self.color = color
         
-        print('Using conversion invC = ' + str(self.invC) + ' +/- ' + str(self.invC_err) + ' for alpha data')
         print('Using conversion invC = ' + str(self.invC_spe) + ' +/- ' + str(self.invC_spe_err) + ' for spe data')
+        
+        print('loading SPE data from file: ' + str(self.path))
+        self.bias_spe, self.amp_spe = load_data(self.path,
+                                   data_type = 'SPE', 
+                                   bias_key = self.bias_key, 
+                                   data_key = self.spe_key, 
+                                   return_ov = False # do not put in terms of OV right now
+                                   )
+        
+        spe = self.amp_spe[0]
+        spe_err = self.amp_spe[1]
+        bias = self.bias_spe[0]
+        bias_err = self.bias_spe[1]
+        model = lm.models.LinearModel()
+        params = model.make_params()
+        spe_wgts = spe_wgts = [1.0 / curr_std for curr_std in spe_err]
+        self.spe_res = model.fit(spe, params=params, x=bias, weights=spe_wgts)
+        
+    def get_v_bd(self, plot = False): # method to get the breakdown voltage from provided SPE values
+        spe = self.amp_spe[0]
+        spe_err = self.amp_spe[1]
+        bias = self.bias_spe[0]
+        bias_err = self.bias_spe[1]
+        spe_res = self.spe_res
+
+        # linear fit
+        b_spe = spe_res.params["intercept"].value
+        m_spe = spe_res.params["slope"].value
+        v_bd = -b_spe / m_spe 
+        vec_spe = np.array([b_spe / (m_spe * m_spe), -1.0 / m_spe])
+        v_bd_err = np.sqrt(
+                    np.matmul(
+                        np.reshape(vec_spe, (1, 2)),
+                        np.matmul(spe_res.covar, np.reshape(vec_spe, (2, 1))),
+                    )[0, 0]
+                ) 
+        if plot:
+            start_bias = v_bd
+            end_bias = np.amax(bias) + 1.0
+            fit_bias = np.linspace(start_bias, end_bias, 20)
+            fit_y = spe_res.eval(params=spe_res.params, x=fit_bias)
+            fit_y_err = spe_res.eval_uncertainty(
+                x=fit_bias, params=spe_res.params, sigma=1
+            )
+            fit_label = "SPE Amplitude Best Fit"
+            data_label = "SPE Amplitude values"
+            y_label = "SPE Amplitude [V]"
+            data_y = spe
+            data_y_err = spe_err
+            chi_sqr = spe_res.redchi
+            slope_text = rf"""Slope: {self.spe_res.params['slope'].value:0.4} $\pm$ {self.spe_res.params['slope'].stderr:0.2} [V/V]"""
+            intercept_text = rf"""Intercept: {self.spe_res.params['intercept'].value:0.4} $\pm$ {self.spe_res.params['intercept'].stderr:0.2} [V]"""
+            parameter_text = slope_text
+            fit_x = fit_bias
+            data_x = bias
+            data_x_err = bias_err
+            x_label = "Bias Voltage [V]"
+            parameter_text += f"""\n"""
+            parameter_text += intercept_text  
+            parameter_text += f"""\n"""
+            parameter_text += rf"""Reduced $\chi^2$: {chi_sqr:0.4}"""
+            parameter_text += f"""\n"""
+            plt.fill_between(
+                fit_x, fit_y + fit_y_err, fit_y - fit_y_err, color="red", alpha=0.5
+            )
+            plt.plot(fit_x, fit_y, color="red", label=fit_label)
+            plt.errorbar(
+                data_x,
+                data_y,
+                xerr=data_x_err,
+                yerr=data_y_err,
+                markersize=6,
+                fmt=".",
+                label=data_label,
+            )
+            plt.xlabel(x_label)
+            plt.ylabel(y_label)
+            plt.legend()
+            textstr = self.filtering
+            textstr += f"--\n"
+            textstr += parameter_text
+            textstr += f"--\n"
+            textstr += rf"Breakdown Voltage: {v_bd:0.4} $\pm$ {v_bd_err:0.3} [V]"
+
+            props = dict(boxstyle="round", facecolor='blue', alpha=0.4)
+            plt.text(0.6, 0.45, textstr, fontsize=8, verticalalignment="top", bbox=props)
+            plt.tight_layout()
+            plt.grid(True)
+
+        print('Breakdown voltage: ' + str(v_bd) + ' +/- ' + str(v_bd_err))
+        return v_bd, v_bd_err
+    
+    def get_SPEs(self, input_vals, in_ov = False, tupled = True): # method to get SPE value at a list of given OV or bias
+        spe_res = self.spe_res
+        b_spe = spe_res.params["intercept"].value
+        m_spe = spe_res.params["slope"].value
+        v_bd = -b_spe / m_spe 
+        if in_ov or min(input_vals) < 10:
+            input_vals = input_vals + v_bd
+            if min(input_vals < 10):
+                print('Warning: SPE requested for bias voltage of less than 10V. Did you mean to set in_ov = True?')
+            
+        out_vals = spe_res.eval(params=spe_res.params, x=input_vals)
+        out_err = spe_res.eval_uncertainty(x=input_vals, sigma=1)
+        if tupled:
+            return list(zip(out_vals, out_err))
+        else:
+            return out_vals, out_err
 #%%
 class AlphaData: #class for alpha data loaded from CSV. assumes columns of alpha amplitudes and bias voltages. SPE values must be loaded concurrently for complete functionality
     def __init__(
         self,
         path: str, # path to file containing alpha amplitudes
+        spe: SPEData,
         invC_alpha: tuple, # conversion factor from electronics calibration and error
-        invC_spe: tuple = (None, None),
         path_spe: str = None, # path to file containing SPE amplitudes
         v_bd: float = 0.0, # breakdown voltage, optional
         return_ov: bool = True, # work in terms of OV or not
@@ -248,50 +360,30 @@ class AlphaData: #class for alpha data loaded from CSV. assumes columns of alpha
         #set these if for some reason CSV file has differently named columns
         bias_key: tuple = ('Bias voltage [V]', 'Bias voltage [V] error'), #name of column in CSV file
         alpha_key: tuple = ('Alpha Pulse Amplitude [V]', 'Alpha Pulse Amplitude [V] error'),
-        spe_bias_key: tuple = (None,None),
-        spe_key: tuple = ('SPE Amplitude [V]','SPE Amplitude [V] error'),
         shaper: str = '1 $\mu$s',
-        filtering: str = '400 kHz',
         color: str = "red",
         mean_subtract: str = None, #optional path to file containing mean of subtracted histograms (if calculating CA from mean, slope. requires SPE data to be loaded)
         use_fit_result_only: bool = False #set if you want to use fit evals only or the actual data points
     ):
         self.path = path
+        self.spe = spe
         self.path_spe = path_spe
         self.invC, self.invC_err = invC_alpha
-        self.invC_spe, self.invC_spe_err = invC_spe
+        self.invC_spe, self.invC_spe_err = spe.invC_spe, spe.invC_spe_err
         self.v_bd = v_bd
         self.return_ov = return_ov
         self.bias_key = bias_key
         self.alpha_key = alpha_key
-        self.spe_key = spe_key
         self.shaper = shaper
         self.reflector = reflector
-        self.filtering = filtering
+        self.filtering = self.spe.filtering
         self.mean_subtract = mean_subtract
         self.use_fit_result_only = use_fit_result_only
         self.color = color
 
-        
         print('Using conversion invC = ' + str(self.invC) + ' +/- ' + str(self.invC_err) + ' for alpha data')
-        print('Using conversion invC = ' + str(self.invC_spe) + ' +/- ' + str(self.invC_spe_err) + ' for spe data')
-        
-        if spe_bias_key == (None,None):
-            self.spe_bias_key = bias_key
-        else:
-            self.spe_bias_key = spe_bias_key
-        
-        if self.path_spe == None:
-            print('Warning: No SPE data provided. get_SPEs method will not function. Use kwarg: path_spe = "..."')
-        
-        print('loading SPE data from file: ' + str(self.path_spe))
-        self.x_spe, self.y_spe = load_data(self.path_spe,
-                                   self.v_bd,
-                                   data_type = 'SPE', 
-                                   bias_key = self.spe_bias_key, 
-                                   data_key = self.spe_key, 
-                                   return_ov = False # do not put in terms of OV right now
-                                   )
+
+        self.x_spe, self.y_spe = self.spe.bias_spe, self.spe.amp_spe
         
         if self.v_bd == 0.0:
             print('Breakdown voltage not provided. Calculating breakdown voltage from user-provided SPE data...')
@@ -357,7 +449,7 @@ class AlphaData: #class for alpha data loaded from CSV. assumes columns of alpha
         params = model.make_params()
         spe_wgts = spe_wgts = [1.0 / curr_std for curr_std in spe_err]
         spe_res = model.fit(spe, params=params, x=bias, weights=spe_wgts)
-
+        spe_res = self.spe.spe_res
         # linear fit:
         b_spe = spe_res.params["intercept"].value
         m_spe = spe_res.params["slope"].value
@@ -376,28 +468,7 @@ class AlphaData: #class for alpha data loaded from CSV. assumes columns of alpha
             return out_vals, out_err
     
     def get_v_bd(self): # method to get the breakdown voltage from provided SPE values
-        spe = self.y_spe[0]
-        spe_err = self.y_spe[1]
-        bias = self.x_spe[0]
-        model = lm.models.LinearModel()
-        params = model.make_params()
-        spe_wgts = spe_wgts = [1.0 / curr_std for curr_std in spe_err]
-        spe_res = model.fit(spe, params=params, x=bias, weights=spe_wgts)
-
-        # linear fit
-        b_spe = spe_res.params["intercept"].value
-        m_spe = spe_res.params["slope"].value
-        v_bd = -b_spe / m_spe 
-        vec_spe = np.array([b_spe / (m_spe * m_spe), -1.0 / m_spe])
-        v_bd_err = np.sqrt(
-                    np.matmul(
-                        np.reshape(vec_spe, (1, 2)),
-                        np.matmul(spe_res.covar, np.reshape(vec_spe, (2, 1))),
-                    )[0, 0]
-                ) 
-        print('Breakdown voltage for alpha data: ' + str(v_bd) + ' +/- ' + str(v_bd_err))
-        
-        return v_bd, v_bd_err
+        return self.spe.get_v_bd(plot = False)
         
     def plot_alpha(self, color = None, unit = 'V'):
         if color == None:
@@ -450,7 +521,10 @@ class AlphaData: #class for alpha data loaded from CSV. assumes columns of alpha
         plt.ylabel(y_label)
         plt.grid(True)
             
-    def get_alpha(self, tupled  = True):
+    def get_alpha(self, tupled  = True, out_bias = False):
+        if out_bias:
+            V = self.x[0] + self.v_bd
+            return V, self.y[0],self.y[1]
         if tupled:
             zipped  = zip(self.y[0],self.y[1])
             return list(zipped)            
@@ -537,9 +611,13 @@ class AlphaRatio:
         self.average_v_bd_err = np.sqrt((self.v_bd_1_err)**2 + (self.v_bd_2_err)**2)
         print('AVERAGE BREAKDOWN VOLTAGE = ' +str(self.average_v_bd)+'+/-'+str(self.average_v_bd_err))
         
+        
         #all this allows for the alpha data sets to be of different lengths:
         self.longer_data = max([self.alpha_1_bias,self.alpha_2_bias] , key = len)
         self.longer_data_err = max([self.v_1_err,self.v_2_err] , key = len)
+        
+        self.ov_from_avg = self.longer_data - self.average_v_bd
+        
         self.shorter_data = min([self.alpha_1_bias,self.alpha_2_bias] , key = len)
         self.shorter_data_err = min([self.v_1_err,self.v_2_err] , key = len)
         self.longer_alpha_vals = max([self.alpha_vals_1,self.alpha_vals_2] , key = len)
@@ -563,7 +641,6 @@ class AlphaRatio:
                     alpha_ratio = self.alpha_vals_1[i]/self.alpha_vals_2[j]
                 print(alpha_ratio)
                 self.alpha_ratio.append(alpha_ratio[0]) # alpha_ratio is a single-element np array by default
-                # err = np.sqrt((self.alpha_err_1[i]/self.alpha_vals_1[i])**2+(self.alpha_err_2[j]/self.alpha_vals_2[j])**2)
                 err = np.sqrt((self.longer_alpha_vals_err[i]/self.longer_alpha_vals[i])**2+(self.shorter_alpha_vals_err[j]/self.shorter_alpha_vals[j])**2)
                 self.alpha_ratio_err.append(err[0]) # err is a single element np array by default
                 print('alpha ratios: ' + str(self.alpha_ratio))
@@ -576,6 +653,17 @@ class AlphaRatio:
         self.average_alpha_ratio = np.mean(self.alpha_ratio)
         self.average_alpha_ratio_SEM = stats.sem(self.alpha_ratio)
         self.average_alpha_ratio_std = statistics.stdev(self.alpha_ratio)
+        
+        #save ratio of SPE values. if the ratio is systematically > or < 1 num det photons could be misleading
+        self.spes_1, self.spes_1_err = self.alpha_1.get_SPEs(np.array(self.bias_for_ratio), in_ov = False, tupled = False)
+        self.spes_2, self.spes_2_err= self.alpha_2.get_SPEs(np.array(self.bias_for_ratio), in_ov = False, tupled = False)
+        self.spe_ratio = self.spes_1/self.spes_2
+        self.spe_ratio_err = errorprop((self.spes_1, self.spes_1_err),(self.spes_2, self.spes_2_err))
+        
+    def plot_spe_ratio(self, color = 'red'):
+        plt.errorbar(self.bias_for_ratio, self.spe_ratio, xerr = self.bias_for_ratio_err, yerr = self.spe_ratio_err, 
+                     markersize = 3, fmt = 's', color = color, capsize=0
+                     )        
 
     def get_average(self, return_std = False):
         if return_std: 
@@ -629,8 +717,10 @@ class AnalyzePhotons:
         reflector: str,
         alpha: AlphaData,
         CA: CorrelatedAvalancheProbability,
+        ratio: AlphaRatio = None,
         use_fit_results_only: bool = False,
-        max_OV: float = 10.0
+        max_OV: float = 10.0,
+        use_average_v_bd: bool = False
     ):
         self.alpha = alpha
         self.alpha_data_list = alpha.data
@@ -638,6 +728,10 @@ class AnalyzePhotons:
         self.info = info
         self.reflector = reflector
         self.max_OV = max_OV
+        self.use_average_v_bd = use_average_v_bd
+        
+        self.ratio = ratio
+        self.ov_from_avg = ratio.ov_from_avg
         
         self.alpha_data_all = np.array(sorted(self.alpha_data_list))
         self.alpha_data = self.alpha_data_all[self.alpha_data_all[:,0] < self.max_OV]
@@ -645,12 +739,9 @@ class AnalyzePhotons:
         self.use_fit_results_only = use_fit_results_only
         self.v = np.array(sorted(alpha.get_V(ov = True)))[:,0]
         self.v_err = np.array(sorted(alpha.get_V(ov = True)))[:,1]
-        # self.alpha_vals = np.array(sorted(alpha.get_alpha()))[:,0]
         self.alpha_vals = self.alpha_data[:,2]
-        # self.alpha_err = np.array(sorted(alpha.get_alpha()))[:,1]
         self.alpha_err = self.alpha_data[:,3]
         
-        # self.spe_vals, self.spe_err = np.array(sorted(alpha.get_SPEs(self.v)))[:,0], np.array(sorted(alpha.get_SPEs(self.v)))[:,1]
         self.spe_vals, self.spe_err = self.alpha_data[:,4], self.alpha_data[:,5]
         self.invC_spe, self.invC_spe_err = alpha.invC_spe, alpha.invC_spe_err
         self.invC_alpha, self.invC_alpha_err = alpha.invC, alpha.invC_err
@@ -677,6 +768,12 @@ class AnalyzePhotons:
                         self.color_tracker[i] = True
                 else:
                     print('OV value ' + str(v) + ' does not have an associated CA measurement. Using value from fit.')
+    
+        if use_average_v_bd and ratio != None and use_fit_results_only == False:
+            self.CA_vals_from_avg, self.CA_err_from_avg = np.array(sorted(CA.get_CA_eval(values = self.ov_from_avg, max_OV = self.max_OV)))[:,0], np.array(sorted(CA.get_CA_eval(values = self.ov_from_avg,  max_OV = self.max_OV)))[:,1]
+            self.spe_from_avg, self.spe_from_avg = alpha.get_SPEs(self.ov_from_avg, in_ov = True, tupled = False)    
+            self.spe_vals, self.spe_err = self.spe_from_avg, self.spe_from_avg
+            self.CA_vals, self.CA_err = self.CA_vals_from_avg, self.CA_err_from_avg
         
         #calculate number of detected photons
         self.num_det_photons = (
@@ -700,10 +797,14 @@ class AnalyzePhotons:
          color = "tab:" + color
          if label:
              fig = plt.figure()
-         data_x = self.alpha_bias
-         data_x_err = self.alpha_bias_err
+             
          data_y = self.num_det_photons
          data_y_err = self.num_det_photons_err
+         if self.use_average_v_bd:
+             data_x = self.ov_from_avg[:len(data_y)]
+         else:
+             data_x = self.alpha_bias
+         data_x_err = self.alpha_bias_err
 
          plt.errorbar(
              data_x,
@@ -748,17 +849,19 @@ class AnalyzePhotons:
     def plot_CA(self, plot = True, color = 'blue'): #plots the CA values *specifically used to find num det photons*
         color = color
         data_x = self.alpha_bias
-        data_x_with_raw_CA = [b for a, b in zip(self.color_tracker, self.alpha_bias) if a]
+        if not self.use_fit_results_only:
+            data_x_with_raw_CA = [b for a, b in zip(self.color_tracker, self.alpha_bias) if a]
+            data_x_err_raw_CA = [b for a, b in zip(self.color_tracker, self.alpha_bias_err) if a]
+            data_y_with_raw_CA = [b for a, b in zip(self.color_tracker, self.CA_vals) if a]
+            data_y_err_raw_CA = [b for a, b in zip(self.color_tracker, self.CA_err) if a]
         data_x_err = self.alpha_bias_err
-        data_x_err_raw_CA = [b for a, b in zip(self.color_tracker, self.alpha_bias_err) if a]
         data_y = self.CA_vals
-        data_y_with_raw_CA = [b for a, b in zip(self.color_tracker, self.CA_vals) if a]
         data_y_err = self.CA_err
-        data_y_err_raw_CA = [b for a, b in zip(self.color_tracker, self.CA_err) if a]
         
         
         plt.errorbar(data_x, data_y, xerr = data_x_err, yerr = data_y_err, markersize = 7, color ='xkcd:'+color, fmt = '.', label = r'$\frac{Ae^{B*V_{OV}}+1}{A + 1} - 1$ fit')
-        plt.errorbar(data_x_with_raw_CA, data_y_with_raw_CA, xerr = data_x_err_raw_CA, color = color, yerr = data_y_err_raw_CA, markersize = 7, fmt = '.', label = r'$\frac{1}{N}\sum_{i=1}^{N}{\frac{A_i}{\bar{A}_{1 PE}}-1}$'+ ' from LED data')
+        if not self.use_fit_results_only:
+            plt.errorbar(data_x_with_raw_CA, data_y_with_raw_CA, xerr = data_x_err_raw_CA, color = color, yerr = data_y_err_raw_CA, markersize = 7, fmt = '.', label = r'$\frac{1}{N}\sum_{i=1}^{N}{\frac{A_i}{\bar{A}_{1 PE}}-1}$'+ ' from LED data')
         x_label = 'Overvoltage [V]'
         y_label = 'Number of CA [PE]'
         plt.xlabel(x_label)

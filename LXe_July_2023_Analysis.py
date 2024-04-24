@@ -5,8 +5,8 @@ Created on Fri Jul 13 2023
 @author: Ed van Bruggen (evanbruggen@umass.edu)
 """
 
-%load_ext autoreload
-%autoreload 2
+# %load_ext autoreload
+# %autoreload 2
 import sys
 import numpy as np
 from MeasurementInfo import MeasurementInfo
@@ -28,7 +28,7 @@ import dill
 #1us, no gain, no filter
 invC_alpha_1us = 0.001142
 invC_alpha_err_1us = 0.0000021
-file_path = 'alpha_july/' # folder with H5 data files
+file_path = 'C:/Users/Hannah/OneDrive - University of Massachusetts/Dataruns_2023-24/DAQ_folder_google_drive/June 28th & July 11th 13th Data/July 13th/Alpha/' # folder with H5 data files
 files = [ 'Run_1689278620.hdf5', 'Run_1689279162.hdf5', 'Run_1689281334.hdf5',
           'Run_1689281964.hdf5', 'Run_1689282438.hdf5', 'Run_1689278958.hdf5',
           'Run_1689280412.hdf5', 'Run_1689281693.hdf5', 'Run_1689282206.hdf5']
@@ -69,6 +69,8 @@ for n in range(len(runs_alpha)):
     wp.plot_alpha_histogram(peakcolor = 'blue')
     campaign_alpha.append(wp)
     # break
+
+#%%
 
 v_bd = 27.69
 v_bd_err = 0.06

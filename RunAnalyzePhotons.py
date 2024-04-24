@@ -8,6 +8,7 @@ from AnalyzePhotons import CorrelatedAvalancheProbability
 from AnalyzePhotons import AlphaData
 from AnalyzePhotons import AnalyzePhotons
 from AnalyzePhotons import AlphaRatio
+from AnalyzePhotons import SPEData
 from MeasurementInfo import MeasurementInfo
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,25 +19,33 @@ CA_July13 = CorrelatedAvalancheProbability('C:/Users/Hannah/Documents/Raw Result
 CA_July13_GN = CorrelatedAvalancheProbability('C:/Users/Hannah/Documents/Raw Results/Correlated Avalanche Data/July13_171K_CA_GN.csv')
 CA_Sep24 = CorrelatedAvalancheProbability('C:/Users/Hannah/Documents/Raw Results/Correlated Avalanche Data/Sept24th_405nm_CA_values.csv')
 CA_Sep20 = CorrelatedAvalancheProbability('C:/Users/Hannah/Documents/Raw Results/Correlated Avalanche Data/Sept20th_405nm_CA_values.csv'
-                                          ,ov_key = ('Overvoltage [V]', 'Bias Voltage [V] error'),)
+                                          ,ov_key = ('Overvoltage [V]', 'Bias Voltage [V] error'))
 CA_Nov9 =  CorrelatedAvalancheProbability('C:/Users/Hannah/Documents/Raw Results/Correlated Avalanche Data/Nov9_169K_CA_ov_NoSource.csv')
 #%% March 2023, No reflector
 invC_alpha =  0.001142
 invC_alpha_err = 2.1E-6
-invC_spe_filter =  0.1288
-invC_spe_err_filter = 0.00064
-alpha_no_teflon = AlphaData(path = 'C:/Users/Hannah/Documents/Raw Results/Alpha Amplitudes/March2023_Alpha_1us.csv', 
-                  path_spe = 'C:/Users/Hannah/Documents/Raw Results/Breakdown Voltage/March2023_SPE.csv',
+# invC_spe_filter =  0.1288
+invC_spe_filter = 0.1288
+invC_spe_err_filter = 0.0064
+spe_no_teflon = SPEData(
+        path = 'C:/Users/Hannah/Documents/Raw Results/Breakdown Voltage/2023March31_v_bd_filter.csv',
+        invC_spe = (invC_spe_filter,invC_spe_err_filter),
+        return_ov = False, # work in terms of OV or not
+        bias_key=("Bias Voltage [V]", "Bias Voltage [V] error"),
+        spe_key=('SPE Amplitude [V]','SPE Amplitude [V] error'),
+        shaper = '1 $\mu$s',
+        filtering  = '400 kHz',
+        color = "red")
+alpha_no_teflon = AlphaData(spe = spe_no_teflon, path = 'C:/Users/Hannah/Documents/Raw Results/Alpha Amplitudes/March2023_Alpha_1us.csv', 
                   invC_alpha = (invC_alpha,invC_alpha_err),
-                  invC_spe = (invC_spe_filter,invC_spe_err_filter),
                   bias_key = ("Bias Voltage [V]","Bias Voltage [V] error"),
-                  spe_bias_key= ("Bias Voltage [V]", "Bias Voltage [V] error"),
                   reflector = "None",
-                  color = 'cyan'
+                  color = 'cyan',
+                  use_fit_result_only=True
                   )
 info = MeasurementInfo()
 info.condition = 'LXe'
-info.date = 'March 2023'
+info.date = 'March 31 2023'
 info.temperature = 170
 no_reflector = AnalyzePhotons(info, "No reflector", alpha_no_teflon, CA_Sep20, max_OV = 7, use_fit_results_only = True)
 no_reflector.plot_num_det_photons(label=True)
@@ -46,13 +55,21 @@ invC_alpha =  0.001142
 invC_alpha_err = 2.1E-6
 invC_spe_filter =  0.011959447603692185
 invC_spe_err_filter = 3.881945391072933E-05
-alpha_teflonI = AlphaData(path = 'C:/Users/Hannah/Documents/Raw Results/Alpha Amplitudes/May2023_Alpha_1us.csv', 
-                  path_spe = 'C:/Users/Hannah/Documents/Raw Results/Breakdown Voltage/May_170K_vbd_bias_20240318.csv',
+spe_teflonI = SPEData(
+        path = 'C:/Users/Hannah/Documents/Raw Results/Breakdown Voltage/May_170K_vbd_bias_20240318.csv',
+        invC_spe = (invC_spe_filter,invC_spe_err_filter),
+        return_ov = False, # work in terms of OV or not
+        bias_key=("Bias Voltage [V]", "Bias Voltage [V] error"),
+        spe_key=('SPE Amplitude [V]','SPE Amplitude [V] error'),
+        shaper = '100 ns',
+        filtering  = '400 kHz')
+alpha_teflonI = AlphaData(
+                  spe=spe_teflonI,
+                  path = 'C:/Users/Hannah/Documents/Raw Results/Alpha Amplitudes/May2023_Alpha_1us.csv', 
                   invC_alpha = (invC_alpha,invC_alpha_err),
-                  invC_spe = (invC_spe_filter,invC_spe_err_filter),
-                  spe_bias_key = ('Bias Voltage [V]', 'Bias Voltage [V] error'),
                   reflector = 'Teflon',
-                  color = "blue"
+                  color = "blue",
+                  use_fit_result_only=True
                   )
 info = MeasurementInfo()
 info.condition = 'LXe'
@@ -73,11 +90,18 @@ invC_alpha =  0.001142
 invC_alpha_err = 2.1E-6
 invC_spe_filter = 0.01171
 invC_spe_err_filter = 0.000048
-alpha_si_none = AlphaData(path = 'C:/Users/Hannah/Documents/Raw Results/Alpha Amplitudes/2023August10_Alpha.csv', 
-                  path_spe = 'C:/Users/Hannah/Documents/Raw Results/Breakdown Voltage/vbd_bias_no_silicon.csv',
+spe_si_none = SPEData(
+        path = 'C:/Users/Hannah/Documents/Raw Results/Breakdown Voltage/vbd_bias_no_silicon.csv',
+        invC_spe = (invC_spe_filter,invC_spe_err_filter),
+        return_ov = False, # work in terms of OV or not
+        bias_key=("Bias Voltage [V]", "Bias Voltage [V] error"),
+        spe_key=('SPE Amplitude [V]','SPE Amplitude [V] error'),
+        shaper = '1 $\mu$s',
+        filtering  = '400 kHz')
+alpha_si_none = AlphaData(
+                  spe = spe_si_none,
+                  path = 'C:/Users/Hannah/Documents/Raw Results/Alpha Amplitudes/2023August10_Alpha.csv', 
                   invC_alpha = (invC_alpha,invC_alpha_err),
-                  invC_spe = (invC_spe_filter,invC_spe_err_filter),
-                  spe_bias_key = ('Bias Voltage [V]', 'Bias Voltage [V] error'),
                   bias_key = ('Bias Voltage [V]', 'Bias Voltage [V] error'),
                   color = 'olive',
                   use_fit_result_only=True
@@ -97,11 +121,18 @@ invC_alpha =  0.001142
 invC_alpha_err = 2.1E-6
 invC_spe_filter = 0.01171
 invC_spe_err_filter = 0.000048
-alpha_si = AlphaData(path = 'C:/Users/Hannah/Documents/Raw Results/Alpha Amplitudes/2023August01_Alpha.csv', 
-                  path_spe = 'C:/Users/Hannah/Documents/Raw Results/Breakdown Voltage/August1_silicon_vbd.csv',
+spe_si = SPEData(
+        path = 'C:/Users/Hannah/Documents/Raw Results/Breakdown Voltage/August1_silicon_vbd.csv',
+        invC_spe = (invC_spe_filter,invC_spe_err_filter),
+        return_ov = False, # work in terms of OV or not
+        bias_key=("Bias Voltage [V]", "Bias Voltage [V] error"),
+        spe_key=('SPE Amplitude [V]','SPE Amplitude [V] error'),
+        shaper = '1 $\mu$s',
+        filtering  = '400 kHz')
+alpha_si = AlphaData(
+                  spe = spe_si,
+                  path = 'C:/Users/Hannah/Documents/Raw Results/Alpha Amplitudes/2023August01_Alpha.csv', 
                   invC_alpha = (invC_alpha,invC_alpha_err),
-                  invC_spe = (invC_spe_filter,invC_spe_err_filter),
-                  spe_bias_key = ('Bias Voltage [V]', 'Bias Voltage [V] error'),
                   bias_key = ('Bias Voltage [V]', 'Bias Voltage [V] error'),
                   reflector = "Silicon",
                   color = 'green',
@@ -129,12 +160,20 @@ invC_alpha =  0.001142
 invC_alpha_err = 2.1E-6
 invC_spe_filter = 0.01171
 invC_spe_err_filter = 0.000048
-alpha_copper = AlphaData(path = 'C:/Users/Hannah/Documents/Raw Results/Alpha Amplitudes/2023June28_Alpha.csv', 
-                  path_spe = 'C:/Users/Hannah/Documents/Raw Results/Breakdown Voltage/LXe_June_28_2023_vbd_bias.csv',
+spe_copper = SPEData(
+        path = 'C:/Users/Hannah/Documents/Raw Results/Breakdown Voltage/LXe_June_28_2023_vbd_bias.csv',
+        invC_spe = (invC_spe_filter,invC_spe_err_filter),
+        return_ov = False, # work in terms of OV or not
+        bias_key=("Bias Voltage [V]", "Bias Voltage [V] error"),
+        spe_key=('SPE Amplitude [V]','SPE Amplitude [V] error'),
+        shaper = '1 $\mu$s',
+        filtering  = '400 kHz')
+alpha_copper = AlphaData(
+                  spe = spe_copper,
+                  path = 'C:/Users/Hannah/Documents/Raw Results/Alpha Amplitudes/2023June28_Alpha.csv', 
                   invC_alpha = (invC_alpha,invC_alpha_err),
                   invC_spe = (invC_spe_filter,invC_spe_err_filter),
                   bias_key = ('Bias Voltage [V]', 'Bias Voltage [V] error'),
-                  spe_bias_key = ('Bias Voltage [V]', 'Bias Voltage [V] error'),
                   # mean_subtract= 'C:/Users/Hannah/Documents/Raw Results/Correlated Avalanche Data/June2023_means_subtraction_method_2.csv',
                   use_fit_result_only = False,
                   reflector = "Copper",
@@ -191,12 +230,20 @@ invC_alpha =  0.001142
 invC_alpha_err = 2.1E-6
 invC_spe_filter = 0.01171
 invC_spe_err_filter = 0.000048
-alpha_teflonII = AlphaData(path = 'C:/Users/Hannah/Documents/Raw Results/Alpha Amplitudes/2023June8_Alphas.csv', 
-                  path_spe = 'C:/Users/Hannah/Documents/Raw Results/Breakdown Voltage/LXe_June8_2023_vbd_bias.csv',
+spe_teflonII = SPEData(
+        path = 'C:/Users/Hannah/Documents/Raw Results/Breakdown Voltage/LXe_June8_2023_vbd_bias.csv',
+        invC_spe = (invC_spe_filter,invC_spe_err_filter),
+        return_ov = False, # work in terms of OV or not
+        bias_key=("Bias Voltage [V]", "Bias Voltage [V] error"),
+        spe_key=('SPE Amplitude [V]','SPE Amplitude [V] error'),
+        shaper = '1 $\mu$s',
+        filtering  = '400 kHz',
+        color = "red")
+alpha_teflonII = AlphaData(
+                  spe = spe_teflonII,
+                  path = 'C:/Users/Hannah/Documents/Raw Results/Alpha Amplitudes/2023June8_Alphas.csv', 
                   invC_alpha = (invC_alpha,invC_alpha_err),
-                  invC_spe = (invC_spe_filter,invC_spe_err_filter),
                   bias_key = ('Bias Voltage [V]', 'Bias Voltage [V] error'),
-                  spe_bias_key = ('Bias Voltage [V]', 'Bias Voltage [V] error'),
                   reflector = "Teflon",
                   color = "blue"
                   )
