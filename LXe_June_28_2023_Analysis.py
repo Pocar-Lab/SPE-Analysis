@@ -26,6 +26,7 @@ import ProcessWaveforms_MultiGaussian
 from ProcessWaveforms_MultiGaussian import WaveformProcessor as WaveformProcessor
 import pickle
 import dill
+from uncertainties import unumpy
 
 run_spe_solicited = RunInfo(['data/Run_1666778594.hdf5'],  specifyAcquisition = True, acquisition ='Acquisition_1666781843', do_filter = True, is_solicit = True, upper_limit = .5, baseline_correct = True)
 
@@ -142,9 +143,146 @@ for i in range(len(runs_alpha)):
     wp.plot_alpha_histogram(peakcolor = 'blue')
     campaign_alpha.append(wp)
 
+plt.style.use('misc/nexo.mplstyle')
+
+v_bd = 27.69
+v_bd_err = 0.06
+bias_vals = []
+bias_err = []
+alpha_vals = []
+alpha_err = []
+for wp in campaign_alpha:
+    bias_vals.append(wp.info.bias)
+    # self.bias_err.append(0.0025 * wp.info.bias + 0.015)
+    bias_err.append(0.005)
+    curr_alpha = wp.get_alpha()
+    alpha_vals.append(curr_alpha[0])
+    alpha_err.append(curr_alpha[1])
+ov = []
+ov_err = []
+for b, db in zip(bias_vals, bias_err):
+    curr_ov = b - v_bd
+    curr_ov_err = np.sqrt(db * db + v_bd_err * v_bd_err)
+    ov.append(curr_ov)
+    ov_err.append(curr_ov_err)
+
+data = {
+    'ov': ov, 'ov error': ov_err,
+    'bias': bias_vals, 'bias error': bias_err,
+    'amps': alpha_vals, 'amps error': alpha_err,
+}
+df = pd.DataFrame(data)
+df.to_csv('2023June28_Alpha.csv')
+
+# comparison plotting
+xvar = 'ov'
+df = pd.read_csv('2023July13_Alpha.csv').sort_values('ov').head(-6)
+none_x = df[xvar]
+none_x_err = df[xvar+' error']
+none_alpha = df['amps']
+none_alpha_err = df['amps error']
+
+df = pd.read_csv('2023June28_Alpha.csv').sort_values('ov').head(-3)
+refl_x = df[xvar]
+refl_x_err = df[xvar+' error']
+refl_alpha = df['amps']
+refl_alpha_err = df['amps error']
+
+def exp(x, a, b):
+    return a*np.exp(b*x)
+def uexp(x, a, b):
+    return a*unumpy.exp(b*x)
+
+urefl_x = unumpy.uarray(refl_x, refl_x_err)
+params, covar = curve_fit(exp, none_x, none_alpha)
+perr = np.sqrt(np.diag(covar))
+uparams = unumpy.uarray(params, perr)
+unone_fit = uexp(urefl_x, *uparams)
+
+none_fitn = np.array([ r.n for r in unone_fit ])
+none_fits = np.array([ r.s for r in unone_fit ])
+
+# ratio = udata_y / udata10fit_y
+
+unone_alpha = unumpy.uarray(none_alpha, none_alpha_err)
+urefl_alpha = unumpy.uarray(refl_alpha, refl_alpha_err)
+
+ratio = urefl_alpha/unone_fit
+# ratio = urefl_alpha/unone_alpha
+ration = [ r.n for r in ratio ]
+ratios = [ r.s for r in ratio ]
+
+fig,ax = plt.subplots()
+fig.tight_layout()
+plt.rc("font", size=12)
+x_label = "Over Voltage [V]"
+# x_label = "Bias Voltage [V]"
+y_label = "Alpha Pulse Amplitude [V]"
+plt.errorbar(
+    none_x,
+    none_alpha,
+    xerr=refl_x_err,
+    yerr=none_alpha_err,
+    markersize=10,
+    fmt=".",
+    color='tab:blue',
+    label='No Reflector'
+)
+plt.errorbar(
+    refl_x,
+    refl_alpha,
+    xerr=refl_x_err,
+    yerr=refl_alpha_err,
+    markersize=10,
+    fmt=".",
+    color='tab:purple',
+    label='Specular Copper Reflector'
+)
+x = np.linspace(1, 6.5, 100)
+ax.plot(x, exp(x, *params))
+ax.fill_between(refl_x, none_fitn - none_fits, none_fitn + none_fits, alpha=.3)
+axr = ax.twinx()
+axr.errorbar(
+    refl_x,
+    ration,
+    xerr=refl_x_err,
+    yerr=ratios,
+    markersize=10,
+    fmt=".",
+    color='tab:green',
+    label='Ratio'
+)
+# plt.errorbar(27.3,0,xerr=.103,fmt='.',color='purple')
+# plt.errorbar(26.9,0,xerr=.198,fmt='.',color='blue')
+ax.set_xlabel(x_label)
+ax.set_ylabel(y_label)
+axr.set_ylabel('Ratio')
+axr.set_ylim(0,1.8)
+ax.set_ylim(0,1.5)
+textstr = f"Date: June 28th and July 13th 2023\n"
+textstr += f"Condition: LXe\n"
+textstr += f"RTD4: 167 [K]\n"
+textstr += f"Ratio: {ratio.mean():.3f}"
+ax.grid(True)
+ax.legend(loc="upper left")
+axr.legend(loc="upper right")
+props = dict(boxstyle="round", facecolor='tab:purple', alpha=0.4)
+# fig.text(0.1, 0.45, textstr, fontsize=10, verticalalignment="top", bbox=props)
+# fig.text(0.1, 0.13, "Breakdown Voltages:", fontsize=8, verticalalignment="top")
+plt.show()
 #%%
 # with open('LED-SPE/campaign_alpha.pickle', 'wb') as f:
 #     dill.dump(campaign_alpha, f)
+
+PTEs = ufloat(.0107, .000103)
+PTEd = ufloat(.00553, .0000743)
+PTEn = ufloat(.00522, .0000722)
+X = PTEs/PTEn
+Y = PTEd/PTEn
+a = (np.mean(ratio) - Y)/(X-Y)
+
+
+
 
 p = dill.Unpickler(open("/run/media/ed/My Passport/ed/CA-july-12.pickle","rb"))
 p.fast = True

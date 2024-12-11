@@ -32,9 +32,9 @@ import csv
 plt.style.use('misc/nexo.mplstyle')
 
 #%%
-#1us, 10x gain, filter off
-invC =0.0132
-invC_err =0.000089
+#1us, 10x gain, filter on
+invC = 0.00358
+invC_err =0.00016
 invC_spe_filter2 = 0.01171
 invC_spe_err_filter2 = 0.000048
 # USE DEG = 3 IN POLY_CORRECT
@@ -238,8 +238,8 @@ spe = SPE_data(campaign_spe, invC_spe_filter, invC_spe_err_filter, filtered = Tr
 
 #%% ALPHA - 1us
 #1us, no gain, no filter
-invC_alpha_1us = 0.001142
-invC_alpha_err_1us = 0.0000021
+invC_alpha_1us = 0.00358
+invC_alpha_err_1us =0.00016
 file_path = 'data-june-08/' # folder with H5 data files
 files = ['Run_1686250924.hdf5', 'Run_1686252148.hdf5', 'Run_1686253721.hdf5', 'Run_1686255098.hdf5']
 proms = [0.04,0.04,0.04,0.04]
@@ -264,7 +264,7 @@ biases = [run.bias for run in runs_alpha_1us] # get all the bias voltages from R
 campaign_alpha = []
 runs_alpha = runs_alpha_1us #change as needed
 bins = [35,35,34, 32,29,30, 33,32,37,35, 33,43,30]
-for i in range(1):
+for i in range(len(runs_alpha)):
     info_alpha = MeasurementInfo()
     info_alpha.min_alpha_value =  0.029
     # info_alpha.min_alpha_value = 0.3 if i > 8 else 0.029
@@ -287,12 +287,12 @@ for i in range(1):
 # with open('LED-SPE/campaign_alpha.pickle', 'wb') as f:
 #     dill.dump(campaign_alpha, f)
 
-# p = dill.Unpickler(open("/media/ed/My Passport/ed/CA-july-12.pickle","rb"))
-# p.fast = True
-# spe = p.load()
+p = dill.Unpickler(open("/run/media/ed/My Passport/ed/CA-july-12.pickle","rb"))
+p.fast = True
+spe = p.load()
 
-v_bd = 27.69
-v_bd_err = 0.06
+v_bd = 27.73 # june 8th SPE
+v_bd_err = 0.09
 alpha_data = Alpha_data(campaign_alpha, invC_alpha_1us, invC_alpha_err_1us, spe, v_bd, v_bd_err)
 
 alpha_data.analyze_alpha()
@@ -304,6 +304,6 @@ alpha_data.plot_num_det_photons()
 
 ##%% values based on Wesley's APS slides
 N = 5.49/(19.6E-6)
-PTE = .005530 # diffusive reflector
-# PTE = .010736 # specular reflector
+PTE = 0.006274 # diffusive reflector
+# PTE = .023332 # specular reflector
 alpha_data.plot_PDE(N*PTE)

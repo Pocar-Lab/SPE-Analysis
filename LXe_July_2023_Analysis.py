@@ -30,7 +30,7 @@ import dill
 #1us, no gain, no filter
 invC_alpha_1us = 0.001142
 invC_alpha_err_1us = 0.0000021
-file_path = 'alpha_july/' # folder with H5 data files
+file_path = 'july-13-2023/' # folder with H5 data files
 files = [ 'Run_1689278620.hdf5', 'Run_1689279162.hdf5', 'Run_1689281334.hdf5',
           'Run_1689281964.hdf5', 'Run_1689282438.hdf5', 'Run_1689278958.hdf5',
           'Run_1689280412.hdf5', 'Run_1689281693.hdf5', 'Run_1689282206.hdf5']
@@ -71,6 +71,35 @@ for n in range(len(runs_alpha)):
     wp.plot_alpha_histogram(peakcolor = 'blue')
     campaign_alpha.append(wp)
     # break
+
+v_bd = 27.13
+v_bd_err = 0.225
+bias_vals = []
+bias_err = []
+alpha_vals = []
+alpha_err = []
+for wp in campaign_alpha:
+    bias_vals.append(wp.info.bias)
+    # self.bias_err.append(0.0025 * wp.info.bias + 0.015)
+    bias_err.append(0.005)
+    curr_alpha = wp.get_alpha()
+    alpha_vals.append(curr_alpha[0])
+    alpha_err.append(curr_alpha[1])
+ov = []
+ov_err = []
+for b, db in zip(bias_vals, bias_err):
+    curr_ov = b - v_bd
+    curr_ov_err = np.sqrt(db * db + v_bd_err * v_bd_err)
+    ov.append(curr_ov)
+    ov_err.append(curr_ov_err)
+
+data = {
+    'ov': ov, 'ov error': ov_err,
+    'bias': bias_vals, 'bias error': bias_err,
+    'amps': alpha_vals, 'amps error': alpha_err,
+}
+df = pd.DataFrame(data)
+df.to_csv('2023July13_Alpha.csv')
 
 #%%
 p = dill.Pickler(open("/media/ed/My Passport/ed/Alpha-July-2023.pickle","wb"))

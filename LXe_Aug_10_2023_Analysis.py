@@ -71,7 +71,7 @@ for run in runs:
         range_high = centers[peaks[3]]+ 0.34*fitrange
     if run.bias >= 34:
         range_low =  centers[peaks[0]]- 0.22*fitrange
-        range_high = centers[peaks[3]]+ 0.37*fitrange 
+        range_high = centers[peaks[3]]+ 0.37*fitrange
     if run.bias == 33.5:
         range_low =  centers[peaks[0]]- 0.27*fitrange
         range_high = centers[peaks[3]]+ 0.37*fitrange
@@ -85,7 +85,7 @@ for run in runs:
     centers_list.append(centers[peaks[0]])
     peaks = peaks[0:]
     centers_guesses.append([centers[peak] for peak in peaks])
-    
+
     # plt.figure()
     # plt.hist(run.all_peak_data, bins=bins)
     # for peak in peaks:
@@ -152,7 +152,7 @@ spe.plot_spe(in_ov = False, absolute = False, out_file = 'D:/Xe/AnalysisScripts/
 #1us, no gain, no filter
 invC_alpha_1us = 0.001142
 invC_alpha_err_1us = 0.0000021
-file_path = 'aug-alpha/' # folder with H5 data files
+file_path = 'aug-10/' # folder with H5 data files
 files = ['Run_1691679909.hdf5', 'Run_1691680314.hdf5',  'Run_1691680611.hdf5' ]
 proms = [ .025, .015, .1 ]
 upperlim = [ 1, .4, 2]
@@ -213,7 +213,7 @@ for n in range(len(runs_alpha)):
     # break
 
 #%%
-storage_path = '/media/ed/My Passport/ed/'
+storage_path = '/run/media/ed/My Passport/ed/'
 
 with open(storage_path+'aug-10-campaign-alpha.pickle', 'wb') as f:
     dill.dump(campaign_alpha, f)
@@ -253,4 +253,4 @@ N = 5.49/(19.6E-6)
 PTE_dif = 0.001611
 PTE_spec = 0.001352
 PTE_none = 0.001360
-alpha_data.plot_PDE(N*PTE_dif)
+alpha_data.plot_PDE(N*PTE_dif, out_file='2023August10_Alpha.csv', legtext='.001611 (No Reflector)')

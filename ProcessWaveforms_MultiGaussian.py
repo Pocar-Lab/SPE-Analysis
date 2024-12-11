@@ -320,7 +320,7 @@ def fit_peaks_multigauss(
     high_peak = peak_range[1]
     range_low = cutoff[0]
     range_high = cutoff[1]
-    
+
     for peak in range(low_peak, high_peak + 1):
         if peak == low_peak:
             model = GaussianModel(prefix='g' + str(low_peak) + '_')
@@ -329,8 +329,8 @@ def fit_peaks_multigauss(
     model = model + LinearModel(prefix= 'l_')
     g_center = centers[:(peak_range[1]-peak_range[0]+1)]
     print('CENTER GUESSES TO BE USED IN FIT: ',g_center)
-    
-    #constraints for center    
+
+    #constraints for center
     g_center_index = 0
     for peak in range(low_peak, high_peak + 1):
         if peak == low_peak:
@@ -339,7 +339,7 @@ def fit_peaks_multigauss(
         elif peak == high_peak:
             g_center_last = len(g_center) - 1 #last index of g_center
             model.set_param_hint('g' + str(peak) + '_center', value = g_center[g_center_last], min = g_center[g_center_last] - baseline_width, max = range_high)
-        else: 
+        else:
             model.set_param_hint('g' + str(peak) + '_center', value = g_center[ g_center_index], min = g_center[g_center_index] - baseline_width, max = baseline_width + g_center[g_center_index])
             g_center_index += 1
             # print('max ', baseline_width + g_center[g_center_index])
@@ -529,7 +529,7 @@ class WaveformProcessor:
             self.baseline_rms = run_info_self.baseline_mode_rms
             self.baseline_std = 0.25 * run_info_self.baseline_mode_std
             self.baseline_err = run_info_self.baseline_mode_err
-            self.baseline_rms = run_info_self.baseline_mode_rms
+            # self.baseline_rms = run_info_self.baseline_mode_rms
         else:
             self.run_info_solicit = run_info_solicit
             self.baseline_mode = run_info_solicit.baseline_mode
@@ -537,7 +537,7 @@ class WaveformProcessor:
     def process_h5(self) -> None:
         """Processes the .h5 files associated with the WaveformProcessor instance.
 
-        The method extracts peak data and, if available, baseline data from .h5 files. 
+        The method extracts peak data and, if available, baseline data from .h5 files.
         It filters the peak data based on a predefined cutoff range and also handles solicit data if it's not disabled.
         """
         for curr_file in self.run_info_self.hd5_files:
@@ -551,7 +551,7 @@ class WaveformProcessor:
                     & (self.peak_values <= self.cutoff[1])
                 ]  # peaks in a range
                 self.all = np.array(self.run_info_self.all_peak_data) #all peaks
-                
+
 
         if not self.no_solicit:
             for curr_file in self.run_info_solicit.hd5_files:
@@ -591,9 +591,9 @@ class WaveformProcessor:
             ]
 
         if self.peak_range != (1,4): #if doing 4 peaks, the bin number are calculated using proper stats
-            self.numbins = self.info.peaks_numbins 
+            self.numbins = self.info.peaks_numbins
         else:
-            self.numbins = int(np.sqrt(len(self.peak_values))) 
+            self.numbins = int(np.sqrt(len(self.peak_values)))
           #!!! attr defined outside init
 
         if self.no_solicit:
@@ -617,7 +617,7 @@ class WaveformProcessor:
                     values = self.peak_values,
                     baseline_width = 2.0 * self.baseline_std,
                     centers = self.centers,
-                    peak_range = self.peak_range, 
+                    peak_range = self.peak_range,
                     cutoff = self.cutoff
                     )
 
@@ -627,20 +627,20 @@ class WaveformProcessor:
             #pprint.pprint('peak sigmas (widths) from fit: '+ str(self.peak_sigmas))
             self.peak_stds = [self.peak_fit.params['g' + str(idx + 1) + '_center'].stderr for idx in range(self.low_peak-1, self.high_peak)]
             self.peak_sigmas_stds = [self.peak_fit.params['g' + str(idx + 1) + '_sigma'].stderr for idx in range(self.low_peak-1, self.high_peak)]
-            
+
             #check if any of the fitted sigmas are less than the sigma of baseline noise (unphysical):
             for s in self.peak_sigmas:
                 if s < self.baseline_std:
                     print('WARNING! Fitted sigma ' + str(s) + ' is less than baseline sigma ' + str(self.baseline_std) +'!')
-                    
+
             for i in range(len(self.peak_stds)):
-                if type(self.peak_stds[i]) == None: 
+                if type(self.peak_stds[i]) == None:
                     print('WARNING! Fit failed to return a standard error on the peak locations and returned None! Setting std = 1')
                     self.peak_stds[i] = 1.0
-                if type(self.peak_sigmas_stds[i]) == None: 
+                if type(self.peak_sigmas_stds[i]) == None:
                     print('WARNING! Fit failed to return a standard error on the peak sigmas and returned None! Setting std = 1')
                     self.peak_sigmas_stds[i] = 1
-    
+
             self.peak_wgts = [1.0 / curr_std for curr_std in self.peak_stds]
 
             self.spe_num = []
@@ -720,7 +720,7 @@ class WaveformProcessor:
                 self.peak_values, binnum=self.info.peaks_numbins
             )
             self.alpha_res = self.alpha_fit["fit"]
-    
+
 
     def get_alpha_data(self):
        """Retrieves the alpha pulse peak heights.
@@ -863,10 +863,10 @@ class WaveformProcessor:
             peakcolor (str, optional): Color used for the SPE peak data. Defaults to "blue".
             savefig (bool, optional): If True, saves the figure to the provided path. Defaults to False.
             path (str, optional): Path where the figure should be saved. Used only if savefig is set to True. Defaults to None.
-        """       
+        """
         fig = plt.figure()
         fig.tight_layout()
-        
+
         plt.rc("font", size=12)
         plt.errorbar(
             self.spe_num,
@@ -935,11 +935,11 @@ class WaveformProcessor:
             plt.close(fig)
 
     def plot_baseline_histogram(
-        self, 
-        with_fit: bool = True, 
-        log_scale: bool = False, 
-        color: str = "orange", 
-        savefig: bool = False, 
+        self,
+        with_fit: bool = True,
+        log_scale: bool = False,
+        color: str = "orange",
+        savefig: bool = False,
         path: Optional[str] = None
     ) -> None:
         """Plots a histogram of the baseline data.
@@ -950,7 +950,7 @@ class WaveformProcessor:
             color (str, optional): The color of the histogram bars. Defaults to "orange".
             savefig (bool, optional): If True, saves the figure to the provided path. Defaults to False.
             path (str, optional): Path where the figure should be saved. Used only if savefig is set to True. Defaults to None.
-        """      
+        """
         fig = plt.figure()
         plt.hist(
             self.baseline_values,
@@ -990,16 +990,16 @@ class WaveformProcessor:
             plt.close(fig)
 
 
-    
+
     def plot_peak_histograms(
-            self, 
-            with_fit: bool = True, 
-            log_scale: bool = True, 
-            peakcolor: str = "blue", 
-            savefig: bool = False, 
+            self,
+            with_fit: bool = True,
+            log_scale: bool = True,
+            peakcolor: str = "blue",
+            savefig: bool = False,
             path: Optional[str] = None
         ) -> None:
-        
+
         """
         Args:
             with_fit (bool, optional): If True, overlays the fitted model of the data on the plot. Defaults to True.
@@ -1007,8 +1007,8 @@ class WaveformProcessor:
             peakcolor (str, optional): The color of the histogram bars. Defaults to "blue".
             savefig (bool, optional): If True, saves the figure to the provided path. Defaults to False.
             path (str, optional): Path where the figure should be saved. Used only if savefig is set to True. Defaults to None.
-        """    
-        
+        """
+
         fig = plt.figure()
         bin_density = int(np.sqrt(len(self.peak_values))) / (self.range_high - self.range_low)
         # if self.peak_range != (1,4): #if doing 4 peaks, the bin number are calculated using proper stats
@@ -1035,7 +1035,7 @@ class WaveformProcessor:
             curr_sigma_err = self.peak_fit.params['g' + str(actual_peak) + '_sigma'].stderr
             if type(curr_sigma_err)==float:
                 textstr += f'''{peak + 1}: {round(self.peak_sigmas[peak],5)} $\pm$ {curr_sigma_err:0.2}\n'''
-        textstr += f'--\n'    
+        textstr += f'--\n'
         textstr += f'''Reduced $\chi^2$: {self.peak_fit.redchi:0.2}\n'''
         curr_hist = np.histogram(self.peak_values, bins = self.numbins)
         # curr_hist = np.histogram(self.peak_values, bins = self.numbins)
@@ -1045,7 +1045,7 @@ class WaveformProcessor:
         y_line_fit = self.peak_fit.eval(x=centers)
 
         plt.plot(centers, y_line_fit,'r-', label='best fit')
-        plt.plot(centers, self.peak_fit.best_values['l_intercept'] +  self.peak_fit.best_values['l_slope']*centers, 'b-', label='best fit - line')     
+        plt.plot(centers, self.peak_fit.best_values['l_intercept'] +  self.peak_fit.best_values['l_slope']*centers, 'b-', label='best fit - line')
         plt.grid(True)
         props = dict(boxstyle='round', facecolor='tab:' + peakcolor, alpha=0.4)
         plt.hist(self.peak_values, bins = int(total_num_bins), color = 'tab:' + peakcolor) #zoom
@@ -1061,15 +1061,15 @@ class WaveformProcessor:
 
         if savefig:
             plt.savefig(path)
-            plt.close(fig)    
+            plt.close(fig)
 
 
     def plot_alpha_histogram(self, with_fit: bool = True, log_scale: bool = False, peakcolor: str = "purple")-> None:
         """Plots a histogram of alpha values with or without fitting.
 
-        This method creates a histogram of alpha values (self.peak_values), calculated as the number of peaks (self.info.peaks_numbins) over the range of alpha fit (self.alpha_fit["high"] - self.alpha_fit["low"]). 
+        This method creates a histogram of alpha values (self.peak_values), calculated as the number of peaks (self.info.peaks_numbins) over the range of alpha fit (self.alpha_fit["high"] - self.alpha_fit["low"]).
 
-        It supports options to show/hide fitted model on the plot (with_fit), use a logarithmic scale (log_scale), and change the color of the histogram bars (peakcolor). 
+        It supports options to show/hide fitted model on the plot (with_fit), use a logarithmic scale (log_scale), and change the color of the histogram bars (peakcolor).
 
         Additional information about the measurement, such as date, condition, bias, temperature, and peak statistics are displayed on the plot.
 
@@ -1077,7 +1077,7 @@ class WaveformProcessor:
             with_fit (bool, optional): If True, overlays the fitted model of the alpha values on the histogram. Defaults to True.
             log_scale (bool, optional): If True, sets the y-axis to a logarithmic scale. Defaults to False.
             peakcolor (str, optional): The color of the histogram bars. Defaults to "purple".
-        """      
+        """
         fig = plt.figure()
         fig.tight_layout()
         plt.rc("font", size=12)
@@ -1113,7 +1113,7 @@ class WaveformProcessor:
 
         props = dict(boxstyle="round", facecolor="tab:" + peakcolor, alpha=0.4)
         fig.text(
-            0.175, 0.85, textstr, fontsize=10, verticalalignment="top", bbox=props
+            0.15, 0.85, textstr, fontsize=10, verticalalignment="top", bbox=props
         )
         plt.grid(True)
         plt.show()
@@ -1131,8 +1131,8 @@ class WaveformProcessor:
     ):
         """Plots histograms for both baseline and peak values.
 
-        This method creates histograms for baseline and peak values with control over the 
-        logarithmic scale, normalization (density), inclusion of alpha peaks, and color schemes 
+        This method creates histograms for baseline and peak values with control over the
+        logarithmic scale, normalization (density), inclusion of alpha peaks, and color schemes
         for baseline and peak histograms.
 
         It can also save the plot to a specified file.
@@ -1144,14 +1144,14 @@ class WaveformProcessor:
             peakcolor (str, optional): The color of the peak histogram bars. Defaults to "blue".
             savefig (bool, optional): If True, saves the plot to the file specified in 'path'. Defaults to False.
             path (str, optional): The file path to save the plot. Used only if 'savefig' is True. Defaults to None.
-        """ 
+        """
         if self.no_solicit:
             print("NO PRE BREAKDOWN DATA TO PLOT")
         fig = plt.figure()
 
         #determine the total number of bins so the histogram and the fit match
         bin_density = int(np.sqrt(len(self.peak_values))) / (self.range_high - self.range_low) # number of bins = sqrt(total counts)
-        
+
         #plot baseline hist
         plt.hist(
             self.baseline_values,
@@ -1160,7 +1160,7 @@ class WaveformProcessor:
             density=density,
             color="tab:" + baselinecolor,
         )
-        
+
         total_num_bins = bin_density * (np.amax(self.all) - np.amin(self.all))
         plt.hist(
             self.all,
@@ -1190,7 +1190,7 @@ class WaveformProcessor:
             centers = (bins[1:] + bins[:-1])/2
             y_line_fit = self.peak_fit.eval(x=centers)
             plt.plot(centers, y_line_fit,'r-', label='best fit')
-            plt.plot(centers, self.peak_fit.best_values['l_intercept'] +  self.peak_fit.best_values['l_slope']*centers, 'b-', label='best fit - line')  
+            plt.plot(centers, self.peak_fit.best_values['l_intercept'] +  self.peak_fit.best_values['l_slope']*centers, 'b-', label='best fit - line')
             textstr = f"Date: {self.info.date}\n"
             textstr += f'Peak Locations ($\mu$) [V]\n'
             for peak in range(0,len(self.peak_sigmas)):
@@ -1202,13 +1202,13 @@ class WaveformProcessor:
                 actual_peak = self.peak_range[0] + peak
                 curr_sigma_err = self.peak_fit.params['g' + str(actual_peak) + '_sigma'].stderr
                 textstr += f'''{peak + 1}: {round(self.peak_sigmas[peak],5)} $\pm$ {curr_sigma_err:0.2}\n'''
-            textstr += f'--\n'    
+            textstr += f'--\n'
             textstr += f'''Reduced $\chi^2$: {self.peak_fit.redchi:0.2}\n'''
-            
+
             props = dict(boxstyle='round', facecolor="tab:" + peakcolor, alpha=0.4)
             fig.text(0.6, 0.83, textstr, fontsize=9,
                     verticalalignment='top', bbox=props)
-            
+
         plt.grid(True)
 
         if savefig:
@@ -1283,23 +1283,23 @@ class WaveformProcessor:
         counts2, bins2 = np.histogram(data2, bins = bins1, density = False)
         centers = (bins1[1:] + bins1[:-1])/2
         subtracted_counts = counts1 - counts2
-        
+
         if plot:
             plt.step(centers, subtracted_counts, label = 'subtracted hist')
             plt.legend()
 
-    
+
         big_n = np.sum(subtracted_counts)
         norm_subtract_hist = subtracted_counts / big_n
 
-        # weights = 1.0 / subtracted_counts / 
+        # weights = 1.0 / subtracted_counts /
         mean_value = np.sum(centers * norm_subtract_hist)
         ca_value = mean_value / self.spe_res.params['slope'].value - 1
         print('CA: ', ca_value)
 
         if plot:
             plt.title(f'Bias: 35V, mean_value: {mean_value}')
-            plt.axvline(x = mean_value, color = 'green')  
+            plt.axvline(x = mean_value, color = 'green')
         # mean_err = np.sum((centers/big_n) ** 2)(subtracted_counts) + (np.sum(subtracted_counts*centers)/(big_n)**2) ** 2 * (np.sum(subtracted_counts)) #overestimation
         a = np.sum(subtracted_counts * centers)
         mean_err = np.sqrt(np.sum( ((a - centers * big_n)/ big_n ** 2) ** 2 * (counts1 + counts2)))

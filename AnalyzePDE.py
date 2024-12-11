@@ -124,13 +124,13 @@ class SPE_data:
 
         # self.bias_vals.append(self.v_bd)
         # self.bias_err.append(self.v_bd_err)
-        
+
         # self.ov.append(0.0)
         # self.ov_err.append(self.v_bd_err)
-        
+
         self.ov = np.array(self.ov)
         self.ov_err = np.array(self.ov_err)
-        
+
         spe = self.spe_res.eval(params=self.spe_res.params, x=self.bias_vals)
         spe_err = self.spe_res.eval_uncertainty(params=self.spe_res.params, x=self.bias_vals, sigma=1)
         for wp, curr_bias, curr_spe, curr_spe_err in zip(self.campaign, self.bias_vals, spe, spe_err):
@@ -144,12 +144,12 @@ class SPE_data:
 #include interpolated v_bd value in CA model fit
         # bias_inclusive_bd = np.append(self.bias_vals,self.v_bd)
         # bias_inclusive_bd_err = np.append(self.bias_err,self.v_bd_err)
-        
+
         # self.ov = np.append(self.ov, 0.0)
         # self.bias_err = np.append(self.ov_err,self.v_bd_err)
         # self.CA_vals.append(0.0) #no CA activity at v_bd by definition
         # self.CA_err.append(self.campaign[0].get_baseline_fit().params["sigma"].value)
-        
+
         # self.CA_vals = np.array(self.CA_vals)
         # self.CA_err = np.array(self.CA_err)
 
@@ -525,7 +525,7 @@ class Alpha_data:
         self.bias_err = []
         self.alpha_vals = []
         self.alpha_err = []
-        
+
         self.sigma_vals = []
         self.sigma_err = []
 
@@ -538,7 +538,7 @@ class Alpha_data:
             self.alpha_err.append(curr_alpha[1])
             curr_sigma = wp.get_sigma()
             self.sigma_vals.append(curr_sigma[0])
-            self.sigma_err.append(curr_sigma[1])            
+            self.sigma_err.append(curr_sigma[1])
 
         self.bias_vals = np.array(self.bias_vals)
         self.bias_err = np.array(self.bias_err)
@@ -567,17 +567,17 @@ class Alpha_data:
 
 # in p.e. units
         self.sigma_in_spe_units = self.sigma_vals/self.spe_vals * self.spe_data.invC/self.invC
-        self.sigma_in_spe_units_err = self.sigma_in_spe_units * np.sqrt((self.sigma_err * self.sigma_err)/(self.sigma_vals * self.sigma_vals) 
-                                                                        + (self.spe_err*self.spe_err)/(self.spe_vals*self.spe_vals) 
-                                                                        + (self.invC_err*self.invC_err)/(self.invC*self.invC) 
+        self.sigma_in_spe_units_err = self.sigma_in_spe_units * np.sqrt((self.sigma_err * self.sigma_err)/(self.sigma_vals * self.sigma_vals)
+                                                                        + (self.spe_err*self.spe_err)/(self.spe_vals*self.spe_vals)
+                                                                        + (self.invC_err*self.invC_err)/(self.invC*self.invC)
                                                                         + (self.spe_data.invC_err*self.spe_data.invC_err)/(self.spe_data.invC*self.spe_data.invC)
                                                                         )
         self.alpha_in_spe_units = self.alpha_vals/self.spe_vals * self.spe_data.invC/self.invC
-        self.alpha_in_spe_units_err = self.alpha_in_spe_units * np.sqrt((self.alpha_err * self.alpha_err)/(self.alpha_vals * self.alpha_vals) 
-                                                                        + (self.spe_err*self.spe_err)/(self.spe_vals*self.spe_vals) 
-                                                                        + (self.invC_err*self.invC_err)/(self.invC*self.invC) 
-                                                                        + (self.spe_data.invC_err*self.spe_data.invC_err)/(self.spe_data.invC*self.spe_data.invC) 
-                                                                        )                                                                        
+        self.alpha_in_spe_units_err = self.alpha_in_spe_units * np.sqrt((self.alpha_err * self.alpha_err)/(self.alpha_vals * self.alpha_vals)
+                                                                        + (self.spe_err*self.spe_err)/(self.spe_vals*self.spe_vals)
+                                                                        + (self.invC_err*self.invC_err)/(self.invC*self.invC)
+                                                                        + (self.spe_data.invC_err*self.spe_data.invC_err)/(self.spe_data.invC*self.spe_data.invC)
+                                                                        )
 
         self.num_det_photons = (
             self.alpha_vals
@@ -613,7 +613,7 @@ class Alpha_data:
         fig.tight_layout()
         plt.rc("font", size=12)
 
-        
+
         if x == "OV":
             data_x = self.ov
             data_x_err = self.bias_err
@@ -622,7 +622,7 @@ class Alpha_data:
             data_x = self.bias_vals
             data_x_err = self.bias_err
             x_label = "Bias voltage [V]"
-        
+
         if units == "Volts":
             data_y = self.alpha_vals
             data_y_err = self.alpha_err
@@ -631,7 +631,7 @@ class Alpha_data:
             data_y = self.alpha_in_spe_units
             data_y_err = self.alpha_in_spe_units_err
             y_label = "Alpha Amplitude [p.e.]"
-            
+
         # fit_x = np.linspace(0.0, np.amax(self.ov) + 1.0, num = 100)
         # fit_y = self.CA_res.eval(params=self.CA_res.params, x = fit_x)
         # fit_y_err = self.CA_res.eval_uncertainty(x = fit_x, params = self.CA_res.params, sigma = 1)
@@ -675,8 +675,8 @@ class Alpha_data:
             df = pd.DataFrame(data)
             df.to_csv(out_file)
         plt.show()
-        
-        
+
+
     def plot_sigma(self, color: str = "purple", units = "Volts", x = "Bias", out_file: str = None) -> None:
         """
         Plot the fitted alpha sigmas as a function of overvoltage.
@@ -692,7 +692,7 @@ class Alpha_data:
         fig = plt.figure()
         fig.tight_layout()
         plt.rc("font", size=12)
-        
+
         if x == "OV":
             data_x = self.ov
             data_x_err = self.bias_err
@@ -701,7 +701,7 @@ class Alpha_data:
             data_x = self.bias_vals
             data_x_err = self.bias_err
             x_label = "Bias voltage [V]"
-        
+
         if units == "Volts":
             data_y = self.sigma_vals
             data_y_err = self.sigma_err
@@ -798,6 +798,7 @@ class Alpha_data:
         ylow, yhigh = plt.ylim()
         plt.ylim(-1, yhigh * 1.1)
         plt.tight_layout()
+        plt.grid(True)
         plt.show()
 
         if out_file:
@@ -818,6 +819,7 @@ class Alpha_data:
         color: str = "purple",
         other_data: list = None,
         out_file: str = None,
+        legtext: str = "",
     ) -> None:
         """
         Plot the Photon Detection Efficiency (PDE) as a function of overvoltage.
@@ -870,7 +872,8 @@ class Alpha_data:
         plt.ylabel("Photon Detection Efficiency")
         textstr = f"Date: {self.campaign[0].info.date}\n"
         textstr += f"Condition: {self.campaign[0].info.condition}\n"
-        textstr += f"RTD4: {self.campaign[0].info.temperature} [K]"
+        textstr += f"RTD4: {self.campaign[0].info.temperature} [K]\n"
+        textstr += f"PTE: {legtext}"
 
         props = dict(boxstyle="round", facecolor=color, alpha=0.4)
         fig.text(0.3, 0.4, textstr, fontsize=18, verticalalignment="top", bbox=props)
@@ -880,11 +883,15 @@ class Alpha_data:
         if other_data:
             plt.legend(loc="lower left")
         plt.tight_layout()
+        plt.grid(True)
+        plt.show()
         if out_file:
             data = {
                 'ov': data_x, 'ov error': data_x_err,
+                'bias': self.bias_vals, 'bias error': self.bias_err,
                 'amps': self.alpha_vals, 'amps error': self.alpha_err,
-                'bias': self.bias_vals, 'bias err': self.bias_err
+                'num_det': self.num_det_photons, 'num_det error': self.num_det_photons_err,
+                'pde': data_y, 'pde error': data_y_err,
             }
             df = pd.DataFrame(data)
             df.to_csv(out_file)
