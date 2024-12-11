@@ -18,3 +18,5 @@ axes.ymargin : 0
 axes.prop_cycle : cycler('color', ['1f78b4', 'e66101', '33a02c', '984ea3', 'F27781', '18298C', '04BF8A', 'F2CF1D', 'F29F05', '7155D9', '8D07F6', '9E91F2', 'F29B9B', 'F25764', '6FB7BF', 'B6ECF2', '5D1314', 'B3640F'])
 font.family : serif
 text.usetex: False
+grid.linestyle: "--"
+grid.color: "#555555"
