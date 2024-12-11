@@ -28,9 +28,13 @@ MANIFEST
 
 # Misc
 tags
+.vscode/
 *.h5
 *.hdf5
 *.png
+*.csv
+*.pickle
+results/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
