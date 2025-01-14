@@ -30,37 +30,145 @@ import dill
 from lmfit.models import LinearModel, GaussianModel, ExponentialModel
 from typing import Any, Dict, List, Tuple, Optional
 import lmfit as lm
+import h5py
 
+plt.style.use('misc/nexo.mplstyle')
 path = 'pre-bd-data/'
 
 csvf = open('baseline.csv', 'w')
 # plot_baseline_histogram(path+'Run_1666778594.hdf5', 'Acquisition_1666781843', color='blue', condition='GN')
-# plot_baseline_histogram(path+'Run_1680287728.hdf5', 'Acquisition_1680287785', color='red')
-plot_baseline_histogram(path+'Run_1689175515.hdf5', 'Acquisition_1689175575', color='yellow', condition='GN')
-plot_baseline_histogram(path+'Run_1690920592.hdf5', 'Acquisition_1690920842', color='green')
-plot_baseline_histogram(path+'Run_1691696340.hdf5', 'Acquisition_1691696355')
-plot_baseline_histogram(path+'Run_1695300627.hdf5', 'Acquisition_1695300648', color='red', condition='Vac')
+# plot_baseline_histogram(path+'Run_1680287728.hdf5', 'Acquisition_1680287785', color='red') # March 31 2023
+plot_baseline_histogram(path+'Run_1689175515.hdf5', 'Acquisition_1689175575', color='yellow', condition='GN') # July 12
+# plot_baseline_histogram(path+'Run_1690920592.hdf5', 'Acquisition_1690920842', color='green') # Aug 1
+plot_baseline_histogram(path+'Run_1697746173.hdf5', 'Acquisition_1697746180', color='blue', condition='Vac') # Oct 19
+# plot_baseline_histogram(path+'Run_1689326327.hdf5', 'Acquisition_1689326369', color='red', condition='LXe') # July 13
+# plot_baseline_histogram(path+'Run_1691696340.hdf5', 'Acquisition_1691696355') # Aug 10
+# plot_baseline_histogram(path+'Run_1695300627.hdf5', 'Acquisition_1695300648', color='red', condition='Vac')
 # plot_baseline_histogram(path+'Run_1695564279.hdf5', 'Acquisition_1695564289', color='blue', condition='Vac')
 # plot_baseline_histogram(path+'Run_1697746173.hdf5', 'Acquisition_1697746526', color='aqua', condition='Vac')
 # plot_baseline_histogram(path+'Run_1697818249.hdf5', 'Acquisition_1697819075', color='pink', condition='Vac')
-plot_baseline_histogram(path+'Run_1699564042.hdf5', 'Acquisition_1699564067', color='purple')
+plot_baseline_histogram(path+'Run_1699564042.hdf5', 'Acquisition_1699564067', color='purple') # Nov 9
+plot_baseline_histogram(path+'Run_1712873075.hdf5', 'Acquisition_1712873141', color='aqua') # April 11
+plot_baseline_histogram(path+'Run_1711658069.hdf5', 'Acquisition_1711658255', color='pink') # March 28
 csvf.close()
 plt.show()
 
 writer = csv.writer(open("baseline.csv", 'w'))
 
+plot_baseline_fourier(path+'Run_1689326327.hdf5', 'Acquisition_1689326369', log_scale=True) # March 28
+
+plot_baseline_waveforms('aug-01/Run_1690911731.hdf5', 'Acquisition_1690911736', log_scale=True) # March 28
+plot_baseline_waveforms('data-june-08/Run_1686254720.hdf5', 'Acquisition_1686254748', log_scale=True) # March 28
+plot_baseline_waveforms('data-june-08/Run_1686253346.hdf5', 'Acquisition_1686253369', log_scale=True) # March 28
 
 
-def plot_baseline_histogram(
+
+def get_mode(hist_data: list or np.array) -> tuple[float, float]:
+    counts = hist_data[0]
+    bins = hist_data[1]
+    centers = (bins[1:] + bins[:-1]) / 2.0
+    max_index = np.argmax(counts)
+    return centers[max_index], np.amax(counts)
+
+def plot_baseline_waveforms(
     baseline_file, acquisition,
-    with_fit: bool = True, 
-    log_scale: bool = False, 
-    color: str = "orange", 
-    savefig: bool = False, 
+    with_fit: bool = True,
+    log_scale: bool = False,
+    color: str = "orange",
+    savefig: bool = False,
     path: Optional[str] = None,
     condition = 'LXe'
 ) -> None:
-    run_spe_solicited = RunInfo([baseline_file],  specifyAcquisition = True, acquisition=acquisition, do_filter = True, is_solicit = True, upper_limit = .5, baseline_correct = True)
+    run = RunInfo([baseline_file],  specifyAcquisition=True, acquisition=acquisition,
+                                do_filter=True, is_solicit=True, upper_limit=.5, baseline_correct=True,
+                                fourier=False, plot_waveforms=False)
+    baseline_values = np.array(run.peak_data[run.hd5_files[0]][run.acquisition])
+    time = run.acquisitions_time[run.hd5_files[0]][run.acquisition]
+    for i in range(10):
+        amp = run.acquisitions_data[run.hd5_files[0]][run.acquisition][:,i+100]
+        use_bins = np.linspace(-1, 1, 1000)
+        curr_hist = np.histogram(amp, bins=use_bins)
+        baseline_level, _ = get_mode(curr_hist)
+        amp -= baseline_level
+        # plt.plot(time,amp)
+        sos = signal.butter(3, 4e5, btype="lowpass", fs=2502502., output="sos")
+        filtered = signal.sosfilt(sos, amp)
+        plt.plot(time,filtered)
+    # plt.legend(loc='upper left')
+    plt.xlabel("Time")
+    plt.ylabel("Amplitude")
+    # if log_scale:
+    #     plt.yscale("log")
+    # plt.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
+    # plt.tight_layout()
+    plt.show()
+
+def plot_baseline_fourier(
+    baseline_file, acquisition,
+    with_fit: bool = True,
+    log_scale: bool = False,
+    color: str = "blue",
+    condition = 'LXe'
+) -> None:
+    with h5py.File(baseline_file, "r") as hdf:
+        waveforms: np.ndarray = hdf["RunData"][acquisition][:][:, 1:]
+    fourier = np.zeros(1000,dtype=complex)
+    for i in range(waveforms.shape[1]):
+        # baseline correct
+        use_bins = np.linspace(-1, 1, 1000)
+        curr_hist = np.histogram(waveforms[:, i], bins=use_bins)
+        baseline_level, _ = get_mode(curr_hist)
+        waveforms[:, i] -= baseline_level
+        # filter
+        sos = signal.butter(3, 4e5, btype="lowpass", fs=2502502., output="sos")
+        filtered = signal.sosfilt(sos, waveforms[:, i])
+        # fourier
+        fourier += np.abs(np.fft.fft(filtered))
+    n = filtered.size
+    duration = 1e-4
+    freq = np.fft.fftfreq(n, d=duration / n)
+    marker, stemlines, baseline = plt.stem(
+        np.abs(freq),
+        np.abs(fourier),
+        linefmt=color,
+        # use_line_collection=True,
+        markerfmt=" ",)
+    plt.setp(
+        stemlines,
+        linestyle="-",
+        linewidth=1,
+        color=color,
+        alpha=.7,)
+    plt.legend(loc='upper left')
+    plt.xlabel("Frequency")
+    plt.ylabel("Amplitude")
+    if log_scale:
+        plt.yscale("log")
+    # plt.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
+    # props = dict(boxstyle="round", facecolor=color, alpha=0.5)
+    # fig.text(0.15, 0.9, textstr, fontsize=10, verticalalignment="top", bbox=props)
+    plt.tight_layout()
+    # csvf.write(f"{run_spe_solicited.date},{baseline_fit['fit'].params['sigma'].value:0.4},{baseline_fit['fit'].params['sigma'].stderr:0.1}\n")
+    # writer.writerow([run_spe_solicited.date, baseline_fit['fit'].params['sigma'].value, baseline_fit['fit'].params['sigma'].stderr ])
+    # if savefig:
+    #     plt.savefig(path)
+    #     plt.close(fig)
+    # else:
+    plt.show()
+
+def plot_baseline_histogram(
+    baseline_file, acquisition,
+    with_fit: bool = True,
+    log_scale: bool = False,
+    color: str = "orange",
+    savefig: bool = False,
+    path: Optional[str] = None,
+    condition = 'LXe'
+) -> None:
+    run_spe_solicited = RunInfo([baseline_file],  specifyAcquisition=True, acquisition=acquisition,
+                                do_filter=True, is_solicit=True, upper_limit=.5, baseline_correct=True,
+                                fourier=False, plot_waveforms=False)
+    # waveforms = get_data(baseline_file, acquisition)[:, 1:]
     baseline_values = np.array(
         run_spe_solicited.peak_data[run_spe_solicited.hd5_files[0]][
             run_spe_solicited.acquisition
@@ -75,7 +183,7 @@ def plot_baseline_histogram(
         # label="Solicited Baseline Data",
         color="tab:purple",
         alpha=.3,
-        density=True,
+        # density=True,
     )
     # if with_fit:
     sigma = f" σ = {baseline_fit['fit'].params['sigma'].value*1000:0.4} ± {baseline_fit['fit'].params['sigma'].stderr*1000:0.1} mV"
@@ -87,7 +195,7 @@ def plot_baseline_histogram(
         label=condition + ': ' + run_spe_solicited.date.split(" ")[0] + sigma,
         color=color
     )
-    plt.legend(loc = 'center left')
+    plt.legend(loc='upper left')
     plt.xlabel("Waveform Amplitude [V]")
     plt.ylabel("Counts")
     if log_scale:
@@ -100,17 +208,17 @@ def plot_baseline_histogram(
     textstr = f"""Baseline Mean: {baseline_fit['fit'].params['center'].value:0.4} +- {baseline_fit['fit'].params['center'].stderr:0.1} [V]\n"""
     textstr += f"""Baseline Sigma: {baseline_fit['fit'].params['sigma'].value:0.4} +- {baseline_fit['fit'].params['sigma'].stderr:0.1} [V]\n"""
     textstr += f"""Reduced $chi^2$: {baseline_fit['fit'].redchi:0.4}"""
-    plt.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
+    # plt.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
     # props = dict(boxstyle="round", facecolor=color, alpha=0.5)
     # fig.text(0.15, 0.9, textstr, fontsize=10, verticalalignment="top", bbox=props)
     plt.tight_layout()
-    csvf.write(f"{run_spe_solicited.date},{baseline_fit['fit'].params['sigma'].value:0.4},{baseline_fit['fit'].params['sigma'].stderr:0.1}\n")
+    # csvf.write(f"{run_spe_solicited.date},{baseline_fit['fit'].params['sigma'].value:0.4},{baseline_fit['fit'].params['sigma'].stderr:0.1}\n")
     # writer.writerow([run_spe_solicited.date, baseline_fit['fit'].params['sigma'].value, baseline_fit['fit'].params['sigma'].stderr ])
     # if savefig:
     #     plt.savefig(path)
     #     plt.close(fig)
     # else:
-    #     plt.show()
+    plt.show()
 
 def fit_baseline_gauss( values: list[float], binnum: int = 50, alpha: bool = False) -> dict[str, type[float | Any]]:
     f_range = {}
@@ -164,6 +272,6 @@ def plot_fit(
         fit_info["fit"].eval(params=fit_info["fit"].params, x=x),
         color=color,
         label=label,
-        density=True,
+        # density=True,
     )
 
