@@ -265,6 +265,9 @@ class RunInfo:
         rms = [i**2 for i in self.baseline_levels]
         self.baseline_mode_rms = np.sqrt(np.mean(np.sum(rms)))
 
+        if self.upper_limit == -1:
+            self.upper_limit = self.yrange
+
         if not is_solicit:
             print(
                 "mean mode of amplitudes, standard deviation of modes, SEM: "
