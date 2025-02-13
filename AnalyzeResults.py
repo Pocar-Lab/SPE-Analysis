@@ -142,6 +142,7 @@ def read_ca(df, input_ov_vals):
 class AnalyzeResults:
     def __init__(
         self,
+        config,
         alpha_csv,
         spe_csv,
         ca_csv,
@@ -154,6 +155,7 @@ class AnalyzeResults:
         ov_max = 9,
         ov_min = 2,
     ) -> None:
+        self.config = config
         self.invC_alpha = invC_alpha
         self.invC_alpha_err = invC_alpha_err
         self.invC_spe = invC_spe
@@ -577,7 +579,7 @@ class AnalyzeResults:
                      # + f"$c$ = {res.best_values['c']:.3g}"
                      )
             plt.errorbar(self.ov, self.alpha_vals, xerr=self.ov_err, yerr=self.alpha_err,
-                         markersize=8, fmt='.', color=color, label='October 17 2024') # UPDATE
+                         markersize=8, fmt='.', color=color, label=self.config)
         # plt.plot(self.ov, res.best_fit, color='tab:green', label=eq_label)
 
         return ufit
@@ -603,7 +605,7 @@ class AnalyzeResults:
         # ax.fill_between(data_x[:7], yfitn[:7] - yfits[:7], yfitn[:7] + yfits[:7], alpha=.3)
         ax.fill_between(self.ov, yfitn - yfits, yfitn + yfits, alpha=.3)
         ax.errorbar(self.ov, self.alpha_vals, xerr = self.ov_err, yerr = self.alpha_err, markersize = 8, fmt = '.',
-                    color=color, label='June 20 2024') # UPDATE
+                    color=color, label=self.config)
         # ax.errorbar(other.ov, other.alpha_vals, xerr = other.ov_err, yerr = other.alpha_err, markersize = 8, fmt = '.',
         #             color = 'tab:blue', label='8 Short Si')
         # plt.errorbar(self.ov, ration, xerr=self.ov_err, yerr=ratios, markersize = 8, fmt = '.', color =
@@ -614,15 +616,15 @@ class AnalyzeResults:
         axr.set_ylim(*ratio_ylim)
         ax.set_ylim(*alpha_ylim)
         # axr.fill_between(self.ov, ration - ratios, ration + ratios, alpha=.3)
-        ax.set_xlabel('Overvoltage [V]')
+        ax.set_xlabel('Overvoltage [V]', loc='right')
         # plt.ylabel('Number of Detected Photons')
-        ax.set_ylabel('Alpha Amplitude [V]')
-        axr.set_ylabel('Ratio')
+        ax.set_ylabel('Alpha Amplitude [V]', loc='top')
+        axr.set_ylabel('Ratio', loc='top')
         # textstr = f'Date: {self.campaign[0].info.date}\n'
-        textstr = f'Tall Silicon Reflector\n' # UPDATE
-        textstr += f'Condition: LXe\n'
-        textstr += f'RTD4: 167 [K]'
-        props = dict(boxstyle='round', facecolor=color, alpha=0.4)
+        # textstr = f'Tall Silicon Reflector\n' # UPDATE
+        # textstr += f'Condition: LXe\n'
+        # textstr += f'RTD4: 167 [K]'
+        # props = dict(boxstyle='round', facecolor=color, alpha=0.4)
         # fig.text(.5, .5, textstr, fontsize=10,
         #         verticalalignment='top', bbox=props)
         ax.legend(loc='upper left')

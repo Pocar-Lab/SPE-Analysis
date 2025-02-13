@@ -65,9 +65,9 @@ no_short_si.fit_alpha(no_short_si.ov, fit='exp1')
 plt.legend()
 plt.show()
 
-tall_si_pre = AnalyzeResults('2024June20_Alpha.csv', 'results/20241017_LXe_SPE_vbd_bias.csv',
+tall_si_pre = AnalyzeResults('Tall Si Reflectors', '2024June20_Alpha.csv', 'results/20241017_LXe_SPE_vbd_bias.csv',
                'results/July13_171K_CA_GN.csv', invC_alpha, invC_alpha_err, invC_spe, invC_spe_err,
-               v_bd, v_bd_err, ov_max=6, ov_min=2.5)
+               v_bd, v_bd_err, ov_max=8, ov_min=2.5)
 
 # tall_si_pre.plot_num_det_photons()
 plt.axes().xaxis.set_minor_locator(mpl.ticker.MultipleLocator(.5))
@@ -80,14 +80,18 @@ tall_si_atm = AnalyzeResults('2024July09_Alpha.csv', 'results/20241017_LXe_SPE_v
                v_bd, v_bd_err, ov_max=8)
 # tall_si_atm.plot_num_det_photons()
 
-no_tall_si_pre = AnalyzeResults('2024Aug07_Alpha.csv', 'results/20241017_LXe_SPE_vbd_bias.csv',
-               'results/July13_171K_CA_GN.csv', invC_alpha, invC_alpha_err, invC_spe, invC_spe_err,
-               v_bd, v_bd_err, ov_max=8)
+no_tall_si_pre = AnalyzeResults('Tall Si Spacing, GND Loop', '2024Aug07_Alpha.csv',
+                                'results/20241017_LXe_SPE_vbd_bias.csv',
+                                'results/July13_171K_CA_GN.csv',
+                                invC_alpha, invC_alpha_err, invC_spe, invC_spe_err, v_bd, v_bd_err,
+                                ov_max=8)
 # no_tall_si.plot_num_det_photons()
 
-no_tall_si = AnalyzeResults('2024Oct17_Alpha.csv', 'results/20241017_LXe_SPE_vbd_bias.csv',
-                            'results/July13_171K_CA_GN.csv', invC_alpha, invC_alpha_err, invC_spe, invC_spe_err,
-                            v_bd, v_bd_err, ov_max=6)
+no_tall_si = AnalyzeResults('Tall Si Spacing', '2024Oct17_Alpha.csv',
+                            'results/20241017_LXe_SPE_vbd_bias.csv',
+                            'results/July13_171K_CA_GN.csv',
+                            invC_alpha, invC_alpha_err, invC_spe, invC_spe_err, v_bd, v_bd_err,
+                            ov_max=8)
 # no_tall_si.plot_num_det_photons()
 # plt.axes().xaxis.set_minor_locator(mpl.ticker.MultipleLocator(.5))
 # no_tall_si.fit_alpha(tall_si_pre.ov, fit='fullquad')
