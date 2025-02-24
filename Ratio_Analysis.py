@@ -50,62 +50,74 @@ cu.fit_alpha(cu.ov, fit='exp1')
 plt.legend()
 plt.show()
 
-short_si = AnalyzeResults('2023August01_Alpha.csv', 'results/August1_silicon_vbd.csv',
+## teflon
+teflon.plot_ratio(si_short)
+
+si_short = AnalyzeResults('Si Short Reflectors', '2023August01_Alpha.csv', 'results/August1_silicon_vbd.csv',
                'results/July13_171K_CA_GN.csv', invC_alpha, invC_alpha_err, invC_spe, invC_spe_err,
                27.23, .04)
 
-teflon.plot_ratio(short_si)
-
-no_short_si = AnalyzeResults('results/2023August10_Alpha.csv', 'results/20230810_SPE_no_si.csv',
+si_short_none = AnalyzeResults('Si Short Spacing', 'results/2023August10_Alpha.csv', 'results/20230810_SPE_no_si.csv',
                'results/July13_171K_CA_GN.csv', invC_alpha, invC_alpha_err, invC_spe, invC_spe_err,
-               27., .0488, ov_max=8, ov_min=3)
-# no_short_si.plot_num_det_photons()
-plt.axes().xaxis.set_minor_locator(mpl.ticker.MultipleLocator(.5))
-no_short_si.fit_alpha(no_short_si.ov, fit='exp1')
-plt.legend()
-plt.show()
+               27., .0488, ov_max=7, ov_min=3)
+# si_short_none.plot_num_det_photons()
+# plt.axes().xaxis.set_minor_locator(mpl.ticker.MultipleLocator(.5))
+# si_short_none.fit_alpha(si_short_none.ov, fit='exp1')
+# plt.legend()
+# plt.show()
 
-tall_si_pre = AnalyzeResults('Tall Si Reflectors', '2024June20_Alpha.csv', 'results/20241017_LXe_SPE_vbd_bias.csv',
+si_tall_pre = AnalyzeResults('Si Tall Reflectors, Pre-baking', '2024June20_Alpha.csv', 'results/20241017_LXe_SPE_vbd_bias.csv',
                'results/July13_171K_CA_GN.csv', invC_alpha, invC_alpha_err, invC_spe, invC_spe_err,
                v_bd, v_bd_err, ov_max=8, ov_min=2.5)
+# si_tall_pre.plot_num_det_photons()
+# plt.axes().xaxis.set_minor_locator(mpl.ticker.MultipleLocator(.5))
+# si_tall_pre.fit_alpha(si_tall_pre.ov, fit='exp1')
+# plt.legend()
+# plt.show()
 
-# tall_si_pre.plot_num_det_photons()
-plt.axes().xaxis.set_minor_locator(mpl.ticker.MultipleLocator(.5))
-tall_si_pre.fit_alpha(tall_si_pre.ov, fit='exp1')
-plt.legend()
-plt.show()
-
-tall_si_atm = AnalyzeResults('2024July09_Alpha.csv', 'results/20241017_LXe_SPE_vbd_bias.csv',
+si_tall_atm = AnalyzeResults('Si Tall Reflectors', '2024July9_Alpha.csv', 'results/20241017_LXe_SPE_vbd_bias.csv',
                'results/July13_171K_CA_GN.csv', invC_alpha, invC_alpha_err, invC_spe, invC_spe_err,
                v_bd, v_bd_err, ov_max=8)
-# tall_si_atm.plot_num_det_photons()
+# si_tall_atm.plot_num_det_photons()
 
-no_tall_si_pre = AnalyzeResults('Tall Si Spacing, GND Loop', '2024Aug07_Alpha.csv',
+si_tall_none_gnd = AnalyzeResults('Si Tall Spacing, GND Loop', '2024Aug07_Alpha.csv',
                                 'results/20241017_LXe_SPE_vbd_bias.csv',
                                 'results/July13_171K_CA_GN.csv',
                                 invC_alpha, invC_alpha_err, invC_spe, invC_spe_err, v_bd, v_bd_err,
                                 ov_max=8)
-# no_tall_si.plot_num_det_photons()
+# si_tall_none.plot_num_det_photons()
 
-no_tall_si = AnalyzeResults('Tall Si Spacing', '2024Oct17_Alpha.csv',
+si_tall_none = AnalyzeResults('Si Tall Spacing', '2024Oct17_Alpha.csv',
                             'results/20241017_LXe_SPE_vbd_bias.csv',
                             'results/July13_171K_CA_GN.csv',
                             invC_alpha, invC_alpha_err, invC_spe, invC_spe_err, v_bd, v_bd_err,
                             ov_max=8)
-# no_tall_si.plot_num_det_photons()
+# si_tall_none.plot_num_det_photons()
 # plt.axes().xaxis.set_minor_locator(mpl.ticker.MultipleLocator(.5))
-# no_tall_si.fit_alpha(tall_si_pre.ov, fit='fullquad')
+# si_tall_none.fit_alpha(tall_si_pre.ov, fit='fullquad')
 # plt.legend()
 # plt.show()
 
 
+## No reflector
+si_short_none.plot_ratio(si_tall_none, fit='xexp', alpha_ylim=(0,.5), ratio_ylim=(0,1.8))
 
-tall_si_atm.plot_ratio(no_tall_si, fit='exp1')
 
-tall_si_atm.plot_ratio(no_tall_si_pre)
+## Si Tall
+tall_si_pre.plot_ratio(si_tall_atm)
 
-tall_si_pre.plot_ratio(tall_si_atm)
+tall_si_pre.plot_ratio(si_tall_none, fit='exp', alpha_ylim=(0,.5), ratio_ylim=(0,2))
 
-tall_si_pre.plot_ratio(no_tall_si, fit='xexp', alpha_ylim=(0,.5), ratio_ylim=(.3,1.8))
+si_tall_none.plot_ratio(tall_si_pre, fit='xexp', alpha_ylim=(0,.5), ratio_ylim=(0,1.8))
 
-tall_si_atm.plot_ratio(no_tall_si, fit='exp', alpha_ylim=(0,.5), ratio_ylim=(.3,1.8))
+si_tall_atm.plot_ratio(si_tall_none, fit='exp1', alpha_ylim=(0,1), ratio_ylim=(0,5))
+
+
+PTEs_tall_si = ufloat(0.0025563, 5.1e-06)
+PTEd_tall_si = ufloat(0.0016941, 4.1e-06)
+PTEn_tall_si = ufloat(0.0012682, 3.6e-06)
+X = PTEs_tall_si/PTEn_tall_si
+Y = PTEd_tall_si/PTEn_tall_si
+# a = (np.mean(ratio) - Y)/(X-Y)
+a = (ufloat(1.338, .0026) - Y)/(X-Y)
+# a = (ufloat(3.1, .0026) - Y)/(X-Y)

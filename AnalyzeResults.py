@@ -31,16 +31,31 @@ def quad0(x, a, b):
     return a*x*x + b*x
 def linear(x, b, c):
     return b*x + c
+
 def exp(x, a, b):
     return a*np.exp(b*x)
+def expda(x, a, b):
+    return np.exp(b*x)
+def expdb(x, a, b):
+    return a*x*np.exp(b*x)
 def uexp(x, a, b):
     return a*unumpy.exp(b*x)
+
 def exp1(x, a, b):
     return a*np.exp(b*x) - a
+def exp1da(x, a, b):
+    return np.exp(b*x) - 1
+def exp1db(x, a, b):
+    return a*x*np.exp(b*x)
 def uexp1(x, a, b):
     return a*unumpy.exp(b*x) - a
+
 def xexp(x, a, b):
     return a*x*np.exp(b*x)
+def xexpda(x, a, b):
+    return x*np.exp(b*x)
+def xexpdb(x, a, b):
+    return a*x*x*np.exp(b*x)
 def uxexp(x, a, b):
     return a*x*unumpy.exp(b*x)
 
@@ -152,8 +167,8 @@ class AnalyzeResults:
         invC_spe_err,
         v_bd,
         v_bd_err,
-        ov_max = 9,
         ov_min = 2,
+        ov_max = 9,
     ) -> None:
         self.config = config
         self.invC_alpha = invC_alpha
@@ -176,6 +191,8 @@ class AnalyzeResults:
         # self.ov_err = alpha_df['ov error']
         self.ov = self.bias_vals - v_bd
         self.ov_err = self.bias_err # TODO incorporate v_bd_err
+        self.ov_min = ov_min
+        self.ov_max = ov_max
 
         spe_df = pd.read_csv(spe_csv)
         ca_df = pd.read_csv(ca_csv)
@@ -523,16 +540,22 @@ class AnalyzeResults:
         if fit == 'exp':
             fit_func = exp
             fit_ufunc = uexp
+            fit_funcda = expda
+            fit_funcdb = expdb
             init_guess = dict(a=1, b=1)
             eq_label = '$a e^{b x}$'
         elif fit == 'exp1':
             fit_func = exp1
             fit_ufunc = uexp1
+            fit_funcda = exp1da
+            fit_funcdb = exp1db
             init_guess = dict(a=1, b=1)
             eq_label = '$a (e^{b x} - 1)$'
         elif fit == 'xexp':
             fit_func = xexp
             fit_ufunc = uxexp
+            fit_funcda = xexpda
+            fit_funcdb = xexpdb
             init_guess = dict(a=1, b=1)
             eq_label = '$a x e^{b x}$'
         elif fit == 'quad':
@@ -560,24 +583,26 @@ class AnalyzeResults:
         params, covar = list(res.best_values.values()), res.covar
 
         # params, covar = curve_fit(fit_func, self.ov, self.alpha_vals) #, sigma=d10_y_err
-        # print(covar)
+        print(f"{self.config}: {covar=}")
         perr = np.sqrt(np.diag(covar))
         uparams = unumpy.uarray(params, perr)
-        print(uparams)
-        ufit = fit_ufunc(bias, *uparams)
+        x = np.linspace(.1, 10, 100)
+        # x = np.linspace(self.ov_min+.3, self.ov_max, num=100)
+        yfitn = fit_func(x, *params)
+        yfits = np.sqrt(fit_funcda(x, *params)**2 * perr[0]**2
+                        +fit_funcdb(x, *params)**2 * perr[1]**2
+                        +2*fit_funcda(x, *params)*fit_funcdb(x, *params)*covar[1,0]
+                        )
+        ufit = unumpy.uarray(yfitn, yfits)
         if color:
-            x = np.linspace(0, 10, 100)
             plt.grid(True)
-            plt.xlim(0,9)
-            plt.ylim(0,.5)
-            plt.xlabel('Overvoltage [V]')
-            plt.ylabel('Alpha Amplitude [V]')
             plt.plot(x, fit_func(x, *params), color=color,
                      label=eq_label + f" with $\chi^2 = $ {res.redchi:.3g},\n"
                      + f"$a$ = {res.best_values['a']:.3g}, "
                      + f"$b$ = {res.best_values['b']:.3g}, "
                      # + f"$c$ = {res.best_values['c']:.3g}"
                      )
+            plt.fill_between(x, yfitn - yfits, yfitn + yfits, alpha=.3, color=color)
             plt.errorbar(self.ov, self.alpha_vals, xerr=self.ov_err, yerr=self.alpha_err,
                          markersize=8, fmt='.', color=color, label=self.config)
         # plt.plot(self.ov, res.best_fit, color='tab:green', label=eq_label)
@@ -593,26 +618,32 @@ class AnalyzeResults:
         fig,ax = plt.subplots()
         fig.tight_layout()
 
-        udata10fit_y = other.fit_alpha(udata_x, fit, color_other)
+        x = np.linspace(self.ov_min+.3, self.ov_max, num=100)
+        # x = np.linspace(self.ov_min-1, self.ov_max+1, num=100)
+        # x = np.linspace(0.1, 10, num=100)
+        udata10fit_y = other.fit_alpha(x, fit, color_other)
+        udata_y = self.fit_alpha(x, fit, color)
 
         ratio = udata_y / udata10fit_y
-        ration = [ r.n for r in ratio ]
-        ratios = [ r.s for r in ratio ]
-        yfitn = np.array([ r.n for r in udata10fit_y ])
-        yfits = np.array([ r.s for r in udata10fit_y ])
+        # ratio = udata10fit_y / udata_y
+        ration = np.array([ r.n for r in ratio ])
+        ratios = np.array([ r.s for r in ratio ])
 
         # plt.rc('font', size=22)
         # ax.fill_between(data_x[:7], yfitn[:7] - yfits[:7], yfitn[:7] + yfits[:7], alpha=.3)
-        ax.fill_between(self.ov, yfitn - yfits, yfitn + yfits, alpha=.3)
-        ax.errorbar(self.ov, self.alpha_vals, xerr = self.ov_err, yerr = self.alpha_err, markersize = 8, fmt = '.',
-                    color=color, label=self.config)
+        # ax.errorbar(self.ov, self.alpha_vals, xerr = self.ov_err, yerr = self.alpha_err, markersize = 8, fmt = '.',
+        #             color=color, label=self.config)
         # ax.errorbar(other.ov, other.alpha_vals, xerr = other.ov_err, yerr = other.alpha_err, markersize = 8, fmt = '.',
         #             color = 'tab:blue', label='8 Short Si')
         # plt.errorbar(self.ov, ration, xerr=self.ov_err, yerr=ratios, markersize = 8, fmt = '.', color =
         #              'tab:green', label='Ratio (Average: 2.238±.00058)')
         axr = ax.twinx()
-        axr.errorbar(self.ov, ration, xerr = self.ov_err, yerr=ratios, markersize=0, fmt='.',
-                    color='tab:green', label=f'Ratio {ratio.mean()}')
+        # , xerr = self.ov_err
+        # axr.errorbar(x, ration, yerr=ratios, markersize=0, fmt='.',
+        #             color='tab:green', label=f'Ratio {ratio.mean()}')
+
+        axr.plot(x, ration, color='tab:green', label=f'Ratio {ratio.mean()}')
+        axr.fill_between(x, ration - ratios, ration + ratios, alpha=.3, color='tab:green')
         axr.set_ylim(*ratio_ylim)
         ax.set_ylim(*alpha_ylim)
         # axr.fill_between(self.ov, ration - ratios, ration + ratios, alpha=.3)
