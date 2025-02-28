@@ -8,6 +8,7 @@ Created on Nov 13 2024
 import numpy as np
 import lmfit as lm
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import pandas as pd
 import typing
 from scipy.optimize import curve_fit
@@ -617,6 +618,8 @@ class AnalyzeResults:
 
         fig,ax = plt.subplots()
         fig.tight_layout()
+        ax.xaxis.set_minor_locator(mpl.ticker.MultipleLocator(1/4))
+        ax.yaxis.set_minor_locator(mpl.ticker.MultipleLocator(.1/4))
 
         x = np.linspace(self.ov_min+.3, self.ov_max, num=100)
         # x = np.linspace(self.ov_min-1, self.ov_max+1, num=100)
@@ -638,6 +641,7 @@ class AnalyzeResults:
         # plt.errorbar(self.ov, ration, xerr=self.ov_err, yerr=ratios, markersize = 8, fmt = '.', color =
         #              'tab:green', label='Ratio (Average: 2.238±.00058)')
         axr = ax.twinx()
+        axr.yaxis.set_minor_locator(mpl.ticker.MultipleLocator(1/4))
         # , xerr = self.ov_err
         # axr.errorbar(x, ration, yerr=ratios, markersize=0, fmt='.',
         #             color='tab:green', label=f'Ratio {ratio.mean()}')
