@@ -666,3 +666,42 @@ class AnalyzeResults:
         axr.legend(loc='upper right')
         # plt.legend()
         plt.show()
+
+    def plot_sub_ratio(self, sub, denom, factor
+                       color="tab:purple", color_other="tab:blue", fit='exp',
+                       alpha_ylim=(0, 1.5), ratio_ylim=(1,4)):
+
+        fig,ax = plt.subplots()
+        fig.tight_layout()
+        ax.xaxis.set_minor_locator(mpl.ticker.MultipleLocator(1/4))
+        ax.yaxis.set_minor_locator(mpl.ticker.MultipleLocator(.1/4))
+
+        x = np.linspace(self.ov_min+.3, self.ov_max, num=100)
+        subfit = sub.fit_alpha(x, fit, color_other)
+        denfit = denom.fit_alpha(x, fit, "tab:pink")
+        selffit = self.fit_alpha(x, fit, color)
+
+        ratio = (selffit - subfit * factor) / denfit
+        ration = np.array([ r.n for r in ratio ])
+        ratios = np.array([ r.s for r in ratio ])
+
+        # subr = selffit - subfit # * factor
+        # subrn = np.array([ r.n for r in subr ])
+        # subrs = np.array([ r.s for r in subr ])
+        # plt.plot(x, subrn, color='tab:cyan')
+        # plt.fill_between(x, subrn - subrs, subrn + subrs, alpha=.3, color='tab:cyan')
+
+        axr = ax.twinx()
+        axr.yaxis.set_minor_locator(mpl.ticker.MultipleLocator(1/4))
+
+        axr.plot(x, ration, color='tab:green', label=f'Ratio {ratio.mean()}')
+        axr.fill_between(x, ration - ratios, ration + ratios, alpha=.3, color='tab:green')
+        axr.set_ylim(*ratio_ylim)
+        ax.set_ylim(*alpha_ylim)
+        ax.set_xlabel('Overvoltage [V]', loc='right')
+        ax.set_ylabel('Alpha Amplitude [V]', loc='top')
+        axr.set_ylabel('Ratio', loc='top')
+        ax.legend(loc='upper left')
+        axr.legend(loc='upper right')
+        plt.show()
+        return ratio

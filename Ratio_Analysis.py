@@ -140,3 +140,6 @@ D = PTEd_tall_si/PTEn_tall_si
 s = (ufloat(3.1/1.68, .0026) - D)/(S-D)
 s = (ufloat(2.2799, .0028) - D)/(S-D)
 ufloat(2.2799, .0028) - S
+
+## Short/Tall Comparison
+si_short.plot_sub_ratio(si_tall_pre, si_short_none, 1.072, fit='exp1', alpha_ylim=(0,.8), ratio_ylim=(0,3))
