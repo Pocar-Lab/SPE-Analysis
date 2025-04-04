@@ -587,7 +587,8 @@ class AnalyzeResults:
         print(f"{self.config}: {covar=}")
         perr = np.sqrt(np.diag(covar))
         uparams = unumpy.uarray(params, perr)
-        x = np.linspace(.1, 10, 100)
+        x = bias
+        # x = np.linspace(.1, 7, 100)
         # x = np.linspace(self.ov_min+.3, self.ov_max, num=100)
         yfitn = fit_func(x, *params)
         yfits = np.sqrt(fit_funcda(x, *params)**2 * perr[0]**2
