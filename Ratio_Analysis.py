@@ -49,9 +49,6 @@ cu.fit_alpha(cu.ov, fit='exp1')
 plt.legend()
 plt.show()
 
-## teflon
-teflon.plot_ratio(si_short)
-
 cu_none = AnalyzeResults('Copper Spacing', '2023July13_Alpha.csv',
                          'results/August1_silicon_vbd.csv', 'results/July13_171K_CA_GN.csv',
                          invC_alpha, invC_alpha_err, invC_spe, invC_spe_err, 27.22, .0686,
@@ -65,7 +62,7 @@ si_short = AnalyzeResults('Si Short Reflectors', '2023August01_Alpha.csv',
 si_short_none = AnalyzeResults('Si Short Spacing', 'results/2023August10_Alpha.csv',
                                'results/20230810_SPE_no_si.csv', 'results/July13_171K_CA_GN.csv',
                                invC_alpha, invC_alpha_err, invC_spe, invC_spe_err, 27., .0488,
-                               ov_max=6, ov_min=3)
+                               ov_max=6, ov_min=2.5)
 
 si_tall_pre = AnalyzeResults('Si Tall Reflectors, Pre-baking', '2024June20_Alpha.csv',
                              'results/20241017_LXe_SPE_vbd_bias.csv',
@@ -83,32 +80,34 @@ si_tall_atm = AnalyzeResults('Si Tall Reflectors, Post-Atmosphere', '2024July9_A
                              'results/20241017_LXe_SPE_vbd_bias.csv',
                              'results/July13_171K_CA_GN.csv',
                              invC_alpha, invC_alpha_err, invC_spe, invC_spe_err, v_bd, v_bd_err,
-                             ov_max=6)
+                             ov_max=6, ov_min=2.5)
 
 si_tall_none_gnd = AnalyzeResults('Si Tall Spacing, GND Loop', '2024Aug07_Alpha.csv',
                                 'results/20241017_LXe_SPE_vbd_bias.csv',
                                 'results/July13_171K_CA_GN.csv',
                                 invC_alpha, invC_alpha_err, invC_spe, invC_spe_err, v_bd, v_bd_err,
-                                ov_max=6)
+                                ov_max=6, ov_min=2.5)
 
 si_tall_none = AnalyzeResults('Si Tall Spacing', '2024Oct17_Alpha.csv',
                             'results/20241017_LXe_SPE_vbd_bias.csv',
                             'results/July13_171K_CA_GN.csv',
                             invC_alpha, invC_alpha_err, invC_spe, invC_spe_err, v_bd, v_bd_err,
-                            ov_max=6)
+                            ov_max=6, ov_min=2.5)
 
 
 ## No reflector
-si_short_none.plot_ratio(si_tall_none, fit='xexp', alpha_ylim=(0,.5), ratio_ylim=(0,2.5))
+si_short_none.plot_ratio(si_tall_none, calibrate=baked_atm, fit='exp1', alpha_ylim=(0,.5),
+                         ratio_ylim=(0,7))
 
-cu_none.plot_ratio(si_tall_none, fit='xexp', alpha_ylim=(0,1.5), ratio_ylim=(0,10))
+cu_none.plot_ratio(si_tall_none, calibrate=baked_atm, fit='exp1', alpha_ylim=(0,1.5),
+                   ratio_ylim=(0,25))
 
-cu_none.plot_ratio(si_short_none, fit='xexp', alpha_ylim=(0,2), ratio_ylim=(0,5))
+cu_none.plot_ratio(si_short_none, fit='exp1', alpha_ylim=(0,2), ratio_ylim=(0,5))
 
 ## Baking
-si_tall_atm.plot_ratio(si_tall_pre, fit='exp1', alpha_ylim=(0,.7), ratio_ylim=(0,3.5))
+baked_atm = si_tall_atm.plot_ratio(si_tall_pre, fit='exp1', alpha_ylim=(0,.7), ratio_ylim=(0,3.5))
 
-si_tall_baked.plot_ratio(si_tall_pre, fit='exp1', alpha_ylim=(0,.5), ratio_ylim=(0,2.5))
+baked = si_tall_baked.plot_ratio(si_tall_pre, fit='exp1', alpha_ylim=(0,.5), ratio_ylim=(0,2.5))
 
 si_tall_atm.plot_ratio(si_tall_baked, fit='exp1', alpha_ylim=(0,.5), ratio_ylim=(0,1.8))
 
@@ -124,9 +123,9 @@ s = (ufloat(2.4645, .0028) - D)/(S-D)
 ufloat(2.4645, .0028) - S
 
 ## Si Tall (4-inner)
-si_tall_pre.plot_ratio(si_tall_none, fit='exp', alpha_ylim=(0,.5), ratio_ylim=(0,2))
+si_tall_pre.plot_ratio(si_tall_none, fit='exp1', alpha_ylim=(0,.5), ratio_ylim=(0,2))
 
-si_tall_baked.plot_ratio(si_tall_none, fit='exp1', alpha_ylim=(0,.8), ratio_ylim=(0,3.5))
+ratio = si_tall_baked.plot_ratio(si_tall_none, fit='exp1', alpha_ylim=(0,400), ratio_ylim=(0,3.5))
 
 si_tall_atm.plot_ratio(si_tall_none, fit='exp1', alpha_ylim=(0,1), ratio_ylim=(0,5))
 

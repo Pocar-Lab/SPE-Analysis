@@ -611,12 +611,10 @@ class AnalyzeResults:
 
         return ufit
 
-    def plot_ratio(self, other, color="tab:purple", color_other="tab:blue", fit='exp',
+    # NOTE need to make sure the calibrate array has the same OV range as the current runs
+    def plot_ratio(self, other, calibrate=np.array([]),
+                   color="tab:purple", color_other="tab:blue", fit='exp',
                    alpha_ylim=(0, 1.5), ratio_ylim=(1,4)):
-        udata_x = unumpy.uarray(self.ov, self.ov_err)
-        udata_y = unumpy.uarray(self.alpha_vals, self.alpha_err)
-        # udata10_y = unumpy.uarray(other.alpha_vals, other.alpha_err)
-
         fig,ax = plt.subplots()
         fig.tight_layout()
         ax.xaxis.set_minor_locator(mpl.ticker.MultipleLocator(1/4))
@@ -624,12 +622,15 @@ class AnalyzeResults:
 
         x = np.linspace(self.ov_min+.3, self.ov_max, num=100)
         # x = np.linspace(self.ov_min-1, self.ov_max+1, num=100)
-        # x = np.linspace(0.1, 10, num=100)
-        udata10fit_y = other.fit_alpha(x, fit, color_other)
-        udata_y = self.fit_alpha(x, fit, color)
+        # x = np.linspace(0.1, 7, num=100)
+        other_fit = other.fit_alpha(x, fit, color_other)
+        self_fit = self.fit_alpha(x, fit, color)
 
-        ratio = udata_y / udata10fit_y
-        # ratio = udata10fit_y / udata_y
+        if calibrate.size != 0:
+            other_fit = other_fit / calibrate
+
+        ratio = self_fit / other_fit
+        # ratio = other_fit / self_fit
         ration = np.array([ r.n for r in ratio ])
         ratios = np.array([ r.s for r in ratio ])
 
@@ -667,8 +668,9 @@ class AnalyzeResults:
         axr.legend(loc='upper right')
         # plt.legend()
         plt.show()
+        return ratio
 
-    def plot_sub_ratio(self, sub, denom, factor
+    def plot_sub_ratio(self, sub, denom, factor,
                        color="tab:purple", color_other="tab:blue", fit='exp',
                        alpha_ylim=(0, 1.5), ratio_ylim=(1,4)):
 
