@@ -196,11 +196,10 @@ class AnalyzeResults:
         self.ov_max = ov_max
 
         spe_df = pd.read_csv(spe_csv)
-        ca_df = pd.read_csv(ca_csv)
         self.spe_vals, self.spe_err = read_spe(spe_df, self.bias_vals, invC_spe, invC_spe_err)
+
+        ca_df = pd.read_csv(ca_csv)
         self.ca_vals, self.ca_err = read_ca(ca_df, self.ov)
-        # self.spe_vals, self.spe_err = self.spe_data.get_spe_ov(self.ov)
-        # self.CA_vals, self.CA_err = self.spe_data.get_CA_ov(self.ov)
 
         # # in p.e. units
         # self.sigma_in_spe_units = self.sigma_vals/self.spe_vals * self.spe_data.invC/self.invC
@@ -209,12 +208,14 @@ class AnalyzeResults:
         #                                                                 + (self.invC_err*self.invC_err)/(self.invC*self.invC)
         #                                                                 + (self.spe_data.invC_err*self.spe_data.invC_err)/(self.spe_data.invC*self.spe_data.invC)
         #                                                                 )
-        # self.alpha_in_spe_units = self.alpha_vals/self.spe_vals * self.spe_data.invC/self.invC
-        # self.alpha_in_spe_units_err = self.alpha_in_spe_units * np.sqrt((self.alpha_err * self.alpha_err)/(self.alpha_vals * self.alpha_vals)
-        #                                                                 + (self.spe_err*self.spe_err)/(self.spe_vals*self.spe_vals)
-        #                                                                 + (self.invC_err*self.invC_err)/(self.invC*self.invC)
-        #                                                                 + (self.spe_data.invC_err*self.spe_data.invC_err)/(self.spe_data.invC*self.spe_data.invC)
-        #                                                                 )
+
+        self.alpha_pe = self.alpha_vals/self.spe_vals * invC_spe/invC_alpha
+        self.alpha_pe_err = self.alpha_pe * np.sqrt(
+                     (self.alpha_err**2)/(self.alpha_vals**2)
+                   + (self.spe_err**2)/(self.spe_vals**2)
+                   + (invC_alpha_err**2)/(invC_alpha**2)
+                   + (invC_spe_err**2)/(invC_spe**2)
+                   )
 
         self.num_det_photons = (
             self.alpha_vals * self.invC_spe
@@ -263,8 +264,8 @@ class AnalyzeResults:
             data_y_err = self.alpha_err
             y_label = "Alpha Pulse Amplitude [V]"
         if units == "PE":
-            data_y = self.alpha_in_spe_units
-            data_y_err = self.alpha_in_spe_units_err
+            data_y = self.alpha_pe
+            data_y_err = self.alpha_pe_err
             y_label = "Alpha Amplitude [p.e.]"
 
         # fit_x = np.linspace(0.0, np.amax(self.ov) + 1.0, num = 100)
@@ -620,14 +621,17 @@ class AnalyzeResults:
         ax.xaxis.set_minor_locator(mpl.ticker.MultipleLocator(1/4))
         ax.yaxis.set_minor_locator(mpl.ticker.MultipleLocator(.1/4))
 
-        x = np.linspace(self.ov_min+.3, self.ov_max, num=100)
+        # x = np.linspace(self.ov_min, self.ov_max, num=100)
+        # print(f"{self.ov_min=}")
+        x = np.linspace(self.ov_min, self.ov_max+.5, num=100)
+        # x = np.linspace(2.5, 6, num=100)
         # x = np.linspace(self.ov_min-1, self.ov_max+1, num=100)
         # x = np.linspace(0.1, 7, num=100)
         other_fit = other.fit_alpha(x, fit, color_other)
         self_fit = self.fit_alpha(x, fit, color)
 
         if calibrate.size != 0:
-            other_fit = other_fit / calibrate
+            other_fit /= calibrate
 
         ratio = self_fit / other_fit
         # ratio = other_fit / self_fit
