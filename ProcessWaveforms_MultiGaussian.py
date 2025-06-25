@@ -903,9 +903,9 @@ class WaveformProcessor:
             color="tab:" + peakcolor,
             label="Self-Triggered Fit",
         )
-        # dely = self.spe_res.eval_uncertainty(x=x_values, sigma=1)
-        # plt.fill_between(x_values, y_values+dely, y_values-dely)
-        # plt.plot(self.spe_num, self.spe_res.best_fit, 'r', label='Self-Triggered Fit')
+        dely = self.spe_res.eval_uncertainty(x=x_values, sigma=1)
+        plt.fill_between(x_values, y_values+dely, y_values-dely)
+        plt.plot(self.spe_num, self.spe_res.best_fit, 'r', label='Self-Triggered Fit')
 
         plt.xlabel("Photoelectron Peak Number")
         plt.ylabel("Peak Location [V]")
@@ -919,6 +919,91 @@ class WaveformProcessor:
         textstr += f"--\n"
         textstr += f"""Slope: {self.spe_res.params['slope'].value:0.4} +- {self.spe_res.params['slope'].stderr:0.2} [V/p.e.]\n"""
         textstr += f"""Intercept: {self.spe_res.params['intercept'].value:0.4} +- {self.spe_res.params['intercept'].stderr:0.2} [V]\n"""
+        textstr += rf"""Reduced $\chi^2$: {self.spe_res.redchi:0.4}"""
+        textstr += f"""\n"""
+        # textstr += f"--\n"
+        if not self.no_solicit:
+            textstr += (
+                f"Baseline: {self.baseline_mean:0.4} +- {self.baseline_err:0.2} [V]"
+            )
+
+        props = dict(boxstyle="round", facecolor="tab:" + peakcolor, alpha=0.4)
+        fig.text(0.6, 0.48, textstr, fontsize=8, verticalalignment="top", bbox=props)
+        fig.tight_layout()
+
+        if savefig:
+            plt.savefig(path)
+            plt.close(fig)
+
+    def plot_spe_with_origin(
+        self,
+        with_baseline: bool = True,
+        baselinecolor: str = "orange",
+        peakcolor: str = "blue",
+        savefig: bool = False,
+        path: Optional[str] = None,
+    ) -> None:
+        """Plots average pulse amplitudes as a function of # of Photoelectrons (PE).
+        Forcing to go through origin
+        Args:
+            with_baseline (bool, optional): If True, plots the baseline data. Defaults to True.
+            baselinecolor (str, optional): Color used for the baseline data. Defaults to "orange".
+            peakcolor (str, optional): Color used for the SPE peak data. Defaults to "blue".
+            savefig (bool, optional): If True, saves the figure to the provided path. Defaults to False.
+            path (str, optional): Path where the figure should be saved. Used only if savefig is set to True. Defaults to None.
+        """
+        fig = plt.figure()
+        fig.tight_layout()
+
+        plt.rc("font", size=12)
+        plt.errorbar(
+            self.spe_num,
+            self.peak_locs[: self.peak_range[1]],
+            yerr=self.peak_stds[: self.peak_range[1]],
+            fmt=".",
+            label="Self-Triggered Peaks",
+            color="tab:" + peakcolor,
+            markersize=10,
+        )
+        if with_baseline:
+            if self.no_solicit == False:
+                plt.errorbar(
+                    0,
+                    self.baseline_mean,
+                    yerr=self.baseline_err,
+                    fmt=".",
+                    label="Solicited Baseline Peak",
+                    color="tab:" + baselinecolor,
+                    markersize=10,
+                )
+            # else:
+            # plt.errorbar(0, self.baseline_mode, yerr = self.baseline_err, fmt='.', label = 'Solicited Baseline Peak', color = 'tab:' + baselinecolor, markersize = 10)
+
+        m = self.spe_res.params["slope"].value
+        x_values = np.linspace(0, len(self.spe_num) + 1, 20)
+        y_values = m * x_values
+        plt.plot(
+            x_values,
+            y_values,
+            "--",
+            color="tab:" + peakcolor,
+            label="Self-Triggered Fit",
+        )
+        #dely = self.spe_res.eval_uncertainty(x=x_values, sigma=1)
+        #plt.fill_between(x_values, y_values+dely, y_values-dely)
+        #plt.plot(self.spe_num, self.spe_res.best_fit, 'r', label='Self-Triggered Fit')
+
+        plt.xlabel("Photoelectron Peak Number")
+        plt.ylabel("Peak Location [V]")
+        plt.legend()
+        plt.grid(True)
+
+        textstr = f"Date: {self.info.date}\n"
+        textstr += f"Condition: {self.info.condition}\n"
+        textstr += f"Bias: {self.info.bias:0.4} [V]\n"
+        textstr += f"RTD4: {self.info.temperature} [K]\n"
+        textstr += f"--\n"
+        textstr += f"""Slope: {self.spe_res.params['slope'].value:0.4} +- {self.spe_res.params['slope'].stderr:0.2} [V/p.e.]\n"""
         textstr += rf"""Reduced $\chi^2$: {self.spe_res.redchi:0.4}"""
         textstr += f"""\n"""
         # textstr += f"--\n"
@@ -1063,6 +1148,8 @@ class WaveformProcessor:
         if savefig:
             plt.savefig(path)
             plt.close(fig)
+        else:
+            plt.show()
 
 
     def plot_alpha_histogram(self, with_fit: bool = True, log_scale: bool = False, peakcolor: str = "purple")-> None:

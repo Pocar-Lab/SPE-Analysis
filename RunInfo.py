@@ -168,7 +168,7 @@ class RunInfo:
         self.baseline_levels = []  # list of mode of waveforms
         self.num_waveforms = num_waveforms
         self.condition = condition
-        
+
         if self.led: # initialize led on/off lists
             self.all_dark_peak_data = []
             self.all_led_peak_data = []
@@ -346,7 +346,7 @@ class RunInfo:
         if not self.led:
             return
         if new:
-            plt.figure() #makes new 
+            plt.figure() #makes new
         (n, b, p) = plt.hist(self.all_peak_data, bins = 2000, histtype = 'step', density = False, label = 'All ')
         (n1, b1, p1) = plt.hist(self.all_led_peak_data, bins = b, histtype = 'step', density = False, label = 'LED on')
         (n2, b2, p2) = plt.hist(self.all_dark_peak_data, bins = b, histtype = 'step', density = False, label = 'LED off')
@@ -366,11 +366,11 @@ class RunInfo:
             yrange = self.yrange
             offset = self.offset
 
-            
+
             dark_count = float(len(self.all_dark_peak_data))
             led_count = float(len(self.all_led_peak_data)) - dark_count
 
-            ratio1 = led_count / dark_count         
+            ratio1 = led_count / dark_count
             self.led_ratio = ratio1
 
             ratio2 = float(len(self.all_led_peak_data)) / dark_count
@@ -385,7 +385,7 @@ class RunInfo:
             plt.tight_layout()
             plt.grid(True)
             plt.show()
-    
+
 
 
     def get_peaks(self, filename: str, acquisition_name: str) -> list[float]:
@@ -439,9 +439,9 @@ class RunInfo:
                 amp = amp - baseline_level
 
             if self.do_filter and np.shape(amp) != (0,):
-                sos = signal.butter(3, 4E5, btype = 'lowpass', fs = fs, output = 'sos') # SPE dark/10g 
+                sos = signal.butter(3, 4E5, btype = 'lowpass', fs = fs, output = 'sos') # SPE dark/10g
                 filtered = signal.sosfilt(sos, amp)
-                amp = filtered                            
+                amp = filtered
             peaks, props = signal.find_peaks(amp, **self.peak_search_params)
             if self.plot_waveforms:
                 plt.title(acquisition_name)
@@ -554,16 +554,16 @@ class RunInfo:
                         freq,
                         np.abs(fourier),
                         linefmt=colors[0],
-                        use_line_collection=True,
+                        # use_line_collection=True,
                         markerfmt=" ",
                     )
-                    plt.setp(
-                        stemlines,
-                        linestyle="-",
-                        linewidth=1,
-                        color=colors[0],
-                        alpha=5 / num_wavefroms,
-                    )  # num_wavefroms always 20?
+                    # plt.setp(
+                    #     stemlines,
+                    #     linestyle="-",
+                    #     linewidth=1,
+                    #     color=colors[0],
+                    #     alpha=5 / num_wavefroms,
+                    # )  # num_wavefroms always 20?
                     plt.yscale("log")
                     plt.show()
                 else:
