@@ -630,14 +630,15 @@ class WaveformProcessor:
 
             #check if any of the fitted sigmas are less than the sigma of baseline noise (unphysical):
             for s in self.peak_sigmas:
+                # TODO only warn if more than 1 sigma different
                 if s < self.baseline_std:
                     print('WARNING! Fitted sigma ' + str(s) + ' is less than baseline sigma ' + str(self.baseline_std) +'!')
 
             for i in range(len(self.peak_stds)):
-                if type(self.peak_stds[i]) == None:
+                if self.peak_stds[i] is None:
                     print('WARNING! Fit failed to return a standard error on the peak locations and returned None! Setting std = 1')
                     self.peak_stds[i] = 1.0
-                if type(self.peak_sigmas_stds[i]) == None:
+                if self.peak_sigmas_stds[i] is None:
                     print('WARNING! Fit failed to return a standard error on the peak sigmas and returned None! Setting std = 1')
                     self.peak_sigmas_stds[i] = 1
 
@@ -1026,15 +1027,15 @@ class WaveformProcessor:
         for peak in range(0,len(self.peak_sigmas)):
             actual_peak = self.peak_range[0] + peak
             # actual_peak = peak + 1
-            if type(self.peak_fit.params['g' + str(actual_peak) + '_center'].stderr) != None:
-                textstr += f'''Peak {actual_peak}: {self.peak_fit.params['g' + str(actual_peak) + '_center'].value:0.2} $\pm$ {self.peak_fit.params['g' + str(actual_peak) + '_center'].stderr:0.2}\n'''
+            if self.peak_fit.params['g' + str(actual_peak) + '_center'].stderr is not None:
+                textstr += f'''Peak {actual_peak}: {self.peak_fit.params['g' + str(actual_peak) + '_center'].value:0.2} $\\pm$ {self.peak_fit.params['g' + str(actual_peak) + '_center'].stderr:0.2}\n'''
         textstr += f'--\n'
         textstr += 'Peak Width (\u03C3) [V]\n'
         for peak in range(0,len(self.peak_sigmas)):
             actual_peak = self.peak_range[0] + peak
             curr_sigma_err = self.peak_fit.params['g' + str(actual_peak) + '_sigma'].stderr
-            if type(curr_sigma_err)==float:
-                textstr += f'''{peak + 1}: {round(self.peak_sigmas[peak],5)} $\pm$ {curr_sigma_err:0.2}\n'''
+            if curr_sigma_err is not None:
+                textstr += f'''{peak + 1}: {round(self.peak_sigmas[peak],5)} $\\pm$ {curr_sigma_err:0.2}\n'''
         textstr += f'--\n'
         textstr += f'''Reduced $\chi^2$: {self.peak_fit.redchi:0.2}\n'''
         curr_hist = np.histogram(self.peak_values, bins = self.numbins)
