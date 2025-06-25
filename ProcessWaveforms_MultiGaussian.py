@@ -919,7 +919,7 @@ class WaveformProcessor:
         textstr += f"--\n"
         textstr += f"""Slope: {self.spe_res.params['slope'].value:0.4} +- {self.spe_res.params['slope'].stderr:0.2} [V/p.e.]\n"""
         textstr += f"""Intercept: {self.spe_res.params['intercept'].value:0.4} +- {self.spe_res.params['intercept'].stderr:0.2} [V]\n"""
-        textstr += rf"""Reduced $\chi^2$: {self.spe_res.redchi:0.4}"""
+        textstr += rf"""Reduced $\\chi^2$: {self.spe_res.redchi:0.4}"""
         textstr += f"""\n"""
         # textstr += f"--\n"
         if not self.no_solicit:
@@ -1064,7 +1064,7 @@ class WaveformProcessor:
         textstr += f"--\n"
         textstr += f"""Baseline Mean: {self.baseline_fit['fit'].params['center'].value:0.4} +- {self.baseline_fit['fit'].params['center'].stderr:0.1} [V]\n"""
         textstr += f"""Baseline Sigma: {self.baseline_fit['fit'].params['sigma'].value:0.4} +- {self.baseline_fit['fit'].params['sigma'].stderr:0.1} [V]\n"""
-        textstr += f"""Reduced $\chi^2$: {self.baseline_fit['fit'].redchi:0.4}"""
+        textstr += f"""Reduced $\\chi^2$: {self.baseline_fit['fit'].redchi:0.4}"""
 
         plt.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         props = dict(boxstyle="round", facecolor="tab:" + color, alpha=0.5)
@@ -1108,7 +1108,7 @@ class WaveformProcessor:
         textstr += f'Bias: {self.info.bias} [V]\n'
         textstr += f'RTD4: {self.info.temperature} [K]\n'
         textstr += f'--\n'
-        textstr += f'Peak Locations ($\mu$) [V]\n'
+        textstr += f'Peak Locations ($\\mu$) [V]\n'
         for peak in range(0,len(self.peak_sigmas)):
             actual_peak = self.peak_range[0] + peak
             # actual_peak = peak + 1
@@ -1122,9 +1122,8 @@ class WaveformProcessor:
             if curr_sigma_err is not None:
                 textstr += f'''{peak + 1}: {round(self.peak_sigmas[peak],5)} $\\pm$ {curr_sigma_err:0.2}\n'''
         textstr += f'--\n'
-        textstr += f'''Reduced $\chi^2$: {self.peak_fit.redchi:0.2}\n'''
+        textstr += f'''Reduced $\\chi^2$: {self.peak_fit.redchi:0.2}\n'''
         curr_hist = np.histogram(self.peak_values, bins = self.numbins)
-        # curr_hist = np.histogram(self.peak_values, bins = self.numbins)
         counts = curr_hist[0]
         bins = curr_hist[1]
         centers = (bins[1:] + bins[:-1])/2
@@ -1197,7 +1196,7 @@ class WaveformProcessor:
         textstr += f"--\n"
         textstr += f"""Alpha Peak Mean: {self.alpha_fit['fit'].params['center'].value:0.4} +- {self.alpha_fit['fit'].params['center'].stderr:0.1} [V]\n"""
         textstr += f"""Alpha Peak Sigma: {self.alpha_fit['fit'].params['sigma'].value:0.4} +- {self.alpha_fit['fit'].params['sigma'].stderr:0.1} [V]\n"""
-        textstr += f"""Reduced $\chi^2$: {self.alpha_res.redchi:0.4}"""
+        textstr += f"""Reduced $\\chi^2$: {self.alpha_res.redchi:0.4}"""
 
         props = dict(boxstyle="round", facecolor="tab:" + peakcolor, alpha=0.4)
         fig.text(
@@ -1280,18 +1279,18 @@ class WaveformProcessor:
             plt.plot(centers, y_line_fit,'r-', label='best fit')
             plt.plot(centers, self.peak_fit.best_values['l_intercept'] +  self.peak_fit.best_values['l_slope']*centers, 'b-', label='best fit - line')
             textstr = f"Date: {self.info.date}\n"
-            textstr += f'Peak Locations ($\mu$) [V]\n'
+            textstr += f'Peak Locations ($\\mu$) [V]\n'
             for peak in range(0,len(self.peak_sigmas)):
                 actual_peak = self.peak_range[0] + peak #ensures the plot displays the actual number of p.e. if first peak was skipped
-                textstr += f'''Peak {actual_peak}: {self.peak_fit.params['g' + str(actual_peak) + '_center'].value:0.2} $\pm$ {self.peak_fit.params['g' + str(actual_peak) + '_center'].stderr:0.2}\n'''
+                textstr += f'''Peak {actual_peak}: {self.peak_fit.params['g' + str(actual_peak) + '_center'].value:0.2} $\\pm$ {self.peak_fit.params['g' + str(actual_peak) + '_center'].stderr:0.2}\n'''
             textstr += f'--\n'
             textstr += 'Peak Width (\u03C3) [V]\n'
             for peak in range(0,len(self.peak_sigmas)):
                 actual_peak = self.peak_range[0] + peak
                 curr_sigma_err = self.peak_fit.params['g' + str(actual_peak) + '_sigma'].stderr
-                textstr += f'''{peak + 1}: {round(self.peak_sigmas[peak],5)} $\pm$ {curr_sigma_err:0.2}\n'''
+                textstr += f'''{peak + 1}: {round(self.peak_sigmas[peak],5)} $\\pm$ {curr_sigma_err:0.2}\n'''
             textstr += f'--\n'
-            textstr += f'''Reduced $\chi^2$: {self.peak_fit.redchi:0.2}\n'''
+            textstr += f'''Reduced $\\chi^2$: {self.peak_fit.redchi:0.2}\n'''
 
             props = dict(boxstyle='round', facecolor="tab:" + peakcolor, alpha=0.4)
             fig.text(0.6, 0.83, textstr, fontsize=9,

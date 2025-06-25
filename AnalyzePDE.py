@@ -389,8 +389,8 @@ class SPE_data:
         else:
             textstr += f"Filtering: None\n"
         textstr += f"--\n"
-        textstr += f"""A: {self.CA_res.params['A'].value:0.3} $\pm$ {self.CA_res.params['A'].stderr:0.3}\n"""
-        textstr += f"""B: {self.CA_res.params['B'].value:0.2} $\pm$ {self.CA_res.params['B'].stderr:0.2}\n"""
+        textstr += f"""A: {self.CA_res.params['A'].value:0.3} $\\pm$ {self.CA_res.params['A'].stderr:0.3}\n"""
+        textstr += f"""B: {self.CA_res.params['B'].value:0.2} $\\pm$ {self.CA_res.params['B'].stderr:0.2}\n"""
         # textstr += f"""C: {self.CA_res.params['C'].value:0.2} $\pm$ {self.CA_res.params['C'].stderr:0.2}\n"""
         textstr += rf"""Reduced $\chi^2$: {self.CA_res.redchi:0.4}"""
         props = dict(boxstyle="round", facecolor=color, alpha=0.4)
