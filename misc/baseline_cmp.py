@@ -9,7 +9,6 @@ Created on Thur Feb 22 2024
 
 %load_ext autoreload
 %autoreload 2
-%autoindent
 
 import sys
 import numpy as np
@@ -51,6 +50,12 @@ plot_baseline_histogram(path+'Run_1699564042.hdf5', 'Acquisition_1699564067', co
 plot_baseline_histogram(path+'Run_1712873075.hdf5', 'Acquisition_1712873141', color='aqua') # April 11
 plot_baseline_histogram(path+'Run_1711658069.hdf5', 'Acquisition_1711658255', color='pink') # March 28
 csvf.close()
+plt.show()
+
+# Baking Incident
+plot_baseline_histogram(path+'Run_1718905077.hdf5', 'Acquisition_1718905149', color='purple', name='Pre-Baking')
+plot_baseline_histogram(path+'Run_1719515422.hdf5', 'Acquisition_1719515486', color='pink', name='Post-Baking')
+plot_baseline_histogram(path+'Run_1720555213.hdf5', 'Acquisition_1720555324', color='aqua', name='After Air')
 plt.show()
 
 writer = csv.writer(open("baseline.csv", 'w'))
@@ -163,7 +168,8 @@ def plot_baseline_histogram(
     color: str = "orange",
     savefig: bool = False,
     path: Optional[str] = None,
-    condition = 'LXe'
+    condition = 'LXe',
+    name = None
 ) -> None:
     run_spe_solicited = RunInfo([baseline_file],  specifyAcquisition=True, acquisition=acquisition,
                                 do_filter=True, is_solicit=True, upper_limit=.5, baseline_correct=True,
@@ -186,18 +192,19 @@ def plot_baseline_histogram(
         # density=True,
     )
     # if with_fit:
-    sigma = f" σ = {baseline_fit['fit'].params['sigma'].value*1000:0.4} ± {baseline_fit['fit'].params['sigma'].stderr*1000:0.1} mV"
+    sigma = f": σ = {baseline_fit['fit'].params['sigma'].value*1000:0.4} ± {baseline_fit['fit'].params['sigma'].stderr*1000:0.1} mV"
+    label = name if name else condition + ': ' + run_spe_solicited.date.split(" ")[0]
     plot_fit(
         baseline_fit,
         baseline_values,
         binnum=baseline_numbins,
         plot_hists=False,
-        label=condition + ': ' + run_spe_solicited.date.split(" ")[0] + sigma,
+        label=label + sigma,
         color=color
     )
     plt.legend(loc='upper left')
-    plt.xlabel("Waveform Amplitude [V]")
-    plt.ylabel("Counts")
+    plt.xlabel("Waveform Amplitude [V]", loc='right')
+    plt.ylabel("Counts", loc='top')
     if log_scale:
         plt.yscale("log")
     # textstr = f"Date: {self.info.date}\n"
@@ -218,7 +225,6 @@ def plot_baseline_histogram(
     #     plt.savefig(path)
     #     plt.close(fig)
     # else:
-    plt.show()
 
 def fit_baseline_gauss( values: list[float], binnum: int = 50, alpha: bool = False) -> dict[str, type[float | Any]]:
     f_range = {}
