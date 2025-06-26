@@ -1148,13 +1148,14 @@ class WaveformProcessor:
         plt.plot(centers, y_line_fit,'r-', label='best fit')
         plt.plot(centers, self.peak_fit.best_values['l_intercept'] +  self.peak_fit.best_values['l_slope']*centers, 'b-', label='best fit - line')
         plt.grid(True)
-        props = dict(boxstyle='round', facecolor='tab:' + peakcolor, alpha=0.4)
+        props = dict(boxstyle='round', facecolor='tab:' + peakcolor, alpha=0.7)
         plt.hist(self.peak_values, bins = int(total_num_bins), color = 'tab:' + peakcolor) #zoom
+        # plt.hist(self.peak_values, bins = self.numbins, color = 'tab:' + peakcolor) #zoom
         # plt.hist(self.all, bins = int(total_num_bins), color = 'tab:' + peakcolor)
-        fig.text(0.55, 0.92, textstr, fontsize=8,
+        fig.text(0.77, 0.95, textstr, fontsize=8,
                 verticalalignment='top', bbox=props)
-        plt.ylabel('Counts')
-        plt.xlabel('Pulse Amplitude [V]')
+        plt.ylabel('Counts', loc='top')
+        plt.xlabel('Pulse Amplitude [V]', loc='right')
         if log_scale:
             plt.ylim(1E-1)
             plt.yscale('log')
