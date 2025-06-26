@@ -426,7 +426,7 @@ class RunInfo:
             self.baseline_levels.append(baseline_mode_raw)
             if self.baseline_correct:
                 if self.poly_correct:
-                    print('using polynomial baseline correction...')
+                    # print('using polynomial baseline correction...')
                     baseline_level = peakutils.baseline(amp, deg=2)
                     amp = amp - baseline_level
 

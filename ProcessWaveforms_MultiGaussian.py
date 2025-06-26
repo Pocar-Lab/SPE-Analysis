@@ -1108,22 +1108,38 @@ class WaveformProcessor:
         textstr += f'Bias: {self.info.bias} [V]\n'
         textstr += f'RTD4: {self.info.temperature} [K]\n'
         textstr += f'--\n'
-        textstr += f'Peak Locations ($\\mu$) [V]\n'
+        textstr += f'Peak Locations ($\\mu$) [V]:\n'
         for peak in range(0,len(self.peak_sigmas)):
             actual_peak = self.peak_range[0] + peak
             # actual_peak = peak + 1
             if self.peak_fit.params['g' + str(actual_peak) + '_center'].stderr is not None:
                 textstr += f'''Peak {actual_peak}: {self.peak_fit.params['g' + str(actual_peak) + '_center'].value:0.2} $\\pm$ {self.peak_fit.params['g' + str(actual_peak) + '_center'].stderr:0.2}\n'''
         textstr += f'--\n'
-        textstr += 'Peak Width (\u03C3) [V]\n'
+        textstr += 'Peak Width (\u03C3) [V]:\n'
         for peak in range(0,len(self.peak_sigmas)):
             actual_peak = self.peak_range[0] + peak
             curr_sigma_err = self.peak_fit.params['g' + str(actual_peak) + '_sigma'].stderr
             if curr_sigma_err is not None:
                 textstr += f'''{peak + 1}: {round(self.peak_sigmas[peak],5)} $\\pm$ {curr_sigma_err:0.2}\n'''
         textstr += f'--\n'
-        textstr += f'''Reduced $\\chi^2$: {self.peak_fit.redchi:0.2}\n'''
-        curr_hist = np.histogram(self.peak_values, bins = self.numbins)
+        # textstr += 'Peak Amplitude (A)\n'
+        textstr += 'Peak Height [Counts]:\n'
+        for peak in range(0,len(self.peak_sigmas)):
+            actual_peak = self.peak_range[0] + peak
+            amp = self.peak_fit.params['g' + str(actual_peak) + '_amplitude'].value
+            amp_err = self.peak_fit.params['g' + str(actual_peak) + '_amplitude'].stderr
+            # textstr += f'''{peak + 1}: {amp:0.4} $\\pm$ {amp_err:0.4}\n'''
+            amp_height = amp / (self.peak_sigmas[peak]*np.sqrt(2*np.pi))
+            sigma_err = self.peak_fit.params['g' + str(actual_peak) + '_sigma'].stderr
+            amp_height_err = amp_height * np.sqrt((amp_err/amp)**2 +
+                                                  (sigma_err/self.peak_sigmas[peak])**2)
+            textstr += f'''{peak + 1}: {amp_height:0.4} $\\pm$ {amp_height_err:0.4}\n'''
+        textstr += f'--\n'
+        textstr += f'Linear Intercept: {self.peak_fit.best_values['l_intercept']:0.4}\n'
+        textstr += f'Linear Slope: {self.peak_fit.best_values['l_slope']:0.4}\n'
+        textstr += f'--\n'
+        textstr += f'''Reduced $\\chi^2$: {self.peak_fit.redchi:0.2}'''
+        curr_hist = np.histogram(self.peak_values, bins=self.numbins)
         counts = curr_hist[0]
         bins = curr_hist[1]
         centers = (bins[1:] + bins[:-1])/2
