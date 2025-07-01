@@ -330,7 +330,7 @@ def fit_peaks_multigauss(
     g_center = centers[:(peak_range[1]-peak_range[0]+1)]
     print('CENTER GUESSES TO BE USED IN FIT: ',g_center)
 
-    #constraints for center
+    # constraints for center
     g_center_index = 0
     for peak in range(low_peak, high_peak + 1):
         if peak == low_peak:
@@ -343,20 +343,21 @@ def fit_peaks_multigauss(
             model.set_param_hint('g' + str(peak) + '_center', value = g_center[ g_center_index], min = g_center[g_center_index] - baseline_width, max = baseline_width + g_center[g_center_index])
             g_center_index += 1
             # print('max ', baseline_width + g_center[g_center_index])
-    #constraints for sigma
+    # constraints for sigma
     for peak in range(low_peak, high_peak + 1):
         model.set_param_hint('g' + str(peak) + '_sigma', value = 0.5 * baseline_width, min = 0, max = baseline_width)
 
-    #constraints for amplitude
+    # constraints for amplitude
     g_amplitude = [np.amax(counts)*np.sqrt(2*np.pi)*baseline_width/(2**num) for num in range(low_peak, high_peak + 1)]
     g_amplitude_index = 0
-
     for peak in range(low_peak, high_peak + 1):
         model.set_param_hint('g' + str(peak) + '_amplitude', value = g_amplitude[g_amplitude_index], min = 0)
         g_amplitude_index += 1
 
-    model.set_param_hint('l_slope', value = 0, max = 0) #constraint the slope fit to be less or equal to 0
-    model.set_param_hint('l_intercept', value = counts[0])
+    # constraints for linear fit
+    model.set_param_hint('l_slope', value=0, max=0) # constraint the slope fit to be less or equal to 0
+    model.set_param_hint('l_intercept', value=counts[0])
+
     params = model.make_params()
     # params.pretty_print()
     res = model.fit(counts, params=params, x=bin_centers, weights = 1/np.sqrt(counts), nan_policy='omit')
@@ -667,9 +668,7 @@ class WaveformProcessor:
                 weights=self.peak_wgts[: self.numpeaks],
             )  # creates linear fit model
 
-            print(
-                "SNR (SPE amplitude/baseline mode): " + str(self.spe_res.params["slope"].value / self.baseline_mode)
-            )
+            print(f"SNR (SPE amp/baseline mode): {self.spe_res.params["slope"].value / self.baseline_mode}")
             print(
                 "SNR 2-3: "
                 + str((self.peak_locs[2] - self.peak_locs[1]) / self.baseline_mode)
@@ -1019,6 +1018,8 @@ class WaveformProcessor:
         if savefig:
             plt.savefig(path)
             plt.close(fig)
+        else:
+            plt.show()
 
     def plot_baseline_histogram(
         self,
@@ -1102,7 +1103,11 @@ class WaveformProcessor:
         # else:
             # bin_density = int(np.sqrt(len(self.peak_values))) / (self.range_high - self.range_low)
         # total_num_bins = bin_density * (np.amax(self.all) - np.amin(self.all))
-        total_num_bins = bin_density * (np.amax(self.peak_values) - np.amin(self.peak_values))
+        # total_num_bins = bin_density * (np.amax(self.peak_values) - np.amin(self.peak_values))
+        total_num_bins = round(np.sqrt(len(self.peak_values)))
+        # print(f"{bin_density=}")
+        # print(f"{total_num_bins=}")
+
         textstr = f'Date: {self.info.date}\n'
         textstr += f'Condition: {self.info.condition}\n'
         textstr += f'Bias: {self.info.bias} [V]\n'
@@ -1128,11 +1133,12 @@ class WaveformProcessor:
             actual_peak = self.peak_range[0] + peak
             amp = self.peak_fit.params['g' + str(actual_peak) + '_amplitude'].value
             amp_err = self.peak_fit.params['g' + str(actual_peak) + '_amplitude'].stderr
+            if not amp_err:
+                amp_err = 1.
             # textstr += f'''{peak + 1}: {amp:0.4} $\\pm$ {amp_err:0.4}\n'''
             amp_height = amp / (self.peak_sigmas[peak]*np.sqrt(2*np.pi))
-            sigma_err = self.peak_fit.params['g' + str(actual_peak) + '_sigma'].stderr
             amp_height_err = amp_height * np.sqrt((amp_err/amp)**2 +
-                                                  (sigma_err/self.peak_sigmas[peak])**2)
+                                                  (self.peak_sigmas_stds[peak]/self.peak_sigmas[peak])**2)
             textstr += f'''{peak + 1}: {amp_height:0.4} $\\pm$ {amp_height_err:0.4}\n'''
         textstr += f'--\n'
         textstr += f'Linear Intercept: {self.peak_fit.best_values['l_intercept']:0.4}\n'
@@ -1148,10 +1154,11 @@ class WaveformProcessor:
         plt.plot(centers, y_line_fit,'r-', label='best fit')
         plt.plot(centers, self.peak_fit.best_values['l_intercept'] +  self.peak_fit.best_values['l_slope']*centers, 'b-', label='best fit - line')
         plt.grid(True)
-        props = dict(boxstyle='round', facecolor='tab:' + peakcolor, alpha=0.7)
-        plt.hist(self.peak_values, bins = int(total_num_bins), color = 'tab:' + peakcolor) #zoom
+        plt.hist(self.peak_values, bins = total_num_bins, color = 'tab:' + peakcolor) #zoom
         # plt.hist(self.peak_values, bins = self.numbins, color = 'tab:' + peakcolor) #zoom
         # plt.hist(self.all, bins = int(total_num_bins), color = 'tab:' + peakcolor)
+        # TODO change to red if fit or sanity checks failed (locs not int multiples, or sigmas different)
+        props = dict(boxstyle='round', facecolor='tab:' + peakcolor, alpha=0.7)
         fig.text(0.77, 0.95, textstr, fontsize=8,
                 verticalalignment='top', bbox=props)
         plt.ylabel('Counts', loc='top')
