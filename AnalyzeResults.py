@@ -652,8 +652,12 @@ class AnalyzeResults:
         # axr.errorbar(x, ration, yerr=ratios, markersize=0, fmt='.',
         #             color='tab:green', label=f'Ratio {ratio.mean()}')
 
+        ratio_std = np.mean([ r.s for r in ratio])
+
+        # axr.plot(x, ration, color='tab:green', label=f'Ratio {ratio.mean().n:.3} ± {ratio_std:.3}')
         axr.plot(x, ration, color='tab:green', label=f'Ratio {ratio.mean()}')
         axr.fill_between(x, ration - ratios, ration + ratios, alpha=.3, color='tab:green')
+        plt.xlim(2.7, 6.5)
         axr.set_ylim(*ratio_ylim)
         ax.set_ylim(*alpha_ylim)
         # axr.fill_between(self.ov, ration - ratios, ration + ratios, alpha=.3)
@@ -687,6 +691,9 @@ class AnalyzeResults:
         subfit = sub.fit_alpha(x, fit, color_other)
         denfit = denom.fit_alpha(x, fit, "tab:pink")
         selffit = self.fit_alpha(x, fit, color)
+        # print(f"{subfit=}")
+        # print(f"{denfit=}")
+        # print(f"{selffit=}")
 
         ratio = (selffit - subfit * factor) / denfit
         ration = np.array([ r.n for r in ratio ])

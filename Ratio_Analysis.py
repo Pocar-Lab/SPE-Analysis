@@ -65,22 +65,25 @@ si_short_none = AnalyzeResults('Si Short Spacing', 'results/2023August10_Alpha.c
                                ov_max=6, ov_min=2.5)
 
 si_tall_pre = AnalyzeResults('Si Tall Reflectors, Pre-baking', '2024June20_Alpha.csv',
-                             'results/20241017_LXe_SPE_vbd_bias.csv',
+                             'results/20240620_LXe_SPE_vbd_bias.csv',
                              'results/July13_171K_CA_GN.csv',
-                             invC_alpha, invC_alpha_err, invC_spe, invC_spe_err, v_bd, v_bd_err,
-                             ov_max=6, ov_min=2.5)
+                             invC_alpha, invC_alpha_err, invC_spe, invC_spe_err,
+                             26.96, .102, # Thomas's SPE
+                             ov_max=6.2, ov_min=2.7)
 
 si_tall_baked = AnalyzeResults('Si Tall Reflectors, Post-baking', '2024June27_Alpha.csv',
-                               'results/20241017_LXe_SPE_vbd_bias.csv',
+                               'results/20240627_LXe_SPE.csv',
                                'results/July13_171K_CA_GN.csv',
-                               invC_alpha, invC_alpha_err, invC_spe, invC_spe_err, v_bd, v_bd_err,
-                               ov_max=6, ov_min=2.5)
+                               invC_alpha, invC_alpha_err, invC_spe, invC_spe_err,
+                               27.16, .0263, # Thomas's SPE
+                               ov_max=6.2, ov_min=2.7)
 
 si_tall_atm = AnalyzeResults('Si Tall Reflectors, Post-Atmosphere', '2024July9_Alpha.csv',
                              'results/20241017_LXe_SPE_vbd_bias.csv',
                              'results/July13_171K_CA_GN.csv',
-                             invC_alpha, invC_alpha_err, invC_spe, invC_spe_err, v_bd, v_bd_err,
-                             ov_max=6, ov_min=2.5)
+                             invC_alpha, invC_alpha_err, invC_spe, invC_spe_err,
+                             27.11, .0583, # Thomas's SPE
+                             ov_max=6.2, ov_min=2.7)
 
 si_tall_none_gnd = AnalyzeResults('Si Tall Spacing, GND Loop', '2024Aug07_Alpha.csv',
                                 'results/20241017_LXe_SPE_vbd_bias.csv',
@@ -96,7 +99,7 @@ si_tall_none = AnalyzeResults('Si Tall Spacing', '2024Oct17_Alpha.csv',
 
 
 ## No reflector
-si_short_none.plot_ratio(si_tall_none, calibrate=baked_atm, fit='exp1', alpha_ylim=(0,.5),
+si_short_none.plot_ratio(si_tall_none, calibrate=baked, fit='exp1', alpha_ylim=(0,.5),
                          ratio_ylim=(0,7))
 
 cu_none.plot_ratio(si_tall_none, calibrate=baked_atm, fit='exp1', alpha_ylim=(0,1.5),
@@ -105,11 +108,11 @@ cu_none.plot_ratio(si_tall_none, calibrate=baked_atm, fit='exp1', alpha_ylim=(0,
 cu_none.plot_ratio(si_short_none, fit='exp1', alpha_ylim=(0,2), ratio_ylim=(0,5))
 
 ## Baking
-baked_atm = si_tall_atm.plot_ratio(si_tall_pre, fit='exp1', alpha_ylim=(0,.7), ratio_ylim=(0,3.5))
+baked_atm = si_tall_atm.plot_ratio(si_tall_pre, fit='exp1', alpha_ylim=(0,.5), ratio_ylim=(0,3.6))
 
-baked = si_tall_baked.plot_ratio(si_tall_pre, fit='exp1', alpha_ylim=(0,.5), ratio_ylim=(0,2.5))
+baked = si_tall_baked.plot_ratio(si_tall_pre, fit='exp1', alpha_ylim=(0,.5), ratio_ylim=(0,2.7))
 
-si_tall_atm.plot_ratio(si_tall_baked, fit='exp1', alpha_ylim=(0,.5), ratio_ylim=(0,1.8))
+baked_atm = si_tall_atm.plot_ratio(si_tall_baked, fit='exp1', alpha_ylim=(0,.5), ratio_ylim=(0,2))
 
 ## Si Short (8-inner-outer)
 si_short.plot_ratio(si_short_none, fit='exp1', alpha_ylim=(0,.8), ratio_ylim=(0,3.5))
@@ -142,3 +145,33 @@ ufloat(2.2799, .0028) - S
 
 ## Short/Tall Comparison
 si_short.plot_sub_ratio(si_tall_pre, si_short_none, 1.072, fit='exp1', alpha_ylim=(0,.8), ratio_ylim=(0,3))
+
+2.46 - 2.28*1.072
+
+
+
+## Average and STD of SPE breakdowns
+v = [
+27.13,
+27.22,
+27.23,
+27.0,
+27.51,
+27.11,
+27.08,
+26.96,
+27.16,
+]
+s = [
+.0342,
+.0686,
+.04,
+.0488,
+.0528,
+0.06,
+.096,
+0.10,
+0.03,
+]
+np.average(v)
+np.sqrt(np.average(s)**2 + np.std(v)**2)
