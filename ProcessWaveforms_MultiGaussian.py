@@ -296,6 +296,7 @@ def fit_peaks_multigauss(
     centers: list[float],
     peak_range: tuple[float,float]=(1,4),
     cutoff: tuple[float, float] = (0, np.infty),
+    background_linear: bool = True,
 ) -> lm.model.ModelResult:
     """
     Fits multiple Gaussian functions to a 'finger plot' made from given values using the
@@ -326,7 +327,10 @@ def fit_peaks_multigauss(
             model = GaussianModel(prefix='g' + str(low_peak) + '_')
         else:
             model = model + GaussianModel(prefix='g' + str(peak) + '_')
-    model = model + LinearModel(prefix= 'l_')
+    if background_linear:
+        model = model + LinearModel(prefix= 'l_')
+    else:
+        model = model + ExponentialModel(prefix= 'e_')
     g_center = centers[:(peak_range[1]-peak_range[0]+1)]
     print('CENTER GUESSES TO BE USED IN FIT: ',g_center)
 
@@ -354,9 +358,14 @@ def fit_peaks_multigauss(
         model.set_param_hint('g' + str(peak) + '_amplitude', value = g_amplitude[g_amplitude_index], min = 0)
         g_amplitude_index += 1
 
-    # constraints for linear fit
-    model.set_param_hint('l_slope', value=0, max=0) # constraint the slope fit to be less or equal to 0
-    model.set_param_hint('l_intercept', value=counts[0])
+    if background_linear:
+        # constraints for linear fit
+        model.set_param_hint('l_slope', value=0, max=0) # constraint the slope fit to be less or equal to 0
+        model.set_param_hint('l_intercept', value=counts[0])
+    else:
+        # constraints for exponential fit
+        model.set_param_hint('e_decay', value=84e-3, min=0, max=1)
+        model.set_param_hint('e_amplitude', value=68) # counts[0]
 
     params = model.make_params()
     # params.pretty_print()
@@ -496,6 +505,7 @@ class WaveformProcessor:
         peak_range: Tuple[int,int] = (1,4),
         no_solicit: bool = False,
         subtraction_method: bool = False,
+        background_linear: bool = True,
     ):
         """
         Initializes the WaveformProcessor class with the provided parameters.
@@ -524,6 +534,7 @@ class WaveformProcessor:
         self.range_low = cutoff[0]
         self.no_solicit = no_solicit
         self.subtraction_method = subtraction_method
+        self.background_linear = background_linear
         # options for if you forgot to take pre-breakdown data.......
         if no_solicit:
             self.baseline_mode = run_info_self.baseline_mode_mean
@@ -619,7 +630,8 @@ class WaveformProcessor:
                     baseline_width = 2.0 * self.baseline_std,
                     centers = self.centers,
                     peak_range = self.peak_range,
-                    cutoff = self.cutoff
+                    cutoff = self.cutoff,
+                    background_linear=self.background_linear
                     )
 
             self.peak_locs = [self.peak_fit.params['g' + str(idx + 1) + '_center'].value for idx in range(self.low_peak-1, self.high_peak)]
@@ -1141,8 +1153,12 @@ class WaveformProcessor:
                                                   (self.peak_sigmas_stds[peak]/self.peak_sigmas[peak])**2)
             textstr += f'''{peak + 1}: {amp_height:0.4} $\\pm$ {amp_height_err:0.4}\n'''
         textstr += f'--\n'
-        textstr += f'Linear Intercept: {self.peak_fit.best_values['l_intercept']:0.4}\n'
-        textstr += f'Linear Slope: {self.peak_fit.best_values['l_slope']:0.4}\n'
+        if self.background_linear:
+            textstr += f'Linear Intercept: {self.peak_fit.best_values['l_intercept']:0.4}\n'
+            textstr += f'Linear Slope: {self.peak_fit.best_values['l_slope']:0.4}\n'
+        else:
+            textstr += f'Exp Amplitude: {self.peak_fit.best_values['e_amplitude']:0.4}\n'
+            textstr += f'Exp Decay: {self.peak_fit.best_values['e_decay']:0.4}\n'
         textstr += f'--\n'
         textstr += f'''Reduced $\\chi^2$: {self.peak_fit.redchi:0.2}'''
         curr_hist = np.histogram(self.peak_values, bins=self.numbins)
@@ -1152,7 +1168,11 @@ class WaveformProcessor:
         y_line_fit = self.peak_fit.eval(x=centers)
 
         plt.plot(centers, y_line_fit,'r-', label='best fit')
-        plt.plot(centers, self.peak_fit.best_values['l_intercept'] +  self.peak_fit.best_values['l_slope']*centers, 'b-', label='best fit - line')
+        if self.background_linear:
+            background_fit = self.peak_fit.best_values['l_intercept'] + self.peak_fit.best_values['l_slope']*centers
+        else:
+            background_fit = self.peak_fit.best_values['e_amplitude'] * np.exp(-centers/self.peak_fit.best_values['e_decay'])
+        plt.plot(centers, background_fit, 'b-', label='best fit - line')
         plt.grid(True)
         plt.hist(self.peak_values, bins = total_num_bins, color = 'tab:' + peakcolor) #zoom
         # plt.hist(self.peak_values, bins = self.numbins, color = 'tab:' + peakcolor) #zoom
@@ -1164,7 +1184,7 @@ class WaveformProcessor:
         plt.ylabel('Counts', loc='top')
         plt.xlabel('Pulse Amplitude [V]', loc='right')
         if log_scale:
-            plt.ylim(1E-1)
+            # plt.ylim(1E-1)
             plt.yscale('log')
         plt.tight_layout()
 
