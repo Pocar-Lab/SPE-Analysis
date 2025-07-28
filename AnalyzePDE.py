@@ -228,6 +228,7 @@ class SPE_data:
 
         color = "tab:" + color
         fig = plt.figure()
+        plt.tight_layout()
 
         start_bias = self.v_bd
         end_bias = np.amax(self.bias_vals) + 1.0
@@ -294,8 +295,10 @@ class SPE_data:
             label=data_label,
         )
 
-        plt.xlabel(x_label)
-        plt.ylabel(y_label)
+        plt.ylim(0)
+        # plt.xlim(0)
+        plt.xlabel(x_label, loc='right')
+        plt.ylabel(y_label, loc='top')
         plt.legend()
 
         textstr = f"Date: {self.campaign[0].info.date}\n"
@@ -310,9 +313,8 @@ class SPE_data:
         textstr += f"--\n"
         textstr += rf"Breakdown Voltage: {self.v_bd:0.4} $\pm$ {self.v_bd_err:0.3} [V]"
 
-        props = dict(boxstyle="round", facecolor=color, alpha=0.4)
+        props = dict(boxstyle="round", alpha=0.4)
         fig.text(0.6, 0.45, textstr, fontsize=8, verticalalignment="top", bbox=props)
-        plt.tight_layout()
 
         if out_file:
             data = {
@@ -378,8 +380,8 @@ class SPE_data:
 
         x_label = "Overvoltage [V]"
         y_label = "Number of CA [PE]"
-        plt.xlabel(x_label)
-        plt.ylabel(y_label)
+        plt.xlabel(x_label, loc='right')
+        plt.ylabel(y_label, loc='top')
         plt.legend(loc="upper left")
         textstr = f"Date: {self.campaign[0].info.date}\n"
         textstr += f"Condition: {self.campaign[0].info.condition}\n"
