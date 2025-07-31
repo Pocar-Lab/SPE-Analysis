@@ -342,14 +342,14 @@ class RunInfo:
             plt.tight_layout()
             plt.show()
 
-    def plot_led_dark_hists(self, temp_mean = '', temp_std = '', new = False):
+    def plot_led_dark_hists(self, voltage, temp_mean='', temp_std='', new=False):
         if not self.led:
             return
         if new:
             plt.figure() #makes new
-        (n, b, p) = plt.hist(self.all_peak_data, bins = 2000, histtype = 'step', density = False, label = 'All ')
-        (n1, b1, p1) = plt.hist(self.all_led_peak_data, bins = b, histtype = 'step', density = False, label = 'LED on')
-        (n2, b2, p2) = plt.hist(self.all_dark_peak_data, bins = b, histtype = 'step', density = False, label = 'LED off')
+        (n, b, p) = plt.hist(self.all_peak_data, bins=2000, histtype='step', density=False, label='All ')
+        (n1, b1, p1) = plt.hist(self.all_led_peak_data, bins=b, histtype='step', density=False, label='LED on')
+        (n2, b2, p2) = plt.hist(self.all_dark_peak_data, bins=b, histtype='step', density=False, label='LED off')
         plt.legend()
         for curr_file in self.hd5_files:
             print('filename: ' + str(curr_file))
@@ -357,8 +357,8 @@ class RunInfo:
                 print('acquisition name: ' + str(curr_acquisition_name))
         if not self.plot_waveforms:
             font = {'family': 'serif', 'color':  'black', 'weight': 'normal', 'size': 14,}
-            plt.xlabel('Amplitude (V)', fontdict = font)
-            plt.ylabel('Frequency', fontdict = font)
+            plt.xlabel('Amplitude (V)', fontdict=font)
+            plt.ylabel('Frequency', fontdict=font)
             bias = self.bias
             condition = self.condition
             date = self.date
@@ -377,14 +377,20 @@ class RunInfo:
             #print(ratio1)
             #print(ratio2)
 
-            plt.annotate(' Trig: ' + str(trig) + '\n Range: ' + str(yrange) + '\n Offset: ' + str(offset) + '\n Ratio: ' + str(round(ratio1,2)), xy=(0.60, 0.60), xycoords = 'axes fraction', size=12)
+            A_avg = np.mean(self.all_peak_data)
+            A_avg_err = A_avg * sem(self.all_peak_data) / np.mean(self.all_peak_data)
+
+            # txtstr = f' Range: {yrange}\n Offset: {offset}\n'
+            txtstr = f'LED Voltage: {voltage}\nRatio: {round(ratio1,2)}\nAvg Amp: {A_avg:.3} ± {A_avg_err:.3}'
+            plt.annotate(txtstr, xy=(0.60, 0.60), xycoords='axes fraction', size=12)
             #plt.title(str(date.decode('utf-8')) + ', ' + str(condition) + ', ' + temp_mean + ' $\pm$ ' + temp_std + ' K, ' + str(bias) + ' V', fontdict=font)
-            plt.title(date + ', ' + str(condition) + ', ' + temp_mean + ' $\pm$ ' + temp_std + ' K, ' + str(bias) + ' V', fontdict=font) #old way
+            # plt.title(date + ', ' + str(condition) + ', ' + temp_mean + ' $\pm$ ' + temp_std + ' K, ' + str(bias) + ' V', fontdict=font) #old way
             plt.subplots_adjust(top=0.9)
             plt.yscale('log')
             plt.tight_layout()
             plt.grid(True)
             plt.show()
+            return (ratio1, A_avg, A_avg_err)
 
 
 
