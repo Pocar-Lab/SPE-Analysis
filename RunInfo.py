@@ -266,7 +266,7 @@ class RunInfo:
         self.baseline_mode_rms = np.sqrt(np.mean(np.sum(rms)))
 
         if self.upper_limit == -1:
-            self.upper_limit = self.yrange
+            self.upper_limit = self.yrange - self.offset - 0.001
 
         if not is_solicit:
             print(
