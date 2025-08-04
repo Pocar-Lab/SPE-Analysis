@@ -2,7 +2,7 @@
 """
 Created on Nov 13 2024
 
-@author: Ed van Bruggen evanbruggen@mass.edu
+@author: Ed van Bruggen <evanbruggen@mass.edu>
 """
 
 import numpy as np
@@ -10,14 +10,7 @@ import lmfit as lm
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import pandas as pd
-import typing
-from scipy.optimize import curve_fit
-from uncertainties import ufloat
 from uncertainties import unumpy
-from functools import partial
-
-# import GainCalibration_2022 as GainCalibration
-from ProcessWaveforms_MultiGaussian import WaveformProcessor
 
 # def ca_func(x, A, B, C):
 #     return (A * np.exp(B*(x)) + 1.0) / (1.0 + A) - 1.0 + C
@@ -600,7 +593,7 @@ class AnalyzeResults:
         if color:
             plt.grid(True)
             plt.plot(x, fit_func(x, *params), color=color,
-                     label=eq_label + f" with $\chi^2 = $ {res.redchi:.3g},\n"
+                     label=eq_label + f" with $\\chi^2 = $ {res.redchi:.3g},\n"
                      + f"$a$ = {res.best_values['a']:.3g}, "
                      + f"$b$ = {res.best_values['b']:.3g}, "
                      # + f"$c$ = {res.best_values['c']:.3g}"
