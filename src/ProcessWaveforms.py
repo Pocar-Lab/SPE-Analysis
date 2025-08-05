@@ -348,46 +348,24 @@ class ProcessWaveforms:
         window_length = time[-1] - time[0]
         num_points = float(len(time))
         fs = num_points / window_length
+
         print(f'filename: {filename}, acquisition name: {acquisition_name}')
         if self.poly_correct:
             print('using polynomial baseline correction...')
-
         if self.num_waveforms ==0:
             print('reading all waveforms')
             num_wavefroms = np.shape(curr_data)[1]
         else:
             num_wavefroms = self.num_waveforms
-            print('reading '+ str(num_wavefroms) + ' waveforms')
+            print(f'reading {num_wavefroms} waveforms')
 
         for idx in range(num_wavefroms):
             # TODO better way to do this
             # idx = idx + 8000 # uncomment if plotting waveforms and want to see waveforms at different indices
             if idx % 1000 == 0:
                 print(f'{idx} read so far')
-            amp = curr_data[:, idx]
-            # Skip waveforms with an alpha pulse
-            if np.amax(amp) > self.upper_limit:
-                continue
-            use_bins = np.linspace(-self.upper_limit, self.upper_limit, 1000) #added code for alpha
-            curr_hist = np.histogram(amp, bins=use_bins)
-            baseline_mode_raw, _ = get_mode(curr_hist)
-            self.baseline_levels.append(baseline_mode_raw)
-            if self.baseline_correct:
-                if self.poly_correct:
-                    amp -= peakutils.baseline(amp, deg=2)
 
-                use_bins = np.linspace(-self.upper_limit, self.upper_limit, 1000)
-                curr_hist = np.histogram(amp, bins=use_bins)
-                baseline_level, _ = get_mode(curr_hist)
-                self.baseline_mode = baseline_level
-                # print('baseline:', baseline_level)
-                amp -= baseline_level
-
-            # TODO why check shape? not done for solicited
-            if self.do_filter and np.shape(amp) != (0,):
-                sos = signal.butter(3, 4E5, btype='lowpass', fs=fs, output='sos') # SPE dark/10g
-                filtered = signal.sosfilt(sos, amp)
-                amp = filtered
+            amp = self.process_amp(curr_data[:, idx], fs)
 
             # If processing prebreakdown baseline, add all amplitudes and don't find peaks
             if self.is_pre_bd:
@@ -407,7 +385,6 @@ class ProcessWaveforms:
 
             led_time_thresh = (time[-1] + time[1]) / 2.0
             for peak in peaks:
-                # all_peaks += amp
                 all_peaks.append(amp[peak])
                 curr_time = time[peak]
                 if curr_time < led_time_thresh:
@@ -419,6 +396,34 @@ class ProcessWaveforms:
         print(f'dark peaks: {np.mean(dark_peaks):.3} ± {np.std(dark_peaks,ddof=1)/np.sqrt(len(all_peaks)):.3}')
         print(f'LED  peaks: {np.mean(led_peaks):.3} ± {np.std(led_peaks,ddof=1)/np.sqrt(len(led_peaks)):.3}')
         return all_peaks, dark_peaks, led_peaks
+
+    def process_amp(self, amp, fs):
+        """Process amplitudes before peaks are found.
+
+        Applies upper limit cut, baseline correction, and filtering"""
+
+        # Skip waveforms which go out of the oscilloscope range, such as an alpha pulse
+        if np.amax(amp) > self.upper_limit:
+            return []
+
+        if self.baseline_correct:
+            if self.poly_correct:
+                amp -= peakutils.baseline(amp, deg=2)
+
+            use_bins = np.linspace(-self.upper_limit, self.upper_limit, 1000)
+            curr_hist = np.histogram(amp, bins=use_bins)
+            baseline_level, _ = get_mode(curr_hist)
+            self.baseline_mode = baseline_level
+            # print('baseline:', baseline_level)
+            amp -= baseline_level
+
+        # TODO why check shape? not done for solicited
+        if self.do_filter and np.shape(amp) != (0,):
+            sos = signal.butter(3, 4E5, btype='lowpass', fs=fs, output='sos') # SPE dark/10g
+            filtered = signal.sosfilt(sos, amp)
+            amp = filtered
+
+        return amp
 
     def get_baseline(self):
         baseline_fit = fit_baseline_gauss(self.all_peak_data)
