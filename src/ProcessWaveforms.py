@@ -280,8 +280,7 @@ class ProcessWaveforms:
         if self.upper_limit == -1:
             self.upper_limit = self.yrange - self.offset - 0.001
 
-        # if not is_pre_bd:
-        '''searches for peaks using provided parameters'''
+        # Searches for peaks using provided parameters
         self.peak_search_params = {
             "height": 0.0,  # SPE
             "threshold": None,  # SPE
@@ -293,28 +292,10 @@ class ProcessWaveforms:
             "plateau_size": None,  # SPE
         }
         self.get_peak_data()
-        # else:
-        #     self.get_peak_data_solicit()
 
         # TODO: call in analysis script or measurement info?
         if is_pre_bd:
             self.get_baseline()
-
-        # self.baseline_mode_err = sem(self.baseline_levels)
-        # self.baseline_mode_std = np.std(self.baseline_levels)
-        # self.baseline_mode_mean = np.mean(self.baseline_levels)
-        # rms = [i**2 for i in self.baseline_levels]
-        # self.baseline_mode_rms = np.sqrt(np.mean(np.sum(rms)))
-
-        # if not is_pre_bd:
-        #     print(
-        #         "mean mode of amplitudes, standard deviation of modes, SEM: "
-        #         + str(self.baseline_mode_mean)
-        #         + ", "
-        #         + str(self.baseline_mode_std)
-        #         + ","
-        #         + str(self.baseline_mode_err)
-        #     )
 
     def get_peak_data(self):
         """ collects peak data and puts in dict """

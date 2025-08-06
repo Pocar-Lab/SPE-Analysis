@@ -212,16 +212,6 @@ class ProcessHist:
         self.background_linear = background_linear
         self.peaks = peaks
 
-        # # options if you forgot to take pre-breakdown data...
-        # self.run_info_pre_bd = run_info_pre_bd
-        # if run_info_pre_bd:
-        #     self.baseline_mode = run_info_pre_bd.baseline_mode
-        # else:
-        #     self.baseline_mode = run_info_self.baseline_mode_mean
-        #     self.baseline_rms = run_info_self.baseline_mode_rms
-        #     self.baseline_std = 0.25 * run_info_self.baseline_mode_std
-        #     self.baseline_err = run_info_self.baseline_mode_err
-        #     # self.baseline_rms = run_info_self.baseline_mode_rms
         self.baseline_mean = self.info.baseline_mean
         self.baseline_err  = self.info.baseline_err
         self.baseline_std  = self.info.baseline_std
@@ -256,18 +246,6 @@ class ProcessHist:
             (self.all_dark_peaks >= self.cutoff[0])
             & (self.all_dark_peaks <= self.cutoff[1])
         ]  # peaks in a range
-
-        # if self.run_info_pre_bd:
-        #     # TODO remove loop
-        #     for curr_file in self.run_info_pre_bd.hd5_files:
-        #         for curr_acquisition_name in self.run_info_pre_bd.acquisition_names[curr_file]:
-        #             if self.run_info_pre_bd.specifyAcquisition:
-        #                 curr_acquisition_name = self.run_info_pre_bd.acquisition
-        #             self.baseline_values = np.array(
-        #                 self.run_info_pre_bd.peak_data[curr_file][
-        #                     curr_acquisition_name
-        #                 ]
-        #             )
 
     def process_alpha(self, overwrite=False, subtraction_method=False):
         """Processes the waveform data, extracting various statistical information from it.
@@ -305,22 +283,6 @@ class ProcessHist:
         # else:
         self.numbins = int(np.sqrt(len(self.peak_values)))
           #!!! attr defined outside init
-
-        # if self.run_info_pre_bd:
-        #     self.baseline_fit = fit_baseline_gauss(
-        #         self.baseline_values, binnum=self.info.baseline_numbins, #alpha=do_alpha
-        #     )
-        #     self.baseline_std = self.baseline_fit["fit"].values["sigma"]
-        #     self.baseline_mean = self.baseline_fit["fit"].values["center"]
-        #     self.baseline_err = self.baseline_fit["fit"].params["center"].stderr
-        #     self.baseline_rms = np.sqrt(np.mean(self.baseline_values**2))
-        #     print("baseline mean (center): " + str(self.baseline_mean))
-        #     print("baseline sigma (std): " + str(self.baseline_std))
-        # else:
-        #     self.baseline_mean = self.baseline_mode
-        #     self.baseline_std = 0.002  # arbitrary
-        #     print("baseline mode: " + str(self.baseline_mode))
-        #     print("dummy standard deviation: " + str(self.baseline_std))
 
         self.peak_fit = fit_peaks_multigauss(
                 values = self.peak_values,
@@ -394,10 +356,6 @@ class ProcessHist:
             weights=self.peak_wgts[: self.numpeaks],
         ) # creates linear fit model
 
-        # print(f"SNR (SPE amp/baseline mode): {self.spe_res.params["slope"].value / self.baseline_mode}")
-        # print(f"SNR 2-3: {(self.peak_locs[2] - self.peak_locs[1]) / self.baseline_mode}")
-        # print(f"SNR 1-2: {(self.peak_locs[1] - self.peak_locs[0]) / self.baseline_mode}")
-
         if self.baseline_correct:
             self.A_avg = ( np.mean(self.peak_values) - self.spe_res.params["intercept"].value)  # spectrum specific baseline correction
             # self.A_avg_err = self.A_avg * np.sqrt((sem(self.all) / np.mean(self.all))** 2 + (self.spe_res.params['intercept'].stderr / self.spe_res.params['intercept'].value)** 2)
@@ -410,18 +368,6 @@ class ProcessHist:
             self.A_avg_err = self.A_avg * np.sqrt(
                 (sem(self.peak_values) / np.mean(self.peak_values)) ** 2
             )
-
-        # if self.run_info_self.led:
-        #     print('led: true')
-        #     led_data = self.run_info_self.all_led_peak_data
-        #     dark_data = self.run_info_self.all_dark_peak_data
-        #     self.A_subtract_avg, self.A_substract_avg_err = self.get_subtract_hist_mean(led_data, dark_data, plot = False)
-        #     if self.subtraction_method:
-        #         print('computing CA from subtracted histogram...')
-        #         self.A_avg = self.A_subtract_avg
-        #         self.A_avg_err = self.A_substract_avg_err
-        #     else:
-        #         print('computing CA using total histogram...')
 
         self.CA = self.A_avg / self.spe_res.params["slope"].value - 1
         self.CA_err = self.CA * np.sqrt(
@@ -541,16 +487,12 @@ class ProcessHist:
 
         A_avg = np.mean(self.all_peaks)
         A_avg_err = A_avg * sem(self.all_peaks) / np.mean(self.all_peaks)
-        # A_avg = np.mean(self.peak_values)
-        # A_avg_err = A_avg * sem(self.peak_values) / np.mean(self.peak_values)
 
         # txtstr = f' Range: {yrange}\n Offset: {offset}\n'
         textstr =  f'LED Voltage: {led_voltage}\n'
         textstr += f'Ratio: {round(self.led_ratio,2)}\n'
         textstr += f'Avg Amp: {A_avg:.3} ± {A_avg_err:.3}\n'
         plt.annotate(textstr, xy=(0.60, 0.60), xycoords='axes fraction', size=12)
-        #plt.title(str(date.decode('utf-8')) + ', ' + str(condition) + ', ' + temp_mean + ' $\pm$ ' + temp_std + ' K, ' + str(bias) + ' V', fontdict=font)
-        # plt.title(date + ', ' + str(condition) + ', ' + temp_mean + ' $\pm$ ' + temp_std + ' K, ' + str(bias) + ' V', fontdict=font) #old way
         plt.subplots_adjust(top=0.9)
         plt.yscale('log')
         plt.grid(True)
