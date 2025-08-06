@@ -5,28 +5,12 @@ Created on Fri Dec 6 2024
 @author: Ed van Bruggen (evanbruggen@umass.edu)
 """
 
-%load_ext autoreload
-%autoreload 2
-import sys
-from MeasurementInfo import MeasurementInfo
 import numpy as np
-from RunInfo import RunInfo
-import heapq
-from scipy import signal
-from scipy.optimize import curve_fit
-import AnalyzePDE
-from AnalyzePDE import SPE_data
-from AnalyzePDE import Alpha_data
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import ProcessWaveforms_MultiGaussian
 from ProcessWaveforms_MultiGaussian import WaveformProcessor as WaveformProcessor
-import pickle
-import dill
-import pandas as pd
 from uncertainties import ufloat
-from uncertainties import unumpy
-from AnalyzeResults import AnalyzeResults
+from src.AnalyzeResults import AnalyzeResults
 plt.style.use('misc/nexo.mplstyle')
 
 invC_alpha = 1143.98e-6
