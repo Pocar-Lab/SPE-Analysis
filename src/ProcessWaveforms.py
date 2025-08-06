@@ -141,17 +141,13 @@ class ProcessWaveforms:
         do_filter: bool = False,
         plot_waveforms: bool = False,
         upper_limit: float = 4.4,
-        # upper_cut: float = 10,
         baseline_correct: bool = False,
         poly_correct: bool = False,
         prominence: float = 0.005,
-        specifyAcquisition: bool = False,
         fourier: bool = False,
         condition: str = "unspecified medium (GN/LXe/Vacuum)",
         num_waveforms: float = 0
     ):
-        # TODO: combine acquisition and specifyAcquisition inputs
-
         """
         Process waveform data from hdf5 file to find peaks.
 
@@ -169,19 +165,15 @@ class ProcessWaveforms:
             upper_limit (float, optional): amplitude threshold for discarding waveforms. Defaults to 4.4.
             baseline_correct (bool, optional): baseline corrects waveforms if True. Defaults to False.
             prominence (float, optional): parameter used for peak finding algo. Defaults to 0.005.
-            specifyAcquisition (bool, optional): if True, uses acquisition to extract just one acquisition dataset. Defaults to False.
             fourier (bool, optional): if True performs fourier frequency subtraction. Defaults to False.
             num_waveforms: (float, optional): number of oscilloscope traces to read in before stopping; default 0 reads everything
         Raises:
             TypeError: _description_
         """
-        if not isinstance(f, list):
-            f = [f]
         self.do_filter = do_filter
         self.plot_waveforms = plot_waveforms
         self.hd5_files = f
         self.upper_limit = upper_limit
-        # self.upper_cut = upper_cut
         self.baseline_correct = baseline_correct
         self.poly_correct = poly_correct
         # holds all acquisition data index by first file name then by acquisition name
@@ -193,9 +185,7 @@ class ProcessWaveforms:
         # holds all acquisition meta data, indexed first by file name then by acquisition name
         self.acquisition_meta_data = {}
         self.all_peak_data = []
-        # self.led = is_led
         self.acquisition = acquisition
-        self.specifyAcquisition = specifyAcquisition
         self.fourier = fourier
         self.prominence = prominence
         self.baseline_levels = []  # list of mode of waveforms
@@ -223,7 +213,7 @@ class ProcessWaveforms:
             print(f"Run Meta: {self.run_meta_data[curr_file]}")
 
             # TODO: simplify reducency, if single acquisition given put it in a list
-            if specifyAcquisition:
+            if acquisition:
                 curr_data = get_data(curr_file, acquisition)
                 self.acquisitions_data[curr_file][acquisition] = curr_data[:, 1:]
                 self.acquisitions_time[curr_file][acquisition] = curr_data[:, 0]
@@ -303,14 +293,14 @@ class ProcessWaveforms:
         for curr_file in self.hd5_files:
             self.peak_data[curr_file] = {}
             for curr_acquisition_name in self.acquisition_names[curr_file]:
-                if self.specifyAcquisition:
+                if self.acquisition:
                     curr_acquisition_name = self.acquisition
                 curr_peaks, curr_dark_peaks, curr_led_peaks = self.get_peaks(curr_file, curr_acquisition_name)
                 self.peak_data[curr_file][curr_acquisition_name] = curr_peaks
                 self.all_peak_data += curr_peaks
                 self.all_dark_peak_data += curr_dark_peaks
                 self.all_led_peak_data += curr_led_peaks
-                if self.plot_waveforms or self.specifyAcquisition:
+                if self.plot_waveforms or self.acquisition:
                     break
 
     def get_peaks(self, filename: str, acquisition_name: str) -> list[float]:
