@@ -184,7 +184,6 @@ class ProcessWaveforms:
         self.acquisitions_time = {}
         # holds all acquisition meta data, indexed first by file name then by acquisition name
         self.acquisition_meta_data = {}
-        self.all_peak_data = []
         self.acquisition = acquisition
         self.fourier = fourier
         self.prominence = prominence
@@ -193,9 +192,7 @@ class ProcessWaveforms:
         self.condition = condition
         self.is_pre_bd = is_pre_bd
 
-        # if self.led: # initialize led on/off lists
-        self.all_dark_peak_data = []
-        self.all_led_peak_data = []
+        self.peaks = { 'all': [], 'dark': [], 'led': [] }
 
         for curr_file in self.hd5_files:
             self.acquisition_names[curr_file] = get_grp_names(curr_file)
@@ -297,9 +294,9 @@ class ProcessWaveforms:
                     curr_acquisition_name = self.acquisition
                 curr_peaks, curr_dark_peaks, curr_led_peaks = self.get_peaks(curr_file, curr_acquisition_name)
                 self.peak_data[curr_file][curr_acquisition_name] = curr_peaks
-                self.all_peak_data += curr_peaks
-                self.all_dark_peak_data += curr_dark_peaks
-                self.all_led_peak_data += curr_led_peaks
+                self.peaks['all']  += curr_peaks
+                self.peaks['dark'] += curr_led_peaks
+                self.peaks['led']  += curr_dark_peaks
                 if self.plot_waveforms or self.acquisition:
                     break
 
@@ -320,7 +317,7 @@ class ProcessWaveforms:
         num_points = float(len(time))
         fs = num_points / window_length
 
-        print(f'filename: {filename}, acquisition name: {acquisition_name}')
+        print(f'filename: {filename}, acquisition name: {acquisition_name}, bias: {self.bias}')
         if self.poly_correct:
             print('using polynomial baseline correction...')
         if self.num_waveforms ==0:
@@ -397,7 +394,7 @@ class ProcessWaveforms:
         return amp
 
     def get_baseline(self):
-        baseline_fit = fit_baseline_gauss(self.all_peak_data)
+        baseline_fit = fit_baseline_gauss(self.peaks['all'])
         self.baseline_mean = baseline_fit["fit"].values["center"]
         self.baseline_err  = baseline_fit["fit"].params["center"].stderr
         self.baseline_std  = baseline_fit["fit"].values["sigma"]

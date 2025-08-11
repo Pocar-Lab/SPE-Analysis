@@ -225,23 +225,23 @@ class ProcessHist:
         """
         # TODO convert to mV
         if self.peaks == 'all':
-            self.all_peaks = np.array(self.info.all_peaks) # * 1000
+            self.all_peaks = np.array(self.info.peaks['all']) # * 1000
         elif self.peaks == 'dark':
-            self.all_peaks = np.array(self.info.dark_peaks)
+            self.all_peaks = np.array(self.info.peaks['dark'])
         elif self.peaks == 'LED':
-            self.all_peaks = np.array(self.info.led_peaks)
+            self.all_peaks = np.array(self.info.peaks['led'])
         self.peak_values = self.all_peaks[
             (self.all_peaks >= self.cutoff[0])
             & (self.all_peaks <= self.cutoff[1])
         ]  # peaks in a range
         # self.all = np.array(self.info.all_peak_data) #all peaks
 
-        self.all_led_peaks = np.array(self.info.led_peaks) # * 1000
+        self.all_led_peaks = np.array(self.info.peaks['led']) # * 1000
         self.peak_led_values = self.all_led_peaks[
             (self.all_led_peaks >= self.cutoff[0])
             & (self.all_led_peaks <= self.cutoff[1])
         ]  # peaks in a range
-        self.all_dark_peaks = np.array(self.info.dark_peaks) # * 1000
+        self.all_dark_peaks = np.array(self.info.peaks['dark']) # * 1000
         self.peak_dark_values = self.all_dark_peaks[
             (self.all_dark_peaks >= self.cutoff[0])
             & (self.all_dark_peaks <= self.cutoff[1])

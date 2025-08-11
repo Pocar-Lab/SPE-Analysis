@@ -27,19 +27,16 @@ class MeasurementInfo:
         self.prominence = run.prominence
         self.upperlim   = run.upper_limit
 
-        self.all_peaks  = run.all_peak_data
-        self.led_peaks  = run.all_led_peak_data
-        self.dark_peaks = run.all_dark_peak_data
         self.peaks = {
-            'all': run.all_peak_data,
-            'led': run.all_led_peak_data,
-            'dark': run.all_dark_peak_data,
+            'all':  run.peaks['all'],
+            'dark': run.peaks['dark'],
+            'led':  run.peaks['led'],
         }
 
         self.avg_amp = {
-            'all': avg_amp(self.all_peaks),
-            'dark': avg_amp(self.dark_peaks),
-            'led': avg_amp(self.led_peaks),
+            'all':  avg_amp(self.peaks['all']),
+            'dark': avg_amp(self.peaks['dark']),
+            'led':  avg_amp(self.peaks['led']),
         }
 
         if run_pre_bd:
@@ -54,7 +51,7 @@ class MeasurementInfo:
 
     def plot_histogram(self, bins=1000) -> None:
         """Plot preliminary histograms of file. Used to find initial guess of first PE value"""
-        plt.hist(self.all_peaks, bins=bins, histtype="step", density=False)
+        plt.hist(self.peaks['all'], bins=bins, histtype="step", density=False)
         plt.xlabel("Amplitude (V)", loc='right')
         plt.ylabel("Frequency", loc='top')
         plt.title(f"{self.date}, {self.condition}, {self.temperature} K, {self.bias} V")
