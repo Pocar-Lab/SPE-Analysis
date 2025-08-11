@@ -336,7 +336,7 @@ class ProcessWaveforms:
             amp = self.process_amp(curr_data[:, idx], fs)
 
             # If processing prebreakdown baseline, add all amplitudes and don't find peaks
-            if self.is_pre_bd:
+            if self.is_pre_bd or len(amp) == 0:
                 all_peaks += list(amp) # amp[100:]
                 continue
 
