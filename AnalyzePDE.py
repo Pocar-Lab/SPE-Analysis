@@ -34,15 +34,15 @@ class SPE_data:
         an entire campaign into one object. Can plot absolute gain and Correlated Avalance (CA) as a
         function of bias voltage.
 
-        Parameters:
-        campaign (List[WaveformProcessor]): The campaign data.
-        invC (float): The inverse of the capacitance.
-        invC_err (float): The error in the inverse of the capacitance.
-        filtered (bool): A flag indicating whether the data is filtered.
-        do_CA (bool, optional): A flag for whether the class should attempt CA calculation.
+        Args:
+            campaign (List[WaveformProcessor]): The campaign data.
+            invC (float): The inverse of the capacitance.
+            invC_err (float): The error in the inverse of the capacitance.
+            filtered (bool): A flag indicating whether the data is filtered.
+            do_CA (bool, optional): A flag for whether the class should attempt CA calculation.
 
         Returns:
-        None
+            None
         """
         self.campaign = campaign
         self.invC = invC
@@ -218,14 +218,14 @@ class SPE_data:
         the best fit line and its uncertainty, the data points with their errors, and a text box with additional
         information about the data and the fit. The plot can be saved to a file.
 
-        Parameters:
-        in_ov (bool, optional): If True, plot the data as a function of the overvoltage. If False, plot the data as a function of the bias voltage. Default is False.
-        absolute (bool, optional): If True, plot the absolute gain. If False, plot the SPE amplitude. Default is False.
-        color (str, optional): The color to use for the text box. Default is 'blue'.
-        out_file (str, optional): The name of the file to save the plot to. If None, the plot is not saved to a file. Default is None.
+        Args:
+            in_ov (bool, optional): If True, plot the data as a function of the overvoltage. If False, plot the data as a function of the bias voltage. Default is False.
+            absolute (bool, optional): If True, plot the absolute gain. If False, plot the SPE amplitude. Default is False.
+            color (str, optional): The color to use for the text box. Default is 'blue'.
+            out_file (str, optional): The name of the file to save the plot to. If None, the plot is not saved to a file. Default is None.
 
         Returns:
-        None
+            None
         """
 
         color = "tab:" + color
