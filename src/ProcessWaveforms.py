@@ -381,6 +381,7 @@ class ProcessWaveforms:
             use_bins = np.linspace(-self.upper_limit, self.upper_limit, 1000)
             curr_hist = np.histogram(amp, bins=use_bins)
             baseline_level, _ = get_mode(curr_hist)
+            self.baseline_levels.append(baseline_level)
             self.baseline_mode = baseline_level
             # print('baseline:', baseline_level)
             amp -= baseline_level
