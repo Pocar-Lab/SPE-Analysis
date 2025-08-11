@@ -1,10 +1,5 @@
-from email.message import EmailMessage
 import numpy as np
-import smtplib
-from scipy import signal
 import matplotlib.pyplot as plt
-from pathlib import Path
-import datetime
 import os
 from ProcessWaveforms import ProcessWaveforms
 from MeasurementInfo import MeasurementInfo
