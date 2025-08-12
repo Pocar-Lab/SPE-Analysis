@@ -88,14 +88,13 @@ def fit_peaks_multigauss(
     values: np.ndarray,
     baseline_width: float,
     centers: list[float],
-    peak_range: tuple[float,float]=(1,4),
+    peak_range: tuple[int,int]=(1,4),
     cutoff: tuple[float, float] = (0, np.infty),
     background_linear: bool = True,
     bins = None,
 ) -> lm.model.ModelResult:
     """
-    Fits multiple Gaussian functions to a 'finger plot' made from given values using the
-    lmfit.models.GaussianModel method.
+    Fits multiple Gaussian functions to a 'finger plot' with a linear or exponential background.
 
     Args:
         values (List[float]): Heights of peaks extracted from waveforms.
@@ -113,59 +112,55 @@ def fit_peaks_multigauss(
     counts, b = np.histogram(curr_peak_data, bins=bins)
     bin_centers = (b[1:] + b[:-1]) / 2
 
+    assert len(curr_peak_data) != 0
+    assert len(counts) != 0
+    assert len(bin_centers) != 0
+
     low_peak = peak_range[0]
     high_peak = peak_range[1]
-    range_low = cutoff[0]
-    range_high = cutoff[1]
 
-    for peak in range(low_peak, high_peak + 1):
-        if peak == low_peak:
-            model = GaussianModel(prefix='g' + str(low_peak) + '_')
-        else:
-            model = model + GaussianModel(prefix='g' + str(peak) + '_')
+    # Construct model function
     if background_linear:
-        model = model + LinearModel(prefix= 'l_')
+        model = LinearModel(prefix= 'l_')
     else:
-        model = model + ExponentialModel(prefix= 'e_')
+        model = ExponentialModel(prefix='e_')
+    for peak in range(low_peak, high_peak + 1):
+        model += GaussianModel(prefix=f'g{peak}_')
     g_center = centers[:(peak_range[1]-peak_range[0]+1)]
-    print('CENTER GUESSES TO BE USED IN FIT: ',g_center)
+    print('Center guesses used in fit: ', g_center)
 
-    # constraints for center
-    g_center_index = 0
+    # Constraints for center
     for peak in range(low_peak, high_peak + 1):
-        if peak == low_peak:
-            model.set_param_hint('g' + str(peak) + '_center', value = g_center[g_center_index], min = range_low, max = baseline_width + g_center[g_center_index])
-            g_center_index += 1
-        elif peak == high_peak:
-            g_center_last = len(g_center) - 1 #last index of g_center
-            model.set_param_hint('g' + str(peak) + '_center', value = g_center[g_center_last], min = g_center[g_center_last] - baseline_width, max = range_high)
-        else:
-            model.set_param_hint('g' + str(peak) + '_center', value = g_center[ g_center_index], min = g_center[g_center_index] - baseline_width, max = baseline_width + g_center[g_center_index])
-            g_center_index += 1
-            # print('max ', baseline_width + g_center[g_center_index])
-    # constraints for sigma
+            model.set_param_hint(f'g{peak}_center', value=g_center[peak-1],
+                                 min=g_center[peak-1] - baseline_width,
+                                 max=g_center[peak-1] + baseline_width)
+    # Constraints for sigma
     for peak in range(low_peak, high_peak + 1):
-        model.set_param_hint('g' + str(peak) + '_sigma', value = 0.5 * baseline_width, min = 0, max = baseline_width)
+        model.set_param_hint(f'g{peak}_sigma', value=0.5 * baseline_width,
+                             min=0, max=baseline_width)
 
-    # constraints for amplitude
-    g_amplitude = [np.amax(counts)*np.sqrt(2*np.pi)*baseline_width/(2**num) for num in range(low_peak, high_peak + 1)]
-    g_amplitude_index = 0
+    # Constraints for amplitude
+    g_amplitude = [np.amax(counts)*np.sqrt(2*np.pi)*baseline_width/(2**num)
+                   for num in range(low_peak, high_peak + 1)]
     for peak in range(low_peak, high_peak + 1):
-        model.set_param_hint('g' + str(peak) + '_amplitude', value = g_amplitude[g_amplitude_index], min = 0)
-        g_amplitude_index += 1
+        model.set_param_hint(f'g{peak}_amplitude', value=g_amplitude[peak-1], min=0)
+    assert not np.any(np.isinf(g_amplitude)) and not np.any(np.isnan(g_amplitude))
 
     if background_linear:
-        # constraints for linear fit
+        # Constraints for linear background fit
         model.set_param_hint('l_slope', value=0, max=0) # constraint the slope fit to be less or equal to 0
         model.set_param_hint('l_intercept', value=counts[0])
     else:
-        # constraints for exponential fit
+        # Constraints for exponential background fit
         model.set_param_hint('e_decay', value=84e-3, min=0, max=1)
-        model.set_param_hint('e_amplitude', value=68) # counts[0]
+        model.set_param_hint('e_amplitude', value=counts[0], min=0)
 
     params = model.make_params()
     # params.pretty_print()
-    res = model.fit(counts, params=params, x=bin_centers, weights = 1/np.sqrt(counts), nan_policy='omit')
+    y_model = model.eval(params, x=bin_centers)
+    assert y_model.size != 0
+
+    res = model.fit(counts, params=params, x=bin_centers, weights=1/np.sqrt(counts), nan_policy='omit')
     # print(res.fit_report())
     return res
 
@@ -247,14 +242,8 @@ class ProcessHist:
             & (self.all_dark_peaks <= self.cutoff[1])
         ]  # peaks in a range
 
-    def process_alpha(self, overwrite=False, subtraction_method=False):
-        """Processes the waveform data, extracting various statistical information from it.
-
-        Args:
-            overwrite (bool, optional): If True, any previous processing results are overwritten. Defaults to False.
-            do_spe (bool, optional): If True, Single Photoelectron (SPE) data is processed, including fitting multiple peaks and calculating signal-to-noise ratio (SNR). Defaults to True.
-            do_alpha (bool, optional): If True, alpha particle data is processed. Defaults to False.
-        """
+    def process_alpha(self):
+        """Processes the waveform data, extracting various statistical information from it."""
         self.process_peaks()
 
         self.peak_values = self.peak_values[
@@ -268,21 +257,12 @@ class ProcessHist:
         self.alpha_res = self.alpha_fit["fit"]
 
     # reads in the waveform data either from the raw data or from a pre-saved .csv file
-    def process_spe(self, overwrite=False, subtraction_method=False):
-        """Processes the waveform data, extracting various statistical information from it.
-
-        Args:
-            overwrite (bool, optional): If True, any previous processing results are overwritten. Defaults to False.
-            do_spe (bool, optional): If True, Single Photoelectron (SPE) data is processed, including fitting multiple peaks and calculating signal-to-noise ratio (SNR). Defaults to True.
-            do_alpha (bool, optional): If True, alpha particle data is processed. Defaults to False.
-        """
+    def process_spe(self):
+        """Processes the waveform data, extracting various statistical information from it."""
         self.process_peaks()
 
-        # if self.peak_range != (1,4): # if doing 4 peaks, the bin number are calculated using proper stats
-        #     self.numbins = self.info.peaks_numbins
-        # else:
         self.numbins = int(np.sqrt(len(self.peak_values)))
-          #!!! attr defined outside init
+        #!!! attr defined outside init
 
         self.peak_fit = fit_peaks_multigauss(
                 values = self.peak_values,
@@ -550,15 +530,18 @@ class ProcessHist:
         for peak in range(len(self.peak_sigmas)):
             actual_peak = self.peak_range[0] + peak
             # actual_peak = peak + 1
-            if self.peak_fit.params['g' + str(actual_peak) + '_center'].stderr is not None:
-                textstr += f'''Peak {actual_peak}: {self.peak_fit.params['g' + str(actual_peak) + '_center'].value:0.2} $\\pm$ {self.peak_fit.params['g' + str(actual_peak) + '_center'].stderr:0.2}\n'''
+            if self.peak_fit.params[f'g{actual_peak}_center'].stderr is not None:
+                textstr += f'Peak {actual_peak}: '
+                textstr += f'{self.peak_fit.params[f'g{actual_peak}_center'].value:0.3} $\\pm$ '
+                textstr += f'{self.peak_fit.params[f'g{actual_peak}_center'].stderr:0.3}\n'
         textstr += f'--\n'
         textstr += 'Peak Width (\u03C3) [V]:\n'
         for peak in range(0,len(self.peak_sigmas)):
             actual_peak = self.peak_range[0] + peak
-            curr_sigma_err = self.peak_fit.params['g' + str(actual_peak) + '_sigma'].stderr
+            curr_sigma_err = self.peak_fit.params[f'g{actual_peak}_sigma'].stderr
             if curr_sigma_err is not None:
-                textstr += f'''{peak + 1}: {round(self.peak_sigmas[peak],5)} $\\pm$ {curr_sigma_err:0.2}\n'''
+                textstr += f'Peak {peak + 1}: {self.peak_sigmas[peak]:.3}'
+                textstr += f' $\\pm$ {curr_sigma_err:0.3}\n'
         textstr += f'--\n'
         # textstr += 'Peak Amplitude (A)\n'
         textstr += 'Peak Height [Counts]:\n'
@@ -575,7 +558,7 @@ class ProcessHist:
             #                                       (sigma_err/self.peak_sigmas[peak])**2)
             amp_height_err = self.peak_height_errs[peak]
             # textstr += f'''{peak + 1}: {amp:0.4} $\\pm$ {amp_err:0.4}\n'''
-            textstr += f'''{peak + 1}: {amp_height:0.4} $\\pm$ {amp_height_err:0.4}\n'''
+            textstr += f'''Peak {peak + 1}: {amp_height:0.4} $\\pm$ {amp_height_err:0.4}\n'''
         # for peak in range(len(self.peak_heights)):
         #     ratio = self.peak_heights
         textstr += f'--\n'
