@@ -69,7 +69,7 @@ def get_grp_names(h5path: str) -> list:
         group_names = list(hdf["RunData"].keys())
     return group_names
 
-def get_mode(hist_data: list or np.array) -> tuple[float, float]:
+def get_mode(hist_data: list | np.array) -> tuple[float, float]:
     """Get the mode of histogram data
 
     Args:
@@ -162,7 +162,7 @@ class ProcessWaveforms:
             is_pre_bd (bool, optional): specified whether data is solicited, AKA 'empty' baseline data. Defaults to False.
             do_filter (bool, optional): activates butterworth lowpass filter if True. Defaults to False.
             plot_waveforms (bool, optional): plots waveforms if True. Defaults to False.
-            upper_limit (float, optional): amplitude threshold for discarding waveforms. Defaults to 4.4.
+            upper_limit (float, optional): amplitude threshold for discarding waveforms. Set to -1 for automatic setting. Defaults to 4.4.
             baseline_correct (bool, optional): baseline corrects waveforms if True. Defaults to False.
             prominence (float, optional): parameter used for peak finding algo. Defaults to 0.005.
             fourier (bool, optional): if True performs fourier frequency subtraction. Defaults to False.
@@ -384,6 +384,7 @@ class ProcessWaveforms:
             use_bins = np.linspace(-self.upper_limit, self.upper_limit, 1000)
             curr_hist = np.histogram(amp, bins=use_bins)
             baseline_level, _ = get_mode(curr_hist)
+            self.baseline_levels.append(baseline_level)
             self.baseline_mode = baseline_level
             # print('baseline:', baseline_level)
             amp -= baseline_level

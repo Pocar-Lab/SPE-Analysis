@@ -6,47 +6,40 @@ from MeasurementInfo import MeasurementInfo
 from ProcessHistograms import ProcessHist
 from AnalyzePDE import SPE_data
 import h5py
-from typing import Optional
-
+import time
 
 class AnalysisUltimate:
     def __init__(self,
                  h5_folder_path: str,
-                 pre_breakdown_filename: str,
-                 do_frequency_filter: bool = True
                  ):
         """
-        Automate the entire SPE analysis
+        Creates an AnalysisUltimate obejct for performing SPE analysis.
 
         Args:
-            h5_folder_path (str): the path to the folder that holds all the hdf5 datafiles (and nothing else).
-            pre_breakdown_filename (str): the filename within the hdf5 folder with the pre-breakdown data
-            do_frequency_filter (bool, optional): should the waveforms be processed with a lowpass frequency filter? Defaults to True.
+            h5_folder_path (str): the path to the folder that holds all the hdf5 datafiles (and nothing else). Must end in '/'.
         """
         self.folder_path = h5_folder_path
         self.files = os.listdir(self.folder_path)
-        self.pre_breakdown_file = pre_breakdown_filename
-        self.do_filter = do_frequency_filter
         self.measurementinfos = {} # keys are hdf5 file names, data is a ProcessWaveforms object
         self.biases = {} # keys are hdf5 file names, data is bias voltage
         for name in self.files:
-            f = h5py.File(name,'r') # get hdf5 file
+            f = h5py.File(self.folder_path+name,'r') # get hdf5 file
             group_names = list(f['RunData'].keys())
             self.biases[name] = f['RunData'].get(group_names[0]).attrs['Bias(V)']
-        self.biases = {self.biases[f]:f for f in self.files}
-        self.files = {self.biases[v]:v for v in self.files}
+        self.files = {f:self.biases[f] for f in self.files}
+        self.biases = {self.biases[f]:f for f in self.biases}
 
     def args_processwaveforms(self,
-                            acquisition: Optional[dict[str]] = None,
-                            do_filter: dict[bool] = False,
-                            plot_waveforms: dict[bool] = False,
-                            upper_limit: dict[float] = 4.4,
-                            baseline_correct: dict[bool] = False,
-                            poly_correct: dict[bool] = False,
-                            prominence: dict[float] = 0.005,
-                            fourier: dict[bool] = False,
-                            condition: dict[str] = "unspecified medium (GN/LXe/Vacuum)",
-                            num_waveforms: dict[float] = 0,
+                            acquisition: dict[str] | None = None,
+                            do_filter: dict | bool = False,
+                            plot_waveforms: dict | bool = False,
+                            upper_limit: dict | float = -1,
+                            baseline_correct: dict | bool = False,
+                            poly_correct: dict | bool = False,
+                            prominence: dict | float = 0.005,
+                            fourier: dict | bool = False,
+                            condition: dict | str = "unspecified medium (GN/LXe/Vacuum)",
+                            num_waveforms: dict | float = 0,
                         ):
         """
         Initialize the arguments for Process waveform data from hdf5 file to find peaks.
@@ -68,13 +61,11 @@ class AnalysisUltimate:
             acquisition (str, optional): specified file name. Defaults to 'placeholder'.
             do_filter (bool, optional): activates butterworth lowpass filter if True. Defaults to False.
             plot_waveforms (bool, optional): plots waveforms if True. Defaults to False.
-            upper_limit (float, optional): amplitude threshold for discarding waveforms. Defaults to 4.4.
+            upper_limit (float, optional): amplitude threshold for discarding waveforms. Set to -1 for automatic setting. Defaults to -1.
             baseline_correct (bool, optional): baseline corrects waveforms if True. Defaults to False.
             prominence (float, optional): parameter used for peak finding algo. Defaults to 0.005.
             fourier (bool, optional): if True performs fourier frequency subtraction. Defaults to False.
             num_waveforms: (float, optional): number of oscilloscope traces to read in before stopping; default 0 reads everything
-        Raises:
-            TypeError: _description_
         """
         self.processwaveforms_arguments = {'acquisition': acquisition, 
                                            'do_filter': do_filter, 
@@ -89,7 +80,7 @@ class AnalysisUltimate:
                                            }
         for a in self.processwaveforms_arguments:
             if type(self.processwaveforms_arguments[a]) is not dict:
-                self.processwaveforms_arguments[a] = {v: a for v in self.biases}
+                self.processwaveforms_arguments[a] = {v: self.processwaveforms_arguments[a] for v in self.biases}
             for v in self.biases:
                 if v not in self.processwaveforms_arguments[a]:
                     self.processwaveforms_arguments[a][v] = 'not set'
@@ -97,6 +88,7 @@ class AnalysisUltimate:
     def do_processwaveforms(self,
                             temperature: float,
                             biases: list[float] | None = None,
+                            timeit: bool = False,
                             ):
         """
         Create and run temporary ProcessWaveform objects on the given biases using the arguments created in self.args_processwaveforms.
@@ -105,7 +97,10 @@ class AnalysisUltimate:
         Args:
             temperature (float): temperature of the experiment
             biases (list of floats, optional): which biases to evaluate or reevaluate. Does not automatically include the breakdown. None does all given biases. Defaults to None.
+            timeit (bool, optional): time how long this method takes. Defaults to False.
         """
+        if timeit:
+            t0 = time.time()
         if not biases:
             biases = list(self.biases)
 
@@ -115,7 +110,7 @@ class AnalysisUltimate:
 
         runs = {} # keys are bias voltages, data is ProcessWaveforms object
         for bias in biases:
-            f = self.biases[bias]
+            f = self.folder_path + self.biases[bias]
             warg = {k: self.processwaveforms_arguments[k][bias] for k in self.processwaveforms_arguments if self.processwaveforms_arguments[k][bias] != 'not set'}
             if bias < 25:
                 warg['is_pre_bd'] = True
@@ -126,7 +121,9 @@ class AnalysisUltimate:
         for bias in biases:
             if bias > 25:
                 self.measurementinfos[bias] = MeasurementInfo(self.processwaveforms_arguments['condition'][bias],temperature,runs[bias],runs['prebreakdown'])
-
+        if timeit:
+            t1 = time.time()
+            print(f'do_processwaveforms took {t1-t0:0.4} seconds to complete.')
     def guess_pe_locations(self,
                            get_values: bool = False,
                            show_plots: bool = True,
@@ -143,11 +140,13 @@ class AnalysisUltimate:
         figs = {}
         axes = {}
         for bias in self.biases:
+            if bias < 25:
+                continue
             m = self.measurementinfos[bias]
             figs[bias],axes[bias] = plt.subplots(1,1)
             n,bins,_ = axes[bias].hist(m.all_peaks,bins = 1000,color='blue')
             maxes[bias] = [bins[np.argmax(n)] * i for i in range(1,10)]
-            axes[bias].vline(x=maxes[bias],ymin=0,ymax=np.max(n),color='red')
+            [axes[bias].axvline(x=v,color='red') for v in maxes[bias]]
         if show_plots:
             plt.show()
         [plt.close(figs[v]) for v in self.biases]
@@ -188,9 +187,9 @@ class AnalysisUltimate:
                                       'peaks': peaks}
         for a in self.processhist_arguments:
             if type(self.processhist_arguments[a]) is not dict:
-                self.processhist_arguments[a] = {v: a for v in self.biases}
+                self.processhist_arguments[a] = {v: self.processhist_arguments[a] for v in self.biases}
             for v in self.biases:
-                if v not in self.processhist_arguments[a]:
+                if v not in self.processhist_arguments[a] and v > 25:
                     self.processhist_arguments[a][v] = 'not set'
 
     def create_processhistograms(self):
@@ -224,7 +223,7 @@ class AnalysisUltimate:
         if not (biases <= list(self.biases)):
             raise Exception("biases must either be a subset of self.biases's keys or be None")            
 
-        for bias in biases:
+        for bias in self.histograms:
             self.histograms[bias].process_spe()
         
     def do_spe_data(self,
@@ -250,5 +249,5 @@ class AnalysisUltimate:
         if not (biases <= list(self.biases)):
             raise Exception("biases must either be a subset of self.biases's keys or be None")            
 
-        campaign = [self.histograms[v] for v in biases]
+        campaign = [self.histograms[v] for v in self.histograms]
         self.spe_data = SPE_data(campaign,invC,invC_err,filtered,do_CA)

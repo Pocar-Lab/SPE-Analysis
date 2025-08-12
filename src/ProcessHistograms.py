@@ -89,7 +89,7 @@ def fit_peaks_multigauss(
     baseline_width: float,
     centers: list[float],
     peak_range: tuple[float,float]=(1,4),
-    cutoff: tuple[float, float] = (0, np.infty),
+    cutoff: tuple[float, float] = (0, np.inf),
     background_linear: bool = True,
     bins = None,
 ) -> lm.model.ModelResult:
@@ -102,7 +102,7 @@ def fit_peaks_multigauss(
         baseline_width (float): An estimate of the width in Volts of the noise.
         centers (List[float]): Initial guesses for the centroid of each Gaussian.
         peak_range (tuple[int, int]): The number of peaks you want to fit. Defaults to 4.
-        cutoff (Tuple[float, float], optional): Low and high cutoff values. Defaults to (0, np.infty).
+        cutoff (Tuple[float, float], optional): Low and high cutoff values. Defaults to (0, np.inf).
 
     Returns:
         ModelResult: An lmfit ModelResult object containing all fit information.
@@ -176,7 +176,7 @@ class ProcessHist:
         info: MeasurementInfo,
         centers: List[float] | np.ndarray = [], #initializes centers as an empty list (so code still works for alpha data)
         baseline_correct: bool = False,
-        cutoff: Tuple[float, float] = (0, np.infty),
+        cutoff: Tuple[float, float] = (0, np.inf),
         peak_range: Tuple[int,int] = (1,4),
         subtraction_method: bool = False,
         background_linear: bool = True,
@@ -190,7 +190,7 @@ class ProcessHist:
             info (MeasurementInfo): Class containing info regarding measurement.
             centers (List[float]): Initial guesses for centroid of each gaussian.
             baseline_correct (bool): Boolean value indicating if baseline correction needs to be applied. Defaults to False.
-            cutoff (Tuple[float, float]): Low and high cutoff values. Defaults to (0,np.infty).
+            cutoff (Tuple[float, float]): Low and high cutoff values. Defaults to (0,np.inf).
             peak_range: The number of peaks you want to fit. Defaults to 4.
             background_linear: If to fit a linear or exponential background to the multi-gaussian
             peaks: Which peaks to include, either all, LED, or dark.
@@ -580,11 +580,11 @@ class ProcessHist:
         #     ratio = self.peak_heights
         textstr += f'--\n'
         if self.background_linear:
-            textstr += f'Linear Intercept: {self.peak_fit.best_values['l_intercept']:0.4}\n'
-            textstr += f'Linear Slope: {self.peak_fit.best_values['l_slope']:0.4}\n'
+            textstr += f'''Linear Intercept: {self.peak_fit.best_values['l_intercept']:0.4}\n'''
+            textstr += f'''Linear Slope: {self.peak_fit.best_values['l_slope']:0.4}\n'''
         else:
-            textstr += f'Exp Amplitude: {self.peak_fit.best_values['e_amplitude']:0.4}\n'
-            textstr += f'Exp Decay: {self.peak_fit.best_values['e_decay']:0.4}\n'
+            textstr += f'''Exp Amplitude: {self.peak_fit.best_values['e_amplitude']:0.4}\n'''
+            textstr += f'''Exp Decay: {self.peak_fit.best_values['e_decay']:0.4}\n'''
         textstr += f'--\n'
         textstr += f'''Reduced $\\chi^2$: {self.peak_fit.redchi:0.2}'''
 
