@@ -104,7 +104,7 @@ class AnalysisUltimate:
         if not biases:
             biases = list(self.biases)
 
-        if not (biases <= list(self.biases)):
+        if not set(biases).issubset(set(list(self.biases))):
             raise Exception("biases must either be a subset of self.biases's keys or be None")
 
 
@@ -147,9 +147,10 @@ class AnalysisUltimate:
             n,bins,_ = axes[bias].hist(m.all_peaks,bins = 1000,color='blue')
             maxes[bias] = [bins[np.argmax(n)] * i for i in range(1,10)]
             [axes[bias].axvline(x=v,color='red') for v in maxes[bias]]
+            axes[bias].set_title(f'{bias} V bias')
         if show_plots:
             plt.show()
-        [plt.close(figs[v]) for v in self.biases]
+        [plt.close(figs[v]) for v in figs]
         if get_values:
             return maxes
 
@@ -204,9 +205,8 @@ class AnalysisUltimate:
         for bias in self.biases:
             if bias < 25:
                 continue
-            f = self.biases[bias]
             warg = {k: self.processhist_arguments[k][bias] for k in self.processhist_arguments if self.processhist_arguments[k][bias] != 'not set'}
-            self.histograms[bias] = ProcessHist([f],**warg)
+            self.histograms[bias] = ProcessHist(**warg)
 
     def do_processhistograms(self,
                              biases: list[float] | None = None,
@@ -220,10 +220,10 @@ class AnalysisUltimate:
         if not biases:
             biases = list(self.biases)
 
-        if not (biases <= list(self.biases)):
+        if not set(biases).issubset(set(list(self.biases))):
             raise Exception("biases must either be a subset of self.biases's keys or be None")            
 
-        for bias in self.histograms:
+        for bias in biases:
             self.histograms[bias].process_spe()
         
     def do_spe_data(self,

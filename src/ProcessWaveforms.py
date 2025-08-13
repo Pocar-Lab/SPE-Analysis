@@ -69,7 +69,7 @@ def get_grp_names(h5path: str) -> list:
         group_names = list(hdf["RunData"].keys())
     return group_names
 
-def get_mode(hist_data: list | np.array) -> tuple[float, float]:
+def get_mode(hist_data: list | np.ndarray) -> tuple[float, float]:
     """Get the mode of histogram data
 
     Args:
