@@ -36,7 +36,7 @@ class AnalysisUltimate:
                             upper_limit: dict | float = -1,
                             baseline_correct: dict | bool = False,
                             poly_correct: dict | bool = False,
-                            prominence: dict | float = 0.005,
+                            prominence: dict | float = None,
                             fourier: dict | bool = False,
                             condition: dict | str = "unspecified medium (GN/LXe/Vacuum)",
                             num_waveforms: dict | float = 0,
@@ -63,7 +63,7 @@ class AnalysisUltimate:
             plot_waveforms (bool, optional): plots waveforms if True. Defaults to False.
             upper_limit (float, optional): amplitude threshold for discarding waveforms. Set to -1 for automatic setting. Defaults to -1.
             baseline_correct (bool, optional): baseline corrects waveforms if True. Defaults to False.
-            prominence (float, optional): parameter used for peak finding algo. Defaults to 0.005.
+            prominence (float, optional): parameter used for peak finding algo. None will run auto_prominence. Defaults to None.
             fourier (bool, optional): if True performs fourier frequency subtraction. Defaults to False.
             num_waveforms: (float, optional): number of oscilloscope traces to read in before stopping; default 0 reads everything
         """
