@@ -143,7 +143,7 @@ class ProcessWaveforms:
         upper_limit: float = 4.4,
         baseline_correct: bool = False,
         poly_correct: bool = False,
-        prominence: float = 0.005,
+        prominence: float = None,
         fourier: bool = False,
         condition: str = "unspecified medium (GN/LXe/Vacuum)",
         num_waveforms: float = 0
@@ -158,13 +158,13 @@ class ProcessWaveforms:
 
         Args:
             f list: list of h5 file names
-            acquisition (str, optional): specified file name. Defaults to 'placeholder'.
+            acquisition (str, optional): specified file name. None will select all acquisitions. Defaults to None.
             is_pre_bd (bool, optional): specified whether data is solicited, AKA 'empty' baseline data. Defaults to False.
             do_filter (bool, optional): activates butterworth lowpass filter if True. Defaults to False.
             plot_waveforms (bool, optional): plots waveforms if True. Defaults to False.
             upper_limit (float, optional): amplitude threshold for discarding waveforms. Set to -1 for automatic setting. Defaults to 4.4.
             baseline_correct (bool, optional): baseline corrects waveforms if True. Defaults to False.
-            prominence (float, optional): parameter used for peak finding algo. Defaults to 0.005.
+            prominence (float, optional): parameter used for scipy.find_peaks. None will run auto_prominence. Defaults to None.
             fourier (bool, optional): if True performs fourier frequency subtraction. Defaults to False.
             num_waveforms: (float, optional): number of oscilloscope traces to read in before stopping; default 0 reads everything
         Raises:
@@ -270,12 +270,16 @@ class ProcessWaveforms:
         if self.upper_limit == -1:
             self.upper_limit = self.yrange - self.offset - 0.001
 
+        if not self.prominence:
+            self.prominence = self.auto_prominence()
+            print(f"PROMINENCE USED FOR BIAS = {self.bias} V: {self.prominence*1000:0.4} mV")
+
         # Searches for peaks using provided parameters
         self.peak_search_params = {
             "height": 0.0,  # SPE
             "threshold": None,  # SPE
             "distance": None,  # SPE
-            "prominence": prominence, #specified by user
+            "prominence": self.prominence, #specified by user
             "width": None,  # SPE
             "wlen": 100,  # SPE
             "rel_height": None,  # SPE
@@ -402,3 +406,40 @@ class ProcessWaveforms:
         self.baseline_mean = baseline_fit["fit"].values["center"]
         self.baseline_err  = baseline_fit["fit"].params["center"].stderr
         self.baseline_std  = baseline_fit["fit"].values["sigma"]
+
+    def auto_prominence(self) -> float:
+        proms = []
+        for f in self.acquisitions_data:
+            for a in self.acquisitions_data[f]:
+                data = self.acquisitions_data[f][a]
+                tlu = [data[:,i] for i in range(1,len(data[0,:]))] # reconfigure the waveforms so that I can do a mapping below
+                res = map(lambda x: signal.find_peaks(x, 
+                                                      height=0.0,
+                                                      threshold=None,
+                                                      distance=None,
+                                                      prominence=.001, 
+                                                      width=None,
+                                                      wlen=50,
+                                                      rel_height=None,
+                                                      plateau_size=None),
+                                                      tlu)
+
+                maxes = list(res) # running the map object, maxes is a tuple of (peaks,props)
+                props = [i[1] for i in maxes] # grab the properties of the peaks
+                morps = [i['prominences'] for i in props] # grab the prominences of the peaks
+                morp = [] # this and the next two lines generate a list of all prominences from the acquisition
+                for i in morps:
+                    morp += list(i)
+                proms += morp # add the acquisition's morp list to the overall dataset's prominence list
+        
+        fig,ax = plt.subplots(1,1) # plotting
+        bins = np.linspace(min(proms),max(proms),500)
+        n,bins,_ = ax.hist(proms,bins=bins)
+        plt.close(fig)
+
+        ult = np.array([i for i in zip(n,bins) if (i[1]<0.0065 and i[1]>0.0035)]) # grab selection of where the valley should be
+        ultn = ult[:,0] # bin heights
+        ultbins = ult[:,1] # bin locations
+        #print(title)
+        index = np.argmin(ultn)-1 # where is the minimum of the bin heights
+        return ultbins[index] # output prominence corresponding to minimum of bin heights

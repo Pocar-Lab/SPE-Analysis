@@ -224,6 +224,8 @@ class AnalysisUltimate:
             raise Exception("biases must either be a subset of self.biases's keys or be None")            
 
         for bias in biases:
+            if bias < 25:
+                continue
             self.histograms[bias].process_spe()
         
     def do_spe_data(self,
