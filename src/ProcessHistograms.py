@@ -355,7 +355,7 @@ class ProcessHist:
             (self.A_avg_err / self.A_avg) ** 2
             + (self.spe_res.params["slope"].stderr / self.spe_res.params["slope"].value) ** 2
         )
-        print('CA at this bias voltage: mean of all amplitudes / SPE amplitude (gain slope) = '+str(self.CA) + ' +/- ' + str(self.CA_err))
+        print(f'CA at this bias voltage: mean of all amplitudes / SPE amplitude (gain slope) = {self.CA} ْ± {self.CA_err}')
 
 
     def get_spe(self) -> Tuple[float, float]:
@@ -590,7 +590,7 @@ class ProcessHist:
         plt.ylabel('Counts', loc='top')
         plt.xlabel('Pulse Amplitude [V]', loc='right')
         if log_scale:
-            plt.ylim(1E-1)
+            plt.ylim(1E0)
             plt.yscale('log')
 
         if savefig:
@@ -664,18 +664,19 @@ class ProcessHist:
         plt.ylabel("Peak Location [V]", loc='top')
         plt.legend()
         plt.grid(True)
+        plt.ylim(0)
 
         textstr = f"Date: {self.info.date}\n"
         textstr += f"Condition: {self.info.condition}\n"
         textstr += f"Bias: {self.info.bias:0.4} [V]\n"
         textstr += f"RTD4: {self.info.temperature} [K]\n"
         textstr += f"--\n"
-        textstr += f"""Slope: {self.spe_res.params['slope'].value:0.4} $\\pm$ {self.spe_res.params['slope'].stderr:0.2} [V/pe]\n"""
+        textstr += f"""SPE Amplitude: {self.spe_res.params['slope'].value:0.4} $\\pm$ {self.spe_res.params['slope'].stderr:0.2} [V/pe]\n"""
         textstr += f"""Reduced $\\chi^2$: {self.spe_res.redchi:0.4}\n"""
         # textstr += f"--\n"
         # if self.run_info_pre_bd:
         textstr += (
-            f"Baseline: {self.baseline_mean:0.4} +- {self.baseline_err:0.2} [V]"
+            f"Baseline: {self.baseline_mean:0.4} ± {self.baseline_err:0.2} [V]"
         )
 
         props = dict(boxstyle="round", facecolor="tab:" + peakcolor, alpha=0.4)

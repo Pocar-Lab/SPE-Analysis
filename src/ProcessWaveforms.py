@@ -361,8 +361,9 @@ class ProcessWaveforms:
                     led_peaks.append(amp[peak])
 
         print(f'all  peaks: {np.mean(all_peaks):.3} ± {np.std(all_peaks,ddof=1)/np.sqrt(len(all_peaks)):.3}')
-        print(f'dark peaks: {np.mean(dark_peaks):.3} ± {np.std(dark_peaks,ddof=1)/np.sqrt(len(all_peaks)):.3}')
-        print(f'LED  peaks: {np.mean(led_peaks):.3} ± {np.std(led_peaks,ddof=1)/np.sqrt(len(led_peaks)):.3}')
+        if not self.is_pre_bd:
+            print(f'dark peaks: {np.mean(dark_peaks):.3} ± {np.std(dark_peaks,ddof=1)/np.sqrt(len(all_peaks)):.3}')
+            print(f'LED  peaks: {np.mean(led_peaks):.3} ± {np.std(led_peaks,ddof=1)/np.sqrt(len(led_peaks)):.3}')
         return all_peaks, dark_peaks, led_peaks
 
     def process_amp(self, amp, fs):

@@ -242,7 +242,7 @@ class SPE_data:
                 x=fit_bias, params=self.absolute_spe_res.params, sigma=1
             )
             fit_label = "Absolute Gain Best Fit"
-            data_label = "Absolute Gain values"
+            data_label = "Absolute Gain Values"
             y_label = "Absolute Gain"
             data_y = self.absolute_spe_vals
             data_y_err = self.absolute_spe_err
@@ -256,7 +256,7 @@ class SPE_data:
                 x=fit_bias, params=self.spe_res.params, sigma=1
             )
             fit_label = "SPE Amplitude Best Fit"
-            data_label = "SPE Amplitude values"
+            data_label = "SPE Amplitude Values"
             y_label = "SPE Amplitude [V]"
             data_y = self.spe_vals
             data_y_err = self.spe_err
