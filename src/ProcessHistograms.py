@@ -107,7 +107,7 @@ def fit_peaks_multigauss(
         ModelResult: An lmfit ModelResult object containing all fit information.
     """
     curr_peak_data = values[(values >= cutoff[0]) & (values <= cutoff[1])]
-    if not bins:
+    if bins is None:
         bins = round(np.sqrt(len(curr_peak_data)))
     counts, b = np.histogram(curr_peak_data, bins=bins)
     bin_centers = (b[1:] + b[:-1]) / 2
@@ -262,6 +262,7 @@ class ProcessHist:
         self.process_peaks()
 
         self.numbins = int(np.sqrt(len(self.peak_values)))
+        self.bins = np.histogram_bin_edges(self.all_peaks, bins=self.numbins)
         #!!! attr defined outside init
 
         self.peak_fit = fit_peaks_multigauss(
@@ -271,7 +272,7 @@ class ProcessHist:
                 peak_range = self.peak_range,
                 cutoff = self.cutoff,
                 background_linear=self.background_linear,
-                bins=round(np.sqrt(len(self.all_peaks)))
+                bins=self.bins
                 )
 
         self.peak_locs = [self.peak_fit.params['g' + str(idx + 1) + '_center'].value for idx in range(self.low_peak-1, self.high_peak)]
@@ -571,9 +572,7 @@ class ProcessHist:
         textstr += f'--\n'
         textstr += f'''Reduced $\\chi^2$: {self.peak_fit.redchi:0.2}'''
 
-        curr_hist = np.histogram(self.peak_values, bins=self.numbins)
-        counts = curr_hist[0]
-        bins = curr_hist[1]
+        _, bins = np.histogram(self.peak_values, bins=self.numbins)
         centers = (bins[1:] + bins[:-1])/2
         y_line_fit = self.peak_fit.eval(x=centers)
 
@@ -583,12 +582,7 @@ class ProcessHist:
         else:
             background_fit = self.peak_fit.best_values['e_amplitude'] * np.exp(-centers/self.peak_fit.best_values['e_decay'])
         plt.plot(centers, background_fit, 'b-', label='best fit - line')
-        # total_num_bins = round(np.sqrt(len(self.peak_values)))
-        total_num_bins = round(np.sqrt(len(self.all_peaks)))
-        plt.hist(self.peak_values, bins=total_num_bins) #zoom
-        # plt.hist(self.peak_values, bins = self.numbins, color = 'tab:' + peakcolor) #zoom
-        # total_num_bins = round(np.sqrt(len(self.all_peaks)))
-        # plt.hist(self.all_peaks, bins = int(total_num_bins), color = 'tab:' + peakcolor)
+        plt.hist(self.all_peaks, bins=self.bins)
         plt.grid(True)
 
         props = dict(boxstyle='round', facecolor='tab:' + peakcolor, alpha=0.7)
