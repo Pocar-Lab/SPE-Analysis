@@ -56,11 +56,11 @@ def read_h5(p, filetype='RTD'):
     print(f"loaded {p}")
     return df
 
-df = read_h5('RTD_2023_06.h5')
+df = read_h5('../data/RTD_2025_05_15.h5')
 
 # select region of interest
-start = dt.datetime(2023, 6, 28, 9)
-end   = dt.datetime(2023, 6, 29, 2)
+start = dt.datetime(2025, 5, 9, 14)
+end   = dt.datetime(2025, 5, 9, 19)
 timestamp = df['Date'] + df['Time']
 df = df[start <= timestamp]
 df = df[timestamp <= end]
@@ -105,16 +105,16 @@ alpha_df = alpha_df[timestamp <= alpha_end]
 for RTD in RTDS:
     # if RTD == 'RTD0':
     #     continue
-    temp = alpha_df[RTD].mean()
-    temp_err = alpha_df[RTD].std()
-    print(RTD,'=',np.round(temp,3),'+/-',np.round(temp_err,3),'K')
+    temp = df[RTD].mean()
+    temp_err = df[RTD].std()
+    print(RTD,'=',np.round(temp,3),'±',np.round(temp_err,3),'K')
     plt.plot(x, df[RTD], markersize=0.5, label =
              f'{RTD} = {temp:.4} $\pm$ {temp_err:.3} K\n')
     plt.ylabel('Temperature (K)', fontsize=fs)
     plt.xlabel('Time', fontsize=fs)
-
 # plt.title('June 28th 2023 Liquefaction RTD Stability', fontsize=fs)
+plt.xticks(rotation=30)
 plt.grid()
-plt.legend(markerscale=fs, fontsize=fs-12, loc='upper left') #loc='center left', bbox_to_anchor=(1.0, 0.5)
+plt.legend(markerscale=fs, fontsize=fs-15, loc='upper left') #loc='center left', bbox_to_anchor=(1.0, 0.5)
 # plt.savefig('plots/may-6-std-%d-%d-%03d.png'%(longtime, shorttime, thres*1000))
 plt.show()

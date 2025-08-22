@@ -7,31 +7,17 @@ Created on Thur Feb 22 2024
 @author: Ed van Bruggen (evanbruggen@umass.edu)
 """
 
-%load_ext autoreload
-%autoreload 2
-
-import sys
 import numpy as np
-from MeasurementInfo import MeasurementInfo
 from RunInfo import RunInfo
-import heapq
 from scipy import signal
-from scipy.optimize import curve_fit
-import AnalyzePDE
-from AnalyzePDE import SPE_data
-from AnalyzePDE import Alpha_data
 import matplotlib.pyplot as plt
-import matplotlib as mpl
-import ProcessWaveforms_MultiGaussian
 from ProcessWaveforms_MultiGaussian import WaveformProcessor as WaveformProcessor
-import pickle
-import dill
-from lmfit.models import LinearModel, GaussianModel, ExponentialModel
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, Optional
 import lmfit as lm
 import h5py
 
-plt.style.use('misc/nexo.mplstyle')
+plt.style.use('nexo.mplstyle')
+
 path = 'pre-bd-data/'
 
 csvf = open('baseline.csv', 'w')
@@ -67,6 +53,9 @@ plot_baseline_waveforms('data-june-08/Run_1686254720.hdf5', 'Acquisition_1686254
 plot_baseline_waveforms('data-june-08/Run_1686253346.hdf5', 'Acquisition_1686253369', log_scale=True) # March 28
 
 
+plot_baseline_histogram('data/20250708_SPE_GN/Run_1751974647.hdf5', 'Acquisition_1751975149', color='aqua')
+plot_baseline_histogram('data/20250702_SPE_GN/LED_sweep_260.hdf5', 'Acquisition_1751473718', color='pink')
+plt.show()
 
 def get_mode(hist_data: list or np.array) -> tuple[float, float]:
     counts = hist_data[0]
