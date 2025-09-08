@@ -295,7 +295,7 @@ def fit_peaks_multigauss(
     baseline_width: float,
     centers: list[float],
     peak_range: tuple[float,float]=(1,4),
-    cutoff: tuple[float, float] = (0, np.infty),
+    cutoff: tuple[float, float] = (0, np.inf),
     background_linear: bool = True,
 ) -> lm.model.ModelResult:
     """
@@ -307,7 +307,7 @@ def fit_peaks_multigauss(
         baseline_width (float): An estimate of the width in Volts of the noise.
         centers (List[float]): Initial guesses for the centroid of each Gaussian.
         peak_range (tuple[int, int]): The number of peaks you want to fit. Defaults to 4.
-        cutoff (Tuple[float, float], optional): Low and high cutoff values. Defaults to (0, np.infty).
+        cutoff (Tuple[float, float], optional): Low and high cutoff values. Defaults to (0, np.inf).
 
     Returns:
         ModelResult: An lmfit ModelResult object containing all fit information.
@@ -501,7 +501,7 @@ class WaveformProcessor:
         run_info_self: Optional[RunInfo] = None,
         run_info_solicit: Optional[RunInfo] = None,
         baseline_correct: bool = False,
-        cutoff: Tuple[float, float] = (0, np.infty),
+        cutoff: Tuple[float, float] = (0, np.inf),
         peak_range: Tuple[int,int] = (1,4),
         no_solicit: bool = False,
         subtraction_method: bool = False,
@@ -516,7 +516,7 @@ class WaveformProcessor:
             run_info_self (Optional[RunInfo]): RunInfo class containing SPE or Alpha data.
             run_info_solicit (Optional[RunInfo]): RunInfo class containing baseline data.
             baseline_correct (bool): Boolean value indicating if baseline correction needs to be applied. Defaults to False.
-            cutoff (Tuple[float, float]): Low and high cutoff values. Defaults to (0,np.infty).
+            cutoff (Tuple[float, float]): Low and high cutoff values. Defaults to (0,np.inf).
             peak_range: The number of peaks you want to fit. Defaults to 4.
             no_solicit (bool): A flag indicating if there is no solicited waveform available. Defaults to False.
         """
