@@ -261,7 +261,7 @@ class ProcessHist:
         """Processes the waveform data, extracting various statistical information from it."""
         self.process_peaks()
 
-        self.numbins = int(np.sqrt(len(self.peak_values)))
+        self.numbins = int(np.sqrt(len(self.all_peaks)))
         self.bins = np.histogram_bin_edges(self.all_peaks, bins=self.numbins)
         #!!! attr defined outside init
 
