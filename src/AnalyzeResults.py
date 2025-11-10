@@ -482,9 +482,9 @@ class AnalyzeResults:
 
         plt.errorbar(
             data_x,
-            data_y,
+            data_y*100,
             xerr=data_x_err,
-            yerr=data_y_err,
+            yerr=data_y_err*100,
             markersize=10,
             fmt=".",
             color=color,
@@ -495,16 +495,16 @@ class AnalyzeResults:
             for od in other_data:
                 plt.errorbar(
                     od.ov,
-                    od.pde,
+                    od.pde*100,
                     xerr=od.ov_err,
-                    yerr=od.pde_err,
+                    yerr=od.pde_err*100,
                     markersize=10,
                     fmt=".",
                     label=od.label,
                 )
 
         plt.xlabel("Overvoltage [V]")
-        plt.ylabel("Photon Detection Efficiency")
+        plt.ylabel("Photon Detection Efficiency [%]")
         textstr = f"Date: {self.campaign[0].info.date}\n"
         textstr += f"Condition: {self.campaign[0].info.condition}\n"
         textstr += f"RTD4: {self.campaign[0].info.temperature} [K]\n"
@@ -514,7 +514,7 @@ class AnalyzeResults:
         fig.text(0.3, 0.4, textstr, fontsize=18, verticalalignment="top", bbox=props)
         plt.xlim(0, np.amax(self.ov) + 1.0)
         ylow, yhigh = plt.ylim()
-        plt.ylim(-0.01, yhigh * 1.1)
+        plt.ylim(0, yhigh * 1.1)
         if other_data:
             plt.legend(loc="lower left")
         plt.tight_layout()
