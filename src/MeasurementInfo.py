@@ -9,6 +9,28 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import sem
 from uncertainties import ufloat
+import os
+import h5py
+from src.ProcessWaveforms import ProcessWaveforms
+
+def get_files(path: str):
+    files = [ f for f in os.listdir(path) if os.path.isfile(os.path.join(path,f)) ]
+    biases = []
+    # Sort files by bias voltage
+    for f in files:
+        with h5py.File(path+f, 'r') as hdf: # Find bias for each file
+            biases.append(hdf['RunData'][next(iter(hdf['RunData'].keys()))].attrs['Bias(V)'])
+    biases, files = zip(*sorted(zip(biases, files))) # Sort based on biases
+
+    # Extract pre-breakdown baseline if it was collected
+    run_spe_pre_bd = None
+    if biases[0] < 25:
+        run_spe_pre_bd = ProcessWaveforms([path+files[0]], do_filter=True,
+                                          is_pre_bd=True, upper_limit=-1, baseline_correct=True)
+        files = files[1:]
+        biases = biases[1:]
+
+    return files, biases, run_spe_pre_bd
 
 def avg_amp(peaks):
     avg_amp = np.mean(peaks)
@@ -27,6 +49,7 @@ class MeasurementInfo:
         self.prominence = run.prominence
         self.upperlim   = run.upper_limit
 
+        # self.peaks = run.peaks
         self.peaks = {
             'all':  run.peaks['all'],
             'dark': run.peaks['dark'],
