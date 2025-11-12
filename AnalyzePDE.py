@@ -237,15 +237,15 @@ class SPE_data:
         if absolute:
             fit_y = self.absolute_spe_res.eval(
                 params=self.absolute_spe_res.params, x=fit_bias
-            )
+            ) /1e6
             fit_y_err = self.absolute_spe_res.eval_uncertainty(
                 x=fit_bias, params=self.absolute_spe_res.params, sigma=1
-            )
+            ) /1e6
             fit_label = "Absolute Gain Best Fit"
             data_label = "Absolute Gain Values"
-            y_label = "Absolute Gain"
-            data_y = self.absolute_spe_vals
-            data_y_err = self.absolute_spe_err
+            y_label = "Absolute Gain ($\\times 10^6$)"
+            data_y = self.absolute_spe_vals /1e6
+            data_y_err = self.absolute_spe_err /1e6
             chi_sqr = self.absolute_spe_res.redchi
             slope_text = rf"""Slope: {self.absolute_spe_res.params['slope'].value:0.4} $\pm$ {self.absolute_spe_res.params['slope'].stderr:0.2} [1/V]"""
             intercept_text = rf"""Intercept: {self.absolute_spe_res.params['intercept'].value:0.4} $\pm$ {self.absolute_spe_res.params['intercept'].stderr:0.2} [V]"""
