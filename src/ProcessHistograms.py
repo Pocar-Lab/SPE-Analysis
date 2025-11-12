@@ -170,6 +170,7 @@ class ProcessHist:
         self,
         info: MeasurementInfo,
         centers: List[float] | np.ndarray = [], #initializes centers as an empty list (so code still works for alpha data)
+        first_pe: Optional[float] = None,
         baseline_correct: bool = False,
         cutoff: Tuple[float, float] = (0, np.inf),
         peak_range: Tuple[int,int] = (1,4),
@@ -197,12 +198,12 @@ class ProcessHist:
         self.low_peak = peak_range[0]
         self.high_peak = peak_range[1]
         self.numpeaks = peak_range[1] - (peak_range[0] - 1)
-        # TODO make center guess only the guess for the first peak, and the rest int multiples
-        self.centers = centers[peak_range[0]-1:]
+        if first_pe:
+            self.centers = [first_pe * peak / 1000 for peak in range(peak_range[0],
+                                                                     peak_range[1]+1)]
+        else:
+            self.centers = centers[peak_range[0]-1:]
         self.peak_range = peak_range
-        self.range_high = cutoff[1]
-        self.range_low = cutoff[0]
-        # self.no_solicit = no_solicit
         self.subtraction_method = subtraction_method
         self.background_linear = background_linear
         self.peaks = peaks
@@ -261,6 +262,7 @@ class ProcessHist:
         """Processes the waveform data, extracting various statistical information from it."""
         self.process_peaks()
 
+        # FIXME sometimes number of bins is too small to find peaks
         self.numbins = int(np.sqrt(len(self.all_peaks)))
         self.bins = np.histogram_bin_edges(self.all_peaks, bins=self.numbins)
         #!!! attr defined outside init
