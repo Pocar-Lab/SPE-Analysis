@@ -329,7 +329,7 @@ class ProcessHist:
             self.spe_num.append(float(idx + 1))
         # self.peak_locs = sorted(self.peak_locs)
 
-        # linear fit to the peak locations
+        # Linear fit to the peak locations used to calculate SPE amplitude
         model = lm.models.LinearModel()
         params = model.make_params()
         self.spe_res = model.fit(
@@ -338,6 +338,16 @@ class ProcessHist:
             x=self.spe_num,
             weights=self.peak_wgts[: self.numpeaks],
         ) # creates linear fit model
+
+        # Exponential fit of peak heights used to calculate CA probability
+        model = lm.models.LinearModel()
+        params = model.make_params()
+        self.ca_res = model.fit(
+            np.log(self.peak_heights),
+            params=params,
+            x=self.spe_num,
+            weights=[1.0 / np.sqrt(err) for err in self.peak_height_errs],
+        )
 
         if self.baseline_correct:
             self.A_avg = ( np.mean(self.peak_values) - self.spe_res.params["intercept"].value)  # spectrum specific baseline correction
@@ -384,6 +394,19 @@ class ProcessHist:
         )
 
         return (currCA, currCA_err)
+
+    def get_CA_height(self) -> Tuple[float, float]:
+        """Computes the number of Correlated Avalanches (CA) and its error from the height of PE peaks.
+
+        Returns:
+            Tuple[float, float]: A tuple containing the computed CA factor and its error.
+        """
+        prob_CA = np.exp(self.ca_res.params['slope'].value)
+        prob_CA_err = self.ca_res.params['slope'].stderr
+        # Convert CA probability to number of CAs using geometric series
+        num_CA = 1/(1-prob_CA) - 1
+        CA_err = 1/((1-prob_CA)**2) * prob_CA_err
+        return (num_CA, CA_err)
 
     def get_CA_rms(self, spe: float, spe_err: float) -> Tuple[float, float]:
         """Computes the root mean square (rms) of the Correlated Avalanche (CA) factor and its error based on given spe and its error.

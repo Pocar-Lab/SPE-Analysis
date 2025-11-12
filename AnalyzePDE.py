@@ -375,7 +375,20 @@ class SPE_data:
             yerr=data_y_err,
             markersize=10,
             fmt=".",
-            label=r"$\frac{1}{N}\sum_{i=1}^{N}{\frac{A_i}{\bar{A}_{1 PE}}-1}$",
+            # label=r"$\frac{1}{N}\sum_{i=1}^{N}{\frac{A_i}{\bar{A}_{1 PE}}-1}$",
+            label=r"CA from Average Amplitude",
+        )
+
+        CA_height = [wp.get_CA_height()[0] for wp in self.campaign]
+        CA_height_err = [wp.get_CA_height()[1] for wp in self.campaign]
+        plt.errorbar(
+            data_x,
+            CA_height,
+            xerr=data_x_err,
+            yerr=CA_height_err,
+            markersize=10,
+            fmt=".",
+            label="CA from PE Heights",
         )
 
         x_label = "Overvoltage [V]"
