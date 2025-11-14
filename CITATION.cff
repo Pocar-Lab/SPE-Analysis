@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+title: SPE Analysis
+abstract: >-
+  Single Photoelectron Analysis of Silicon Photomultipler Signals
+  for the Pocar Lab Liquid Xenon System
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Edryd
+    family-names: van Bruggen
+    email: ed@edryd.org
+    affiliation: University of Massachusetts
+  - given-names: Wesley
+    family-names: Gillis
+    email: wgillis@bates.edu
+    affiliation: Bates College
+  - given-names: Luc
+    family-names: Barrett
+    email: me@lucbarrett.info
+    affiliation: Cornell University
+  - given-names: Hannah
+    family-names: Peltz Smalley
+    email: hpeltzsmalle@umass.edu
+    affiliation: Univserity of Massachusetts
+identifiers:
+  - type: url
+    value: 'https://github.com/Pocar-Lab/SPE-Analysis'
+    description: Github Repository
