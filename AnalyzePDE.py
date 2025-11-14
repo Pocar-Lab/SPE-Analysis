@@ -8,6 +8,7 @@ Created on Tue Apr  5 15:55:20 2022
 import numpy as np
 import lmfit as lm
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 # import GainCalibration_2022 as GainCalibration
 import pandas as pd
@@ -327,7 +328,7 @@ class SPE_data:
             df.to_csv(out_file)
         plt.show()
 
-    def plot_CA(self, color: str = "blue", out_file: str = None) -> None:
+    def plot_CA(self, color: str = "blue", out_file: str = None, other_ca = None) -> None:
         """
         Plot the correlated avalanche (CA) as a function of overvoltage.
 
@@ -378,6 +379,19 @@ class SPE_data:
             # label=r"$\frac{1}{N}\sum_{i=1}^{N}{\frac{A_i}{\bar{A}_{1 PE}}-1}$",
             label=r"CA from Average Amplitude",
         )
+
+        if other_ca:
+            for csv in other_ca:
+                df = pd.read_csv(csv)
+                plt.errorbar(
+                    df["Overvoltage [V]"],
+                    df["Number of CA [PE]"],
+                    xerr=df["Overvoltage [V] error"],
+                    yerr=df["Number of CA [PE] error"],
+                    markersize=10,
+                    fmt=".",
+                    label=Path(csv).name,
+                )
 
         CA_height = [wp.get_CA_height()[0] for wp in self.campaign]
         CA_height_err = [wp.get_CA_height()[1] for wp in self.campaign]
