@@ -205,8 +205,6 @@ class ProcessHist:
         # TODO make center guess only the guess for the first peak, and the rest int multiples
         self.centers = centers[peak_range[0]-1:]
         self.peak_range = peak_range
-        self.range_high = cutoff[1]
-        self.range_low = cutoff[0]
         # self.no_solicit = no_solicit
         self.subtraction_method = subtraction_method
         self.background_linear = background_linear

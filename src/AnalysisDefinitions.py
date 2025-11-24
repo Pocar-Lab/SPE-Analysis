@@ -203,7 +203,7 @@ class AnalysisUltimate:
         """
         self.histograms = {}
         for bias in self.biases:
-            if bias < 25:
+            if bias < 25 or self.processhist_arguments['info'][bias] == 'not set':
                 continue
             warg = {k: self.processhist_arguments[k][bias] for k in self.processhist_arguments if self.processhist_arguments[k][bias] != 'not set'}
             self.histograms[bias] = ProcessHist(**warg)
