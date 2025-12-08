@@ -538,33 +538,33 @@ class AnalyzeResults:
             fit_funcda = expda
             fit_funcdb = expdb
             init_guess = dict(a=1, b=1)
-            eq_label = '$a e^{b x}$'
+            eq_label = '$y = a e^{b x}$'
         elif fit == 'exp1':
             fit_func = exp1
             fit_ufunc = uexp1
             fit_funcda = exp1da
             fit_funcdb = exp1db
             init_guess = dict(a=1, b=1)
-            eq_label = '$a (e^{b x} - 1)$'
+            eq_label = '$y = a (e^{b x} - 1)$'
         elif fit == 'xexp':
             fit_func = xexp
             fit_ufunc = uxexp
             fit_funcda = xexpda
             fit_funcdb = xexpdb
             init_guess = dict(a=1, b=1)
-            eq_label = '$a x e^{b x}$'
+            eq_label = '$y = a x e^{b x}$'
         elif fit == 'quad':
             fit_func = fit_ufunc = quad
             init_guess = dict(a=1, c=0)
-            eq_label = '$a x^2 + c$'
+            eq_label = '$y = a x^2 + c$'
         elif fit == 'fullquad':
             fit_func = fit_ufunc = fullquad
             init_guess = dict(a=1, b=1, c=0)
-            eq_label = '$a x^2 + b x + c$'
+            eq_label = '$y = a x^2 + b x + c$'
         elif fit == 'quad0':
             fit_func = fit_ufunc = quad0
             init_guess = dict(a=1, b=1)
-            eq_label = '$a x^2 + b x$'
+            eq_label = '$y = a x^2 + b x$'
         elif fit == 'linear':
             fit_func = fit_ufunc = linear
             init_guess = dict(b=1, c=0)
