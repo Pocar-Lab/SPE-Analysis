@@ -231,7 +231,7 @@ class AnalysisUltimate:
     def do_spe_data(self,
                     invC: float,
                     invC_err: float,
-                    filtered: bool,
+                    filtered: bool = True,
                     do_CA: bool = False,
                     biases: list[float] = None,
                     ):
