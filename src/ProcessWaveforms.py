@@ -130,7 +130,6 @@ def fit_baseline_gauss(
     # return {'center': np.mean(values), 'low': np.amin(values), 'high': np.amax(values), 'fit': res}
     return f_range
 
-
 class ProcessWaveforms:
     # TODO: return single peaks object with fields for all, led, or dark peaks
     def __init__(
@@ -157,7 +156,7 @@ class ProcessWaveforms:
         tuning peak finding.
 
         Args:
-            f list: list of h5 file names
+            f (list): list of h5 file names
             acquisition (str, optional): specified file name. None will select all acquisitions. Defaults to None.
             is_pre_bd (bool, optional): specified whether data is solicited, AKA 'empty' baseline data. Defaults to False.
             do_filter (bool, optional): activates butterworth lowpass filter if True. Defaults to False.
@@ -166,7 +165,7 @@ class ProcessWaveforms:
             baseline_correct (bool, optional): baseline corrects waveforms if True. Defaults to False.
             prominence (float, optional): parameter used for scipy.find_peaks. None will run auto_prominence. Defaults to None.
             fourier (bool, optional): if True performs fourier frequency subtraction. Defaults to False.
-            num_waveforms: (float, optional): number of oscilloscope traces to read in before stopping; default 0 reads everything
+            num_waveforms (float, optional): number of oscilloscope traces to read in before stopping; default 0 reads everything
         Raises:
             TypeError: _description_
         """
@@ -320,6 +319,7 @@ class ProcessWaveforms:
         led_peaks = []
         curr_data = self.acquisitions_data[filename][acquisition_name]
         time = self.acquisitions_time[filename][acquisition_name]
+        led_time_thresh = (time[-1] + time[1]) / 2.0
         window_length = time[-1] - time[0]
         num_points = float(len(time))
         fs = num_points / window_length
@@ -329,12 +329,12 @@ class ProcessWaveforms:
             print('using polynomial baseline correction...')
         if self.num_waveforms ==0:
             print('reading all waveforms')
-            num_wavefroms = np.shape(curr_data)[1]
+            num_waveforms = np.shape(curr_data)[1]
         else:
-            num_wavefroms = self.num_waveforms
-            print(f'reading {num_wavefroms} waveforms')
+            num_waveforms = self.num_waveforms
+            print(f'reading {num_waveforms} waveforms')
 
-        for idx in range(num_wavefroms):
+        for idx in range(num_waveforms):
             # TODO better way to do this
             # idx = idx + 8000 # uncomment if plotting waveforms and want to see waveforms at different indices
             if idx % 1000 == 0:
@@ -346,19 +346,8 @@ class ProcessWaveforms:
             if self.is_pre_bd:
                 all_peaks += list(amp) # amp[100:]
                 continue
-
+            
             peaks, props = signal.find_peaks(amp, **self.peak_search_params)
-
-            # TODO split into different method
-            if self.plot_waveforms:
-                plt.title(acquisition_name)
-                plt.tight_layout()
-                if len(peaks) > 0: # only plot peaks
-                    plt.plot(time,amp)
-                    for peak in peaks:
-                        plt.plot(time[peaks], amp[peaks], '.')
-
-            led_time_thresh = (time[-1] + time[1]) / 2.0
             for peak in peaks:
                 all_peaks.append(amp[peak])
                 curr_time = time[peak]
@@ -366,6 +355,16 @@ class ProcessWaveforms:
                     dark_peaks.append(amp[peak])
                 else:
                     led_peaks.append(amp[peak])
+
+            # TODO split into different method
+            if self.plot_waveforms and not self.do_multiprocessing:
+                plt.title(acquisition_name)
+                plt.tight_layout()
+                if len(peaks) > 0: # only plot peaks
+                    plt.plot(time,amp)
+                    for peak in peaks:
+                        plt.plot(time[peaks], amp[peaks], '.')
+
 
         print(f'all  peaks: {np.mean(all_peaks):.3} ± {np.std(all_peaks,ddof=1)/np.sqrt(len(all_peaks)):.3}')
         print(f'dark peaks: {np.mean(dark_peaks):.3} ± {np.std(dark_peaks,ddof=1)/np.sqrt(len(all_peaks)):.3}')

@@ -7,6 +7,9 @@ from ProcessHistograms import ProcessHist
 from AnalyzePDE import SPE_data
 import h5py
 import time
+from multiprocessing import Pool
+def multiprocesswaveforms(args):
+    return ProcessWaveforms(**args)
 
 class AnalysisUltimate:
     def __init__(self,
@@ -39,7 +42,7 @@ class AnalysisUltimate:
                             prominence: dict | float = None,
                             fourier: dict | bool = False,
                             condition: dict | str = "unspecified medium (GN/LXe/Vacuum)",
-                            num_waveforms: dict | float = 0,
+                            num_waveforms: dict | float = 0
                         ):
         """
         Initialize the arguments for Process waveform data from hdf5 file to find peaks.
@@ -76,7 +79,7 @@ class AnalysisUltimate:
                                            'prominence': prominence, 
                                            'fourier': fourier, 
                                            'condition': condition, 
-                                           'num_waveforms': num_waveforms,
+                                           'num_waveforms': num_waveforms
                                            }
         for a in self.processwaveforms_arguments:
             if type(self.processwaveforms_arguments[a]) is not dict:
@@ -89,6 +92,7 @@ class AnalysisUltimate:
                             temperature: float,
                             biases: list[float] | None = None,
                             timeit: bool = False,
+                            multiprocess_cores: int = None
                             ):
         """
         Create and run temporary ProcessWaveform objects on the given biases using the arguments created in self.args_processwaveforms.
@@ -98,6 +102,7 @@ class AnalysisUltimate:
             temperature (float): temperature of the experiment
             biases (list of floats, optional): which biases to evaluate or reevaluate. Does not automatically include the breakdown. None does all given biases. Defaults to None.
             timeit (bool, optional): time how long this method takes. Defaults to False.
+            multiprocess_cores (int, optional): how many cores to use for calculation. None does no multiprocessing. Defaults to None
         """
         if timeit:
             t0 = time.time()
@@ -109,21 +114,41 @@ class AnalysisUltimate:
 
 
         runs = {} # keys are bias voltages, data is ProcessWaveforms object
-        for bias in biases:
-            f = self.folder_path + self.biases[bias]
-            warg = {k: self.processwaveforms_arguments[k][bias] for k in self.processwaveforms_arguments if self.processwaveforms_arguments[k][bias] != 'not set'}
-            if bias < 25:
-                warg['is_pre_bd'] = True
-                bias = 'prebreakdown'
-            runs[bias] = ProcessWaveforms([f],**warg)
+        if multiprocess_cores:
+            wargs = []
+            for bias in biases:
+                warg = {k: self.processwaveforms_arguments[k][bias] for k in self.processwaveforms_arguments if self.processwaveforms_arguments[k][bias] != 'not set'}
+                warg['f'] = [os.path.abspath(self.folder_path + self.biases[bias])]
+                if bias < 25:
+                    warg['is_pre_bd'] = True
+                wargs.append(warg)
+            with Pool(multiprocess_cores) as p:
+                tempruns = p.map(multiprocesswaveforms,wargs)
+            for pw in tempruns:
+                if pw.bias < 25:
+                    runs['prebreakdown'] = pw
+                else:
+                    runs[pw.bias] = pw
+        else:
+            for bias in biases:
+                f = self.folder_path + self.biases[bias]
+                warg = {k: self.processwaveforms_arguments[k][bias] for k in self.processwaveforms_arguments if self.processwaveforms_arguments[k][bias] != 'not set'}
+                if bias < 25:
+                    warg['is_pre_bd'] = True
+                    bias = 'prebreakdown'
+                runs[bias] = ProcessWaveforms([f],**warg)
         if 'prebreakdown' not in runs:
             runs['prebreakdown'] = None
         for bias in biases:
             if bias > 25:
-                self.measurementinfos[bias] = MeasurementInfo(self.processwaveforms_arguments['condition'][bias],temperature,runs[bias],runs['prebreakdown'])
+                self.measurementinfos[bias] = MeasurementInfo(self.processwaveforms_arguments['condition'][bias],
+                                                              temperature,
+                                                              runs[bias],
+                                                              runs['prebreakdown'])
         if timeit:
             t1 = time.time()
             print(f'do_processwaveforms took {t1-t0:0.4} seconds to complete.')
+    
     def guess_pe_locations(self,
                            get_values: bool = False,
                            show_plots: bool = True,
