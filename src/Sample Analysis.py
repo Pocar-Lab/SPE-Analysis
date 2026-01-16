@@ -12,8 +12,9 @@ if __name__ == '__main__':
     pes_dict = {biases[i+1]: num_pes[i] for i in range(len(biases)-1)} #create a dictinoary. Can be manual: keys are biases, data is number of peaks as int
     lowerlim = [4,4,4,4,4,4,4,4,4] #in mV #the lowerlims to be used, ordered by bias in increasing order
     lowerlimdict = {biases[i+1]:lowerlim[i]/1000 for i in range(len(lowerlim))} #create a dictionary. Can be manual: keys are biases, data is lowerlim as float
-    pe_center_guesses = [5.0, 5.2, 5.5, 5.9, 6.6, 7.0, 7.4, 7.8, 8.3] #centers of the first pe, ordered by bias in increasing order
-    centers = {biases[i+1]: [pe_center_guesses[i] * peak / 1000 for peak in range(1,num_pes[i]+1)] for i in range(len(biases)-1)} #create a dictinoary. Can be manual: keys are biases, data is list of centers guesses for the multigaussian
+    pe_center_guesses = None#[5.0, 5.2, 5.5, 5.9, 6.6, 7.0, 7.4, 7.8, 8.3] #centers of the first pe, ordered by bias in increasing order
+    if pe_center_guesses:
+        centers = {biases[i+1]: [pe_center_guesses[i] * peak / 1000 for peak in range(1,num_pes[i]+1)] for i in range(len(biases)-1)} #create a dictinoary. Can be manual: keys are biases, data is list of centers guesses for the multigaussian
     multicores = 6 #how many cores to use multiprocessing with. None for no multiprocessing
     invC = 0.011547 #inverse capacitance of pream-shaper circuit, see Noah's calibration report
     invCerr = 0.000098 #error on above term
@@ -42,6 +43,9 @@ if __name__ == '__main__':
             continue
         cutoffs[v] = (lowerlimdict[v], .1)
     peak_ranges = {biases[i+1]: (1,num_pes[i]) for i in range(len(biases)-1)}
+
+    if not pe_center_guesses:
+        centers = ult.guess_pe_locations(get_values=True,show_plots=True,cutoff=cutoffs)
 
     ult.args_processhistograms(centers = centers, 
                             baseline_correct=True,

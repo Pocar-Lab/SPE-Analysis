@@ -150,26 +150,35 @@ class AnalysisUltimate:
             print(f'do_processwaveforms took {t1-t0:0.4} seconds to complete.')
     
     def guess_pe_locations(self,
+                           biases: list = None,
                            get_values: bool = False,
                            show_plots: bool = True,
+                           cutoff: dict[tuple[float,float]] = (0,np.inf),
                            ) -> dict | None:
         """
         Creates an estimation for the 1PE amplitude for use in ProcessHist via taking the mode.
         These are not stored.
 
         Args:
+            biases (list of floats, optional): which biases to evaluate or reevaluate. Does not automatically include the breakdown. None does all given biases. Defaults to None.
             get_values (bool, optional): do you want to return the PE values? If so, it will be in a dictionary keyed by bias. Defaults to False.
             show_plots (bool, optional): do you want to see the histograms? Defaults to True.
+            cutoff (tuple[float, float],optional): Low and high cutoff values. Defaults to (0,np.inf).
         """
         maxes = {}
         figs = {}
         axes = {}
-        for bias in self.biases:
+        if not biases:
+            biases = self.biases
+        if type(cutoff) != dict:
+            cutoff = {bias:cutoff for bias in biases}
+        for bias in biases:
             if bias < 25:
                 continue
             m = self.measurementinfos[bias]
+            heights = np.array([i for i in m.all_peaks if cutoff[bias][0]<i<cutoff[bias][1]])
             figs[bias],axes[bias] = plt.subplots(1,1)
-            n,bins,_ = axes[bias].hist(m.all_peaks,bins = 1000,color='blue')
+            n,bins,_ = axes[bias].hist(heights,bins = 1000,color='blue')
             maxes[bias] = [bins[np.argmax(n)] * i for i in range(1,10)]
             [axes[bias].axvline(x=v,color='red') for v in maxes[bias]]
             axes[bias].set_title(f'{bias} V bias')
