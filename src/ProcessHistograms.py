@@ -499,7 +499,7 @@ class ProcessHist:
 
     def plot_peak_histogram(
             self,
-            with_fit: bool = True,
+            with_centers: bool = True,
             log_scale: bool = True,
             peakcolor: str = "blue",
             savefig: bool = False,
@@ -601,6 +601,8 @@ class ProcessHist:
         # total_num_bins = round(np.sqrt(len(self.peak_values)))
         total_num_bins = round(np.sqrt(len(self.all_peaks)))
         plt.hist(self.peak_values, bins=total_num_bins) #zoom
+        if with_centers:
+            plt.vlines(x=self.centers,colors='red')
         # plt.hist(self.peak_values, bins = self.numbins, color = 'tab:' + peakcolor) #zoom
         # total_num_bins = round(np.sqrt(len(self.all_peaks)))
         # plt.hist(self.all_peaks, bins = int(total_num_bins), color = 'tab:' + peakcolor)
