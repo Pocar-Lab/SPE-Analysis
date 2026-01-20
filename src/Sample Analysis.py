@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 if __name__ == '__main__':
 
-    folder = "20251114_SPE_GN_137K" #requires a baseline file
+    folder = "20251120_SPE_GN_128K" #requires a baseline file
     ult = AU(h5_folder_path='DAQ_data/'+folder+'/',)
 
     biases = list(ult.biases) #what biases to analyze
@@ -35,7 +35,7 @@ if __name__ == '__main__':
                             poly_correct=poly)
     #print(ult.processwaveforms_arguments)
 
-    ult.do_processwaveforms(temperature = 137,timeit=False,biases=biases,multiprocess_cores=multicores)
+    ult.do_processwaveforms(temperature = 128,timeit=False,biases=biases,multiprocess_cores=multicores)
 
     cutoffs = {}
     for v in biases:
