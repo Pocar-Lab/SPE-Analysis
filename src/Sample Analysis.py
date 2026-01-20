@@ -8,9 +8,9 @@ if __name__ == '__main__':
 
     biases = list(ult.biases) #what biases to analyze
     biases = sorted(list(biases))
-    num_pes = [6,6,6,6,6,   6,   6,   6,   6, ] #the number of peaks to fit, ordered by bias in increasing order
+    num_pes = [5,   5,   5,   5,   5,   6,   6,   6,   6, ] #the number of peaks to fit, ordered by bias in increasing order
     pes_dict = {biases[i+1]: num_pes[i] for i in range(len(biases)-1)} #create a dictinoary. Can be manual: keys are biases, data is number of peaks as int
-    lowerlim = [4,4,4,4,4,4,4,4,4] #in mV #the lowerlims to be used, ordered by bias in increasing order
+    lowerlim = [3.8, 3.8, 3.8, 3.9, 4.0, 4.1, 4.2, 4.4, 4.7] #in mV #the lowerlims to be used, ordered by bias in increasing order
     lowerlimdict = {biases[i+1]:lowerlim[i]/1000 for i in range(len(lowerlim))} #create a dictionary. Can be manual: keys are biases, data is lowerlim as float
     pe_center_guesses = None#[5.0, 5.2, 5.5, 5.9, 6.6, 7.0, 7.4, 7.8, 8.3] #centers of the first pe, ordered by bias in increasing order
     if pe_center_guesses:
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     peak_ranges = {biases[i+1]: (1,num_pes[i]) for i in range(len(biases)-1)}
 
     if not pe_center_guesses:
-        centers = ult.guess_pe_locations(get_values=True,show_plots=True,cutoff=cutoffs)
+        centers = ult.guess_pe_locations(get_values=True,show_plots=False,cutoff=cutoffs)
 
     ult.args_processhistograms(centers = centers, 
                             baseline_correct=True,
@@ -57,8 +57,10 @@ if __name__ == '__main__':
     ult.create_processhistograms()
 
     ult.do_processhistograms(biases=biases)
-    #for bias in biases:
-    #    ult.histograms[bias].plot_peak_histogram()
+    for bias in biases:
+        if bias < 25:
+            continue
+        ult.histograms[bias].plot_peak_histogram()
 
     ult.do_spe_data(invC=invC,invC_err=invCerr,biases=biases)
     ult.spe_data.plot_spe(in_ov=False,absolute=False)
