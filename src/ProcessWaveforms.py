@@ -394,7 +394,7 @@ class ProcessWaveforms:
 
         # TODO why check shape? not done for solicited
         if self.do_filter and np.shape(amp) != (0,):
-            sos = signal.butter(3, 4E5, btype='lowpass', fs=fs, output='sos') # SPE dark/10g
+            sos = signal.butter(3, 1E6, btype='lowpass', fs=fs, output='sos') # SPE dark/10g
             filtered = signal.sosfilt(sos, amp)
             amp = filtered
 

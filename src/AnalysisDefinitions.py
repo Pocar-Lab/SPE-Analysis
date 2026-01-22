@@ -14,22 +14,32 @@ def multiprocesswaveforms(args):
 class AnalysisUltimate:
     def __init__(self,
                  h5_folder_path: str,
+                 single_file: bool = False
                  ):
         """
         Creates an AnalysisUltimate obejct for performing SPE analysis.
 
         Args:
-            h5_folder_path (str): the path to the folder that holds all the hdf5 datafiles (and nothing else). Must end in '/'.
+            h5_folder_path (str): the path to the folder that holds all the hdf5 datafiles (and nothing else). Must end in '/' unless single_file == True.
+            single_file (bool): whether the given path is to a single file (true) or a folder of hdf5 files (false). Defaults to False.
         """
-        self.folder_path = h5_folder_path
-        self.files = os.listdir(self.folder_path)
         self.measurementinfos = {} # keys are hdf5 file names, data is a ProcessWaveforms object
         self.biases = {} # keys are hdf5 file names, data is bias voltage
-        for name in self.files:
-            f = h5py.File(self.folder_path+name,'r') # get hdf5 file
-            group_names = list(f['RunData'].keys())
-            self.biases[name] = f['RunData'].get(group_names[0]).attrs['Bias(V)']
-        self.files = {f:self.biases[f] for f in self.files}
+        self.single_file = single_file
+        self.folder_path = h5_folder_path
+        if not self.single_file:
+            self.files = os.listdir(self.folder_path)
+            for name in self.files:
+                f = h5py.File(self.folder_path+name,'r') # get hdf5 file
+                group_names = list(f['RunData'].keys())
+                self.biases[name] = f['RunData'].get(group_names[0]).attrs['Bias(V)']
+            self.files = {f:self.biases[f] for f in self.files}
+        else:
+            f = h5py.File(self.folder_path,'r')
+            self.acquisitions = list(f['RunData'].keys())
+            for aq in self.acquisitions:
+                self.biases[aq] = f['RunData'].get(aq).attrs['Bias(V)']
+            self.acquisitions = {aq:self.biases[aq] for aq in self.acquisitions}
         self.biases = {self.biases[f]:f for f in self.biases}
 
     def args_processwaveforms(self,
@@ -60,8 +70,7 @@ class AnalysisUltimate:
         To create the MeasurementInfo objects for each bias, run the do_processwaveforms method.
 
         Args:
-            f (list): list of h5 file names
-            acquisition (str, optional): specified file name. Defaults to 'placeholder'.
+            acquisition (str, optional): specified acquisition name within a file. Defaults to 'placeholder'.
             do_filter (bool, optional): activates butterworth lowpass filter if True. Defaults to False.
             plot_waveforms (bool, optional): plots waveforms if True. Defaults to False.
             upper_limit (float, optional): amplitude threshold for discarding waveforms. Set to -1 for automatic setting. Defaults to -1.
@@ -118,14 +127,18 @@ class AnalysisUltimate:
             wargs = []
             for bias in biases:
                 warg = {k: self.processwaveforms_arguments[k][bias] for k in self.processwaveforms_arguments if self.processwaveforms_arguments[k][bias] != 'not set'}
-                warg['f'] = [os.path.abspath(self.folder_path + self.biases[bias])]
-                if bias < 25:
+                if not self.single_file:
+                    warg['f'] = [os.path.abspath(self.folder_path + self.biases[bias])]
+                else:
+                    warg['f'] = [self.folder_path]
+                    warg['acquisition'] = self.biases[bias]
+                if bias <= 25:
                     warg['is_pre_bd'] = True
                 wargs.append(warg)
             with Pool(multiprocess_cores) as p:
                 tempruns = p.map(multiprocesswaveforms,wargs)
             for pw in tempruns:
-                if pw.bias < 25:
+                if pw.bias <= 25:
                     runs['prebreakdown'] = pw
                 else:
                     runs[pw.bias] = pw
@@ -133,10 +146,15 @@ class AnalysisUltimate:
             for bias in biases:
                 f = self.folder_path + self.biases[bias]
                 warg = {k: self.processwaveforms_arguments[k][bias] for k in self.processwaveforms_arguments if self.processwaveforms_arguments[k][bias] != 'not set'}
-                if bias < 25:
+                if not self.single_file:
+                    warg['f'] = [os.path.abspath(self.folder_path + self.biases[bias])]
+                else:
+                    warg['f'] = [self.folder_path]
+                    warg['acquisition'] = self.biases[bias]
+                if bias <= 25:
                     warg['is_pre_bd'] = True
                     bias = 'prebreakdown'
-                runs[bias] = ProcessWaveforms([f],**warg)
+                runs[bias] = ProcessWaveforms(**warg)
         if 'prebreakdown' not in runs:
             runs['prebreakdown'] = None
         for bias in biases:
@@ -173,7 +191,7 @@ class AnalysisUltimate:
         if type(cutoff) != dict:
             cutoff = {bias:cutoff for bias in biases}
         for bias in biases:
-            if bias < 25:
+            if bias <= 25:
                 continue
             m = self.measurementinfos[bias]
             heights = np.array([i for i in m.all_peaks if cutoff[bias][0]<i<cutoff[bias][1]])
@@ -237,7 +255,7 @@ class AnalysisUltimate:
         """
         self.histograms = {}
         for bias in self.biases:
-            if bias < 25 or self.processhist_arguments['info'][bias] == 'not set':
+            if bias <= 25 or self.processhist_arguments['info'][bias] == 'not set':
                 continue
             warg = {k: self.processhist_arguments[k][bias] for k in self.processhist_arguments if self.processhist_arguments[k][bias] != 'not set'}
             self.histograms[bias] = ProcessHist(**warg)
@@ -258,7 +276,7 @@ class AnalysisUltimate:
             raise Exception("biases must either be a subset of self.biases's keys or be None")            
 
         for bias in biases:
-            if bias < 25:
+            if bias <= 25:
                 continue
             self.histograms[bias].process_spe()
         

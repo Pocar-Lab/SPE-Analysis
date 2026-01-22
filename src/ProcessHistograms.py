@@ -602,7 +602,7 @@ class ProcessHist:
         total_num_bins = round(np.sqrt(len(self.all_peaks)))
         plt.hist(self.peak_values, bins=total_num_bins) #zoom
         if with_centers:
-            plt.vlines(x=np.array(self.centers)/1000,colors='red')
+            plt.vlines(x=np.array(self.centers),ymin=0,ymax=10*np.max(y_line_fit),colors='black')
         # plt.hist(self.peak_values, bins = self.numbins, color = 'tab:' + peakcolor) #zoom
         # total_num_bins = round(np.sqrt(len(self.all_peaks)))
         # plt.hist(self.all_peaks, bins = int(total_num_bins), color = 'tab:' + peakcolor)
