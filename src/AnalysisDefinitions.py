@@ -41,6 +41,7 @@ class AnalysisUltimate:
                 self.biases[aq] = f['RunData'].get(aq).attrs['Bias(V)']
             self.acquisitions = {aq:self.biases[aq] for aq in self.acquisitions}
         self.biases = {self.biases[f]:f for f in self.biases}
+        self.prebreakdown_cutoff = 27
 
     def args_processwaveforms(self,
                             acquisition: dict[str] | None = None,
@@ -132,13 +133,13 @@ class AnalysisUltimate:
                 else:
                     warg['f'] = [self.folder_path]
                     warg['acquisition'] = self.biases[bias]
-                if bias <= 25:
+                if bias <= self.prebreakdown_cutoff:
                     warg['is_pre_bd'] = True
                 wargs.append(warg)
             with Pool(multiprocess_cores) as p:
                 tempruns = p.map(multiprocesswaveforms,wargs)
             for pw in tempruns:
-                if pw.bias <= 25:
+                if pw.bias <= self.prebreakdown_cutoff:
                     runs['prebreakdown'] = pw
                 else:
                     runs[pw.bias] = pw
@@ -151,14 +152,14 @@ class AnalysisUltimate:
                 else:
                     warg['f'] = [self.folder_path]
                     warg['acquisition'] = self.biases[bias]
-                if bias <= 25:
+                if bias <= self.prebreakdown_cutoff:
                     warg['is_pre_bd'] = True
                     bias = 'prebreakdown'
                 runs[bias] = ProcessWaveforms(**warg)
         if 'prebreakdown' not in runs:
             runs['prebreakdown'] = None
         for bias in biases:
-            if bias > 25:
+            if bias > self.prebreakdown_cutoff:
                 self.measurementinfos[bias] = MeasurementInfo(self.processwaveforms_arguments['condition'][bias],
                                                               temperature,
                                                               runs[bias],
@@ -191,7 +192,7 @@ class AnalysisUltimate:
         if type(cutoff) != dict:
             cutoff = {bias:cutoff for bias in biases}
         for bias in biases:
-            if bias <= 25:
+            if bias <= self.prebreakdown_cutoff:
                 continue
             m = self.measurementinfos[bias]
             heights = np.array([i for i in m.all_peaks if cutoff[bias][0]<i<cutoff[bias][1]])
@@ -255,7 +256,7 @@ class AnalysisUltimate:
         """
         self.histograms = {}
         for bias in self.biases:
-            if bias <= 25 or self.processhist_arguments['info'][bias] == 'not set':
+            if bias <= self.prebreakdown_cutoff or self.processhist_arguments['info'][bias] == 'not set':
                 continue
             warg = {k: self.processhist_arguments[k][bias] for k in self.processhist_arguments if self.processhist_arguments[k][bias] != 'not set'}
             self.histograms[bias] = ProcessHist(**warg)
@@ -276,7 +277,7 @@ class AnalysisUltimate:
             raise Exception("biases must either be a subset of self.biases's keys or be None")            
 
         for bias in biases:
-            if bias <= 25:
+            if bias <= self.prebreakdown_cutoff:
                 continue
             self.histograms[bias].process_spe()
         
