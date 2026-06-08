@@ -145,7 +145,7 @@ def read_ca(df, input_ov_vals, vbd=0):
 
     out_vals = ca_res.eval(params=ca_res.params, x=input_ov_vals)
     out_err = ca_res.eval_uncertainty(x=input_ov_vals, sigma=1)
-    return out_vals, out_err
+    return out_vals, out_err, ca_res
 
 # TODO integrate MeasurmentInfo which includes calibration numbers
 class AnalyzeResults:
@@ -192,7 +192,7 @@ class AnalyzeResults:
         self.spe_vals, self.spe_err = read_spe(spe_df, self.bias_vals, invC_spe, invC_spe_err)
 
         ca_df = pd.read_csv(ca_csv)
-        self.ca_vals, self.ca_err = read_ca(ca_df, self.ov)
+        self.ca_vals, self.ca_err,_ = read_ca(ca_df, self.ov)
 
         # # in p.e. units
         # self.sigma_in_spe_units = self.sigma_vals/self.spe_vals * self.spe_data.invC/self.invC
@@ -455,7 +455,7 @@ class AnalyzeResults:
         other_data: list = None,
         out_file: str = None,
         legtext: str = "",
-    ) -> None:
+    ):
         """
         Plot the Photon Detection Efficiency (PDE) as a function of overvoltage.
 
