@@ -126,8 +126,8 @@ def read_spe(df, new_bias, invC, invC_err):
     out_err = spe_res.eval_uncertainty(x=new_bias, sigma=1)
     return out_vals, out_err
 
-def read_ca(df, input_ov_vals):
-    ov_vals = df['Overvoltage [V]']
+def read_ca(df, input_ov_vals, vbd=0):
+    ov_vals = df['Overvoltage [V]'] + vbd
     ov_err = df['Overvoltage [V] error']
     ca_vals = df['Number of CA [PE]']
     ca_err = df['Number of CA [PE] error']
