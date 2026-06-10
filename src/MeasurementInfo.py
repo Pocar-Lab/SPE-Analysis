@@ -72,13 +72,15 @@ class MeasurementInfo:
             self.baseline_std  = 0.25 * np.std(run.baseline_levels) # TODO why 1/4 ??
             # self.baseline_rms = run_info_self.baseline_mode_rms
 
-    def plot_histogram(self, bins=1000) -> None:
+    def plot_histogram(self, zoom=False, bins=1000) -> None:
         """Plot preliminary histograms of file. Used to find initial guess of first PE value"""
         plt.hist(self.peaks['all'], bins=bins, histtype="step", density=False)
         plt.xlabel("Amplitude (V)", loc='right')
         plt.ylabel("Frequency", loc='top')
         plt.title(f"{self.date}, {self.condition}, {self.temperature} K, {self.bias} V")
         plt.subplots_adjust(top=0.9)
+        if zoom:
+            plt.xlim(0,.02)
         plt.yscale("log")
         plt.tight_layout()
         plt.show()
