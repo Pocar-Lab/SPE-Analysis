@@ -113,10 +113,8 @@ def fit_baseline_gauss(
     new_binnum = int(bin_density * (f_range["high"] - f_range["low"]))
     values = np.array(values)
     limit_values = values[(values >= f_range["low"]) & (values <= f_range["high"])]
-    curr_hist = np.histogram(limit_values, bins=new_binnum)
-    # plt.hist(values, bins= binnum)
-    counts = curr_hist[0]
-    bins = curr_hist[1]
+    counts, bins = np.histogram(limit_values, bins=new_binnum)
+    # plt.hist(limit_values, bins=binnum)
     centers = (bins[1:] + bins[:-1]) / 2
 
     model = lm.models.GaussianModel()
@@ -146,7 +144,8 @@ class ProcessWaveforms:
         prominence: float = 0.005,
         fourier: bool = False,
         condition: str = "unspecified medium (GN/LXe/Vacuum)",
-        num_waveforms: float = 0
+        num_waveforms: float = 0,
+        lower_cutoff: float = 0,
     ):
         """
         Process waveform data from hdf5 file to find peaks.
@@ -191,6 +190,7 @@ class ProcessWaveforms:
         self.num_waveforms = num_waveforms
         self.condition = condition
         self.is_pre_bd = is_pre_bd
+        self.lower_cutoff = lower_cutoff
 
         self.peaks = { 'all': [], 'dark': [], 'led': [] }
 
@@ -311,6 +311,7 @@ class ProcessWaveforms:
         all_peaks = []
         dark_peaks = []
         led_peaks = []
+        peak_hist = {}
         curr_data = self.acquisitions_data[filename][acquisition_name]
         time = self.acquisitions_time[filename][acquisition_name]
         window_length = time[-1] - time[0]
@@ -341,6 +342,7 @@ class ProcessWaveforms:
                 continue
 
             peaks, props = signal.find_peaks(amp, **self.peak_search_params)
+            peaks = peaks[peaks > self.lower_cutoff]
 
             # TODO split into different method
             if self.plot_waveforms:
@@ -350,6 +352,10 @@ class ProcessWaveforms:
                     plt.plot(time,amp)
                     for peak in peaks:
                         plt.plot(time[peaks], amp[peaks], '.')
+                plt.show()
+
+            # TODO exlcude peaks < low bound
+            peak_hist[len(peaks)] = peak_hist.get(len(peaks), 0) + 1
 
             led_time_thresh = (time[-1] + time[1]) / 2.0
             for peak in peaks:
@@ -360,6 +366,7 @@ class ProcessWaveforms:
                 else:
                     led_peaks.append(amp[peak])
 
+        print(f'peak_hist[{self.bias}] = {peak_hist}')
         print(f'all  peaks: {np.mean(all_peaks):.3} ± {np.std(all_peaks,ddof=1)/np.sqrt(len(all_peaks)):.3}')
         if not self.is_pre_bd:
             print(f'dark peaks: {np.mean(dark_peaks):.3} ± {np.std(dark_peaks,ddof=1)/np.sqrt(len(all_peaks)):.3}')
