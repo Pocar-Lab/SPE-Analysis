@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import pandas as pd
 from uncertainties import unumpy
+from pathlib import Path
+from matplotlib.offsetbox import AnchoredText
 
 # def ca_func(x, A, B, C):
 #     return (A * np.exp(B*(x)) + 1.0) / (1.0 + A) - 1.0 + C
@@ -712,3 +714,71 @@ class AnalyzeResults:
         axr.legend(loc='upper right')
         plt.show()
         return ratio
+
+
+def plot_CA(ca_csvs, labels = None, vbd = None) -> None:
+    """
+    Plot the correlated avalanche (CA) as a function of overvoltage.
+
+    This method creates a plot of the CA as a function of overvoltage. The plot includes
+    the best fit line and its uncertainty, the data points with their errors, and a text box
+    with additional information about the data and the fit. The plot can be saved to a file.
+
+    Parameters:
+    color (str, optional): The color to use for the text box. Default is 'blue'.
+    out_file (str, optional): The name of the file to save the plot to. If None, the plot is not saved to a file. Default is None.
+
+    Returns:
+    None
+    """
+    fig = plt.figure()
+
+    textstr = "CA$(V_{OV})= \\frac{Ae^{B*V_{OV}}+1}{A + 1} - 1$\n"
+    if not labels:
+        labels = [Path(f).name for f in ca_csvs]
+    if not vbd:
+        vbd = [0]*len(ca_csvs)
+    for file, label, v in zip(ca_csvs, labels, vbd):
+        df = pd.read_csv(file)
+        ov = df["Overvoltage [V]"] + v
+        ca = df["Number of CA [PE]"]
+        ov_err = df["Overvoltage [V] error"]
+        ca_err = df["Number of CA [PE] error"]
+
+        fit_x = np.linspace(0, 10, num=100)
+        fit_y, fit_y_err, ca_res = read_ca(df, fit_x, v)
+        p = plt.errorbar(
+            ov,
+            ca,
+            xerr=ov_err,
+            yerr=ca_err,
+            markersize=10,
+            fmt=".",
+            label=label,
+            )
+        plt.fill_between(
+            fit_x, fit_y + fit_y_err, fit_y - fit_y_err, color=p[0].get_color(), alpha=0.5
+        )
+        plt.plot(
+            fit_x,
+            fit_y,
+            color=p[0].get_color(),
+        )
+        textstr += f"\n{label}:\n"
+        textstr += f"""A: {ca_res.params['A'].value:0.3} $\\pm$ {ca_res.params['A'].stderr:0.3}\n"""
+        textstr += f"""B: {ca_res.params['B'].value:0.2} $\\pm$ {ca_res.params['B'].stderr:0.2}\n"""
+        textstr += f"""Reduced $\\chi^2$: {ca_res.redchi:0.4}\n"""
+
+    x_label = "Overvoltage [V]"
+    y_label = "Number of CA [PE]"
+    plt.xlabel(x_label, loc='right')
+    plt.ylabel(y_label, loc='top')
+    plt.legend(loc="upper left")
+    # props = dict(boxstyle="round", color='#845B97', alpha=0.4)
+    # fig.text(0.15, 0.75, textstr, fontsize=8, verticalalignment="top", bbox=props)
+    text_box = AnchoredText(textstr[:-1], frameon=True, loc="center left", pad=0.7, prop={'fontsize':12})
+    plt.setp(text_box.patch, facecolor='white', alpha=0.5)
+    plt.gca().add_artist(text_box)
+    plt.tight_layout()
+    plt.grid(True)
+    plt.show()
