@@ -84,3 +84,34 @@ class MeasurementInfo:
         plt.yscale("log")
         plt.tight_layout()
         plt.show()
+
+    def plot_led_dark_hists(self, voltage):
+        (n, b, p) = plt.hist(self.peaks['all'], bins=2000, histtype='step', density=False, label='All ')
+        (n1, b1, p1) = plt.hist(self.peaks['led'], bins=b, histtype='step', density=False, label='LED on')
+        (n2, b2, p2) = plt.hist(self.peaks['dark'], bins=b, histtype='step', density=False, label='LED off')
+        plt.legend()
+        font = {'family': 'serif', 'color':  'black', 'weight': 'normal', 'size': 14,}
+        plt.xlabel('Amplitude (V)', fontdict=font)
+        plt.ylabel('Frequency', fontdict=font)
+
+        dark_count = float(len(self.peaks['dark']))
+        led_count = float(len(self.peaks['led'])) - dark_count
+        ratio = led_count / dark_count
+
+        txtstr = f'LED Voltage: {voltage}\n'
+        txtstr += f'Ratio: {round(ratio,2)}\n'
+        txtstr += f'Total Avg Amp: {self.avg_amp['all']:.3}\n'
+        txtstr += f'LED   Avg Amp: {self.avg_amp['led']:.3}\n'
+        txtstr += f'Dark  Avg Amp: {self.avg_amp['dark']:.3}\n'
+        plt.annotate(txtstr, xy=(0.60, 0.60), xycoords='axes fraction', size=12)
+        plt.subplots_adjust(top=0.9)
+        plt.yscale('log')
+        plt.tight_layout()
+        plt.grid(True)
+        plt.show()
+        return (ratio, self.avg_amp)
+
+    def get_mode(self, peaks='all', bins=1000):
+        counts, edges = np.histogram(self.peaks[peaks], bins=bins)
+        mode = edges[max(counts)]
+        return mode
