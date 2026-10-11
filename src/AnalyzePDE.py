@@ -12,7 +12,6 @@ from pathlib import Path
 
 # import GainCalibration_2022 as GainCalibration
 import pandas as pd
-from ProcessWaveforms_MultiGaussian import WaveformProcessor
 
 
 # def CA_func(x, A, B, C):
@@ -24,7 +23,7 @@ def CA_func(x, A, B):
 class SPE_data:
     def __init__(
         self,
-        campaign: list[WaveformProcessor],
+        campaign: list,
         invC: float,
         invC_err: float,
         filtered: bool,
@@ -510,7 +509,7 @@ class SPE_data:
 class Alpha_data:
     def __init__(
         self,
-        campaign: list[WaveformProcessor],
+        campaign: list,
         invC: float,
         invC_err: float,
         spe_data: SPE_data,
