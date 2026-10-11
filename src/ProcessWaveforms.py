@@ -295,8 +295,8 @@ class ProcessWaveforms:
                 curr_peaks, curr_dark_peaks, curr_led_peaks = self.get_peaks(curr_file, curr_acquisition_name)
                 self.peak_data[curr_file][curr_acquisition_name] = curr_peaks
                 self.peaks['all']  += curr_peaks
-                self.peaks['dark'] += curr_led_peaks
-                self.peaks['led']  += curr_dark_peaks
+                self.peaks['dark'] += curr_dark_peaks
+                self.peaks['led']  += curr_led_peaks
                 if self.plot_waveforms or self.acquisition:
                     break
 

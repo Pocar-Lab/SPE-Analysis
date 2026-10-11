@@ -16,6 +16,7 @@ from src.ProcessWaveforms import ProcessWaveforms
 def get_files(path: str):
     files = [ f for f in os.listdir(path) if os.path.isfile(os.path.join(path,f)) ]
     biases = []
+    # TODO no files warning
     # Sort files by bias voltage
     for f in files:
         with h5py.File(path+f, 'r') as hdf: # Find bias for each file
@@ -24,7 +25,7 @@ def get_files(path: str):
 
     # Extract pre-breakdown baseline if it was collected
     run_spe_pre_bd = None
-    if biases[0] < 25:
+    if biases[0] <= 25:
         run_spe_pre_bd = ProcessWaveforms([path+files[0]], do_filter=True,
                                           is_pre_bd=True, upper_limit=-1, baseline_correct=True)
         files = files[1:]
