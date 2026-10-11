@@ -126,6 +126,18 @@ def fit_baseline_gauss(
     # plt.plot(centers, res.eval(params = res.params, x = centers), '--')
     f_range["fit"] = res
     # return {'center': np.mean(values), 'low': np.amin(values), 'high': np.amax(values), 'fit': res}
+
+    # TODO scale x axis to be units of uV
+    plt.hist(limit_values, bins=bins)
+    plt.plot(
+        centers,
+        res.eval(params=res.params, x=centers),
+        # color="red",
+        label=rf"$\mu = {res.values['center']*1e6:.3g} \pm {res.params['center'].stderr*1e6:.3g} \mu V, \sigma = {res.values['sigma']*1e6:.3g} \pm {res.params['sigma'].stderr*1e6:.3g} \mu V$",
+    )
+    plt.legend()
+    plt.show()
+
     return f_range
 
 
