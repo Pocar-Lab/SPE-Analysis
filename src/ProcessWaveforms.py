@@ -478,3 +478,4 @@ class ProcessWaveforms:
         self.baseline_mean = baseline_fit["fit"].values["center"]
         self.baseline_err  = baseline_fit["fit"].params["center"].stderr
         self.baseline_std  = baseline_fit["fit"].values["sigma"]
+        self.baseline_std_err  = baseline_fit["fit"].params["sigma"].stderr
