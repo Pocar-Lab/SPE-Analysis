@@ -267,6 +267,9 @@ class ProcessWaveforms:
         if self.upper_limit == -1:
             self.upper_limit = self.yrange - self.offset - 0.001
 
+        # if not prominence:
+        #     prominence = self.auto_prominence()
+
         # Searches for peaks using provided parameters
         self.peak_search_params = {
             "height": 0.0,  # SPE
@@ -401,6 +404,62 @@ class ProcessWaveforms:
             amp = filtered
 
         return amp
+
+    def auto_prominence(self,
+                        datafilename: str,              # hdf5 file name
+                        up_down:tuple[float,float],     # range to check for the valley between pedestal and 1PE
+                        showplots: bool = False,        # show the histogram?
+                        title: str = 'Prominence Plot', # title of the histogram controlled by the above parameter
+                        ) -> float:
+        f = h5py.File(datafilename,'r')         # get hdf5 file
+        group_names = list(f['RunData'].keys()) # gather all the pulse dataset names
+        proms = []                              # initialize a list to hold the prominences
+        for j in group_names: # iterate over the run acquisitions
+            data = np.array(f['RunData'].get(j)[:]) #grab the waveform dataset
+
+            tlu = [data[:,i] for i in range(1,len(data[0,:]))] # reconfigure the waveforms so that I can do a mapping below
+            res = map(lambda x:
+                      signal.find_peaks(
+                          x,
+                          height=0.0,
+                          threshold=None,
+                          distance=None,
+                          prominence=.001,
+                          width=None,
+                          wlen=50,
+                          rel_height=None,
+                          plateau_size=None),
+                      tlu)
+
+            maxes = list(res) # running the map object, maxes is a tuple of (peaks,props)
+            props = [i[1] for i in maxes] # grab the properties of the peaks
+            morps = [i['prominences'] for i in props] # grab the prominences of the peaks
+            morp = [] # this and the next two lines generate a list of all prominences from the acquisition
+            for i in morps:
+                morp += list(i)
+            proms += morp # add the acquisition's morp list to the overall dataset's prominence list
+
+        fig,ax = plt.subplots(1,1) # plotting
+        bins = np.linspace(min(proms),max(proms),500)
+        n,bins,_ = ax.hist(proms,bins=bins)
+        if not showplots:
+            plt.close(fig)
+
+        ult = np.array([i for i in zip(n,bins) if (i[1]<up_down[1] and i[1]>up_down[0])]) # grab selection of where the valley should be
+        ultn = ult[:,0] # bin heights
+        ultbins = ult[:,1] # bin locations
+        #print(title)
+        index = np.argmin(ultn) # where is the minimum of the bin heights
+
+        if showplots:
+            _, xmax, _, ymax = ax.axis() #gather axis lengths
+            ax.scatter(ultbins,ultn,color='red')
+            ax.vlines(ultbins[index],ymin=-10,ymax=ymax,color='black')
+            ax.set_ylim(0,ymax)
+            ax.set_xlim(0,xmax)
+            fig.suptitle(title)
+            fig.show()
+        return ultbins[index] # output prominence corresponding to minimum of bin heights
 
     def get_baseline(self):
         baseline_fit = fit_baseline_gauss(self.peaks['all'])
