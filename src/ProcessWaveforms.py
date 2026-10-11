@@ -113,7 +113,7 @@ def fit_baseline_gauss(
     new_binnum = int(bin_density * (f_range["high"] - f_range["low"]))
     values = np.array(values)
     limit_values = values[(values >= f_range["low"]) & (values <= f_range["high"])]
-    counts, bins = np.histogram(limit_values, bins=new_binnum)
+    counts, bins = np.histogram(limit_values, bins=int(np.sqrt(len(limit_values))))
     # plt.hist(limit_values, bins=binnum)
     centers = (bins[1:] + bins[:-1]) / 2
 
