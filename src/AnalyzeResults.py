@@ -522,17 +522,20 @@ class AnalyzeResults:
             plt.legend(loc="lower left")
         plt.tight_layout()
         plt.grid(True)
-        plt.show()
+        data = {
+            'label': self.config,
+            'ov': data_x, 'ov_err': data_x_err,
+            'bias': self.bias_vals, 'bias error': self.bias_err,
+            'amps': self.alpha_vals, 'amps error': self.alpha_err,
+            'num_det': self.num_det_photons, 'num_det error': self.num_det_photons_err,
+            'pde': data_y, 'pde_err': data_y_err,
+        }
         if out_file:
-            data = {
-                'ov': data_x, 'ov error': data_x_err,
-                'bias': self.bias_vals, 'bias error': self.bias_err,
-                'amps': self.alpha_vals, 'amps error': self.alpha_err,
-                'num_det': self.num_det_photons, 'num_det error': self.num_det_photons_err,
-                'pde': data_y, 'pde error': data_y_err,
-            }
             df = pd.DataFrame(data)
             df.to_csv(out_file)
+        else:
+            plt.show()
+        return type('PDE', (), data)
 
     def fit_alpha(self, bias, fit='exp', color="purple"):
         if fit == 'exp':
