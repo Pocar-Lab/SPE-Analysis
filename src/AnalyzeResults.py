@@ -507,13 +507,14 @@ class AnalyzeResults:
 
         plt.xlabel("Overvoltage [V]")
         plt.ylabel("Photon Detection Efficiency [%]")
-        textstr = f"Date: {self.campaign[0].info.date}\n"
-        textstr += f"Condition: {self.campaign[0].info.condition}\n"
-        textstr += f"RTD4: {self.campaign[0].info.temperature} [K]\n"
+        textstr = f"{self.config}\n"
+        textstr += f"Condition: LXe\n"
+        textstr += f"Temperature: 171 K\n"
         textstr += f"PTE: {legtext}"
+        text_box = AnchoredText(textstr, frameon=True, loc=4, pad=0.7, prop={'fontsize':18})
+        plt.setp(text_box.patch, facecolor='white', alpha=0.5)
+        plt.gca().add_artist(text_box)
 
-        props = dict(boxstyle="round", facecolor=color, alpha=0.4)
-        fig.text(0.3, 0.4, textstr, fontsize=18, verticalalignment="top", bbox=props)
         plt.xlim(0, np.amax(self.ov) + 1.0)
         ylow, yhigh = plt.ylim()
         plt.ylim(0, yhigh * 1.1)
