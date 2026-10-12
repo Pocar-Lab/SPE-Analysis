@@ -612,7 +612,7 @@ class AnalyzeResults:
         return ufit
 
     # NOTE need to make sure the calibrate array has the same OV range as the current runs
-    def plot_ratio(self, other, calibrate=np.array([]),
+    def plot_ratio(self, other, oo=None, calibrate=np.array([]),
                    color="tab:purple", color_other="tab:blue", fit='exp',
                    alpha_ylim=(0, 1.5), ratio_ylim=(1,4)):
         fig,ax = plt.subplots()
@@ -622,12 +622,14 @@ class AnalyzeResults:
 
         # x = np.linspace(self.ov_min, self.ov_max, num=100)
         # print(f"{self.ov_min=}")
-        x = np.linspace(self.ov_min, self.ov_max+.5, num=100)
+        x = np.linspace(self.ov_min-.5, self.ov_max+.5, num=100)
         # x = np.linspace(2.5, 6, num=100)
         # x = np.linspace(self.ov_min-1, self.ov_max+1, num=100)
         # x = np.linspace(0.1, 7, num=100)
         other_fit = other.fit_alpha(x, fit, color_other)
         self_fit = self.fit_alpha(x, fit, color)
+        if oo:
+            oo.fit_alpha(x, fit, "tab:orange")
 
         if calibrate.size != 0:
             other_fit /= calibrate
@@ -651,12 +653,11 @@ class AnalyzeResults:
         # axr.errorbar(x, ration, yerr=ratios, markersize=0, fmt='.',
         #             color='tab:green', label=f'Ratio {ratio.mean()}')
 
-        ratio_std = np.mean([ r.s for r in ratio])
+        ratio_std = np.mean([ r.s for r in ratio]) # ratio.mean().s
 
-        # axr.plot(x, ration, color='tab:green', label=f'Ratio {ratio.mean().n:.3} ± {ratio_std:.3}')
-        axr.plot(x, ration, color='tab:green', label=f'Ratio {ratio.mean()}')
+        axr.plot(x, ration, color='tab:green', label=f'Ratio: {ratio.mean().n:.2f} ± {ratio_std:.2g}')
         axr.fill_between(x, ration - ratios, ration + ratios, alpha=.3, color='tab:green')
-        plt.xlim(2.7, 6.5)
+        plt.xlim(self.ov_min, self.ov_max+.5)
         axr.set_ylim(*ratio_ylim)
         ax.set_ylim(*alpha_ylim)
         # axr.fill_between(self.ov, ration - ratios, ration + ratios, alpha=.3)
@@ -671,8 +672,8 @@ class AnalyzeResults:
         # props = dict(boxstyle='round', facecolor=color, alpha=0.4)
         # fig.text(.5, .5, textstr, fontsize=10,
         #         verticalalignment='top', bbox=props)
-        ax.legend(loc='upper left')
-        axr.legend(loc='upper right')
+        ax.legend(loc='upper left', prop={'size': 16})
+        axr.legend(loc='upper right', prop={'size': 16})
         # plt.legend()
         plt.show()
         return ratio
