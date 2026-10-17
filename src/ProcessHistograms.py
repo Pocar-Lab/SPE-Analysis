@@ -10,7 +10,10 @@ import lmfit as lm
 from lmfit.models import LinearModel, GaussianModel, ExponentialModel
 import matplotlib.pyplot as plt
 from scipy.stats import sem
-from MeasurementInfo import MeasurementInfo
+from scipy.optimize import curve_fit
+from scipy.signal import find_peaks
+from src.MeasurementInfo import MeasurementInfo
+from src.ProcessWaveforms import fit_baseline_gauss
 from typing import Dict, List, Tuple, Optional
 
 ### Guide to porting ProcessWaveforms_MultiGaussian to ProcessHistograms:
@@ -408,7 +411,20 @@ class ProcessHist:
         currCA_err = currCA * np.sqrt(
             (self.A_avg_err / self.A_avg) ** 2 + (spe_err / spe) ** 2
         )
+        return (currCA, currCA_err)
 
+    def get_CA_all(self) -> Tuple[float, float]:
+        A_avg = ( np.mean(self.all_peaks) - self.spe_res.params["intercept"].value)  # spectrum specific baseline correction
+        A_avg_err = np.sqrt(
+            (sem(self.all_peaks)) ** 2
+            + (self.spe_res.params["intercept"].stderr) ** 2
+        )
+        spe = self.spe_res.params["slope"].value
+        spe_err = self.spe_res.params["slope"].stderr
+        currCA = A_avg / spe - 1
+        currCA_err = currCA * np.sqrt(
+            (A_avg_err / A_avg) ** 2 + (spe_err / spe) ** 2
+        )
         return (currCA, currCA_err)
 
     def get_CA_height(self) -> Tuple[float, float]:
@@ -520,6 +536,40 @@ class ProcessHist:
         plt.grid(True)
         plt.show()
         return (self.led_ratio, A_avg, A_avg_err)
+
+    def plot_led_only_hist(self):
+        bins = 100
+        led = self.peak_led_values
+        dark = self.peak_dark_values
+        minval = min(np.min(led), np.min(dark))
+        maxval = max(np.max(led), np.max(dark))
+        hist_led,  edges = np.histogram(self.peak_led_values, range=(minval,maxval), bins=bins)
+        hist_dark, _     = np.histogram(self.peak_dark_values, range=(minval,maxval), bins=bins)
+        diff = np.absolute(hist_led - hist_dark)
+
+        plt.legend()
+        plt.tight_layout()
+        plt.xlabel('Amplitude (V)', size=14, loc="right")
+        plt.ylabel('Counts', size=14, loc="top")
+
+        plt.stairs(diff, edges, fill=True)
+
+        # dark_count = float(len(self.peak_dark_values))
+        # led_count = float(len(self.peak_led_values)) - dark_count
+        # self.led_ratio = led_count / dark_count
+
+        textstr = f'Date: {self.info.date}\n'
+        textstr += f'Condition: {self.info.condition}\n'
+        textstr += f'Bias: {self.info.bias} [V]\n'
+        textstr += f'RTD4: {self.info.temperature} [K]\n'
+        textstr += f'Total Avg Amp: {self.info.avg_amp['all']:.3}\n'
+        textstr += f'LED Avg Amp: {self.info.avg_amp['led']:.3}\n'
+        textstr += f'Dark Avg Amp: {self.info.avg_amp['dark']:.3}\n'
+        plt.annotate(textstr, xy=(0.60, 0.60), xycoords='axes fraction', size=12)
+        plt.subplots_adjust(top=0.9)
+        plt.yscale('log')
+        plt.grid(True)
+        plt.show()
 
     def plot_peak_histogram(
             self,
@@ -729,3 +779,146 @@ class ProcessHist:
             plt.close(fig)
         else:
             plt.show()
+
+    def plot_ca(
+        self,
+        path: Optional[str] = None,
+    ) -> None:
+        """Plots average pulse amplitudes as a function of # of Photoelectrons (PE).
+
+        Args:
+            with_baseline (bool, optional): If True, plots the baseline data. Defaults to True.
+            fit_origin: Constrain linear fit to go through origin.
+            baselinecolor (str, optional): Color used for the baseline data. Defaults to "orange".
+            peakcolor (str, optional): Color used for the SPE peak data. Defaults to "blue".
+            savefig (bool, optional): If True, saves the figure to the provided path. Defaults to False.
+            path (str, optional): Path where the figure should be saved. Used only if savefig is set to True. Defaults to None.
+        """
+        fig = plt.figure()
+        fig.tight_layout()
+
+        # Plot peak heights
+        plt.errorbar(
+            self.spe_num,
+            self.peak_heights,
+            yerr=self.peak_height_errs,
+            fmt=".",
+            label="Photoelectron Heights",
+            markersize=10,
+        )
+
+        len = sum(self.peak_heights)
+        p_ca = np.array(self.peak_heights)/len
+        avg_amp = sum(self.spe_num*p_ca)
+        print(f"{self.info.bias}: {avg_amp=}")
+
+        # model = lm.models.ExponentialModel()
+        # params = model.make_params()
+        # wgts = [1.0 / np.sqrt(err) for err in self.peak_height_errs]
+        # print(f"{wgts=}")
+        # ca_res = model.fit(
+        #     self.peak_heights,
+        #     params=params,
+        #     x=self.spe_num,
+        #     weights=wgts,
+        # )
+        # print(ca_res.fit_report())
+        # A = ca_res.params["amplitude"].value
+        # d = ca_res.params["decay"].value
+        # x_values = np.linspace(0, len(self.spe_num) + 1, 20)
+        # y_values = A * np.exp(-x_values / d)
+
+        # print(ca_res.fit_report())
+        b = self.ca_res.params["intercept"].value
+        m = self.ca_res.params["slope"].value
+        x_values = np.linspace(0, len(self.spe_num) + 1, 20)
+        y_values = np.exp(m*x_values + b)
+        plt.plot(
+            x_values,
+            y_values,
+            "--",
+            label="Exponential Fit",
+        )
+
+        plt.xlabel("Photoelectron Peak Number", loc='right')
+        plt.ylabel("Peak Height [Count]", loc='top')
+        plt.yscale('log')
+        plt.legend(loc='lower left')
+        plt.grid(True)
+
+        decay = np.exp(self.ca_res.params['slope'].value)
+        decay_err = decay * self.ca_res.params['slope'].stderr
+        textstr = f"Date: {self.info.date}\n"
+        textstr += f"Condition: {self.info.condition}\n"
+        textstr += f"Bias: {self.info.bias:0.4} [V]\n"
+        textstr += f"RTD4: {self.info.temperature} [K]\n"
+        textstr += f"--\n"
+        textstr += f"Linear Slope: {self.ca_res.params['slope'].value:0.4}"
+        textstr += f" $\\pm$ {self.ca_res.params['slope'].stderr:0.2}\n"
+        textstr += f"CA Probability: {decay:0.4} ± {decay_err:.4}\n"
+        textstr += f"""Reduced $\\chi^2$: {self.ca_res.redchi:0.4}\n"""
+
+        props = dict(boxstyle="round", alpha=0.4)
+        fig.text(0.6, 0.9, textstr, fontsize=8, verticalalignment="top" , bbox=props)
+        fig.tight_layout()
+
+        if path:
+            plt.savefig(path)
+            plt.close(fig)
+        else:
+            plt.show()
+
+
+    def plot_alpha_histogram(self, bins, with_fit: bool=True, log_scale: bool=False, peakcolor: str="purple")-> None:
+        """Plots a histogram of alpha values with or without fitting.
+
+        This method creates a histogram of alpha values (self.peak_values), calculated as the number of peaks (self.info.peaks_numbins) over the range of alpha fit (self.alpha_fit["high"] - self.alpha_fit["low"]).
+
+        It supports options to show/hide fitted model on the plot (with_fit), use a logarithmic scale (log_scale), and change the color of the histogram bars (peakcolor).
+
+        Additional information about the measurement, such as date, condition, bias, temperature, and peak statistics are displayed on the plot.
+
+        Args:
+            with_fit (bool, optional): If True, overlays the fitted model of the alpha values on the histogram. Defaults to True.
+            log_scale (bool, optional): If True, sets the y-axis to a logarithmic scale. Defaults to False.
+            peakcolor (str, optional): The color of the histogram bars. Defaults to "purple".
+        """
+        fig = plt.figure()
+        fig.tight_layout()
+        plt.rc("font", size=12)
+        bin_density = bins / (
+            self.alpha_fit["high"] - self.alpha_fit["low"]
+        )
+        total_num_bins = bin_density * (
+            np.amax(self.peak_values) - np.amin(self.peak_values)
+        )
+        plt.hist(self.peak_values, bins=int(total_num_bins), color="tab:" + peakcolor)
+        if with_fit:
+            plot_fit(
+                self.alpha_fit,
+                self.peak_values,
+                binnum=bins,
+                plot_hists=False,
+            )
+        # plt.legend(loc = 'center left')
+        plt.xlabel("Waveform Amplitude [V]")
+        plt.ylabel("Counts")
+        plt.xlim(0.0)
+        if log_scale:
+            plt.yscale("log")
+            plt.ylim(0.1)
+        textstr = f"Date: {self.info.date}\n"
+        textstr += f"Condition: {self.info.condition}\n"
+        textstr += f"Bias: {self.info.bias:0.4} [V]\n"
+        textstr += f"RTD4: {self.info.temperature} [K]\n"
+        textstr += f"--\n"
+        textstr += f"""Alpha Peak Mean: {self.alpha_fit['fit'].params['center'].value:0.4} +- {self.alpha_fit['fit'].params['center'].stderr:0.1} [V]\n"""
+        textstr += f"""Alpha Peak Sigma: {self.alpha_fit['fit'].params['sigma'].value:0.4} +- {self.alpha_fit['fit'].params['sigma'].stderr:0.1} [V]\n"""
+        textstr += f"""Reduced $\\chi^2$: {self.alpha_res.redchi:0.4}"""
+
+        props = dict(boxstyle="round", facecolor="tab:" + peakcolor, alpha=0.4)
+        fig.text(
+            0.15, 0.85, textstr, fontsize=10, verticalalignment="top", bbox=props
+        )
+        plt.grid(True)
+        plt.show()
