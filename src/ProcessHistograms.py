@@ -268,17 +268,17 @@ class ProcessHist:
             & (self.all_dark_peaks <= self.cutoff[1])
         ]  # peaks in a range
 
-    def process_alpha(self):
+    def process_alpha(self, min_alpha_value, bins):
         """Processes the waveform data, extracting various statistical information from it."""
         self.process_peaks()
 
         self.peak_values = self.peak_values[
-            self.peak_values > self.info.min_alpha_value
+            self.peak_values > min_alpha_value
         ]
 
         print('processing alpha data...')
         self.alpha_fit = fit_alpha_gauss(
-            self.peak_values, binnum=self.info.peaks_numbins
+            self.peak_values, binnum=bins
         )
         self.alpha_res = self.alpha_fit["fit"]
 
@@ -292,14 +292,44 @@ class ProcessHist:
         self.bins = np.histogram_bin_edges(self.all_peaks, bins=self.numbins)
         #!!! attr defined outside init
 
+        values = np.array(self.info.peaks['all'])
+        # binnum = 500
+        # center = np.mean(values)
+        # std_guess = np.std(values)
+        # low = center - 2.0 * std_guess
+        # high = center + 2.0 * std_guess
+        # bin_density = float(binnum) / (np.amax(values) - np.amin(values))
+        # new_binnum = int(bin_density * (high - low))
+        baseline = values[values <= self.cutoff[0]]
+        # print(f"{self.bins[self.bins <= self.cutoff[0]]=}")
+        counts, bins = np.histogram(baseline, bins=self.bins)
+        # plt.hist(baseline, bins=binnum)
+        centers = (bins[1:] + bins[:-1]) / 2
+
+        model = lm.models.GaussianModel()
+        params = model.make_params(
+                amplitude=np.amax(counts), center=np.mean(baseline), sigma=np.std(values)
+                )
+        res = model.fit(counts, params=params, x=centers, weights=np.sqrt(1 / counts),
+                        nan_policy='omit')
+        self.bg = {
+            'amplitude': res.values['amplitude'],
+            'center': res.values['center'],
+            'sigma': res.values['sigma'],
+        }
+        # print(res.fit_report())
+
         self.peak_fit = fit_peaks_multigauss(
                 values = self.peak_values,
                 baseline_width = 2.0 * self.baseline_std,
                 centers = self.centers,
                 peak_range = self.peak_range,
                 cutoff = self.cutoff,
-                background_linear=self.background_linear,
-                bins=self.bins
+                background='exp',
+                # background=self.bg,
+                bins=self.bins,
+                noise_mean=self.baseline_mean,
+                noise_sigma=self.baseline_std,
                 )
 
         self.peak_locs = [self.peak_fit.params['g' + str(idx + 1) + '_center'].value for idx in range(self.low_peak-1, self.high_peak)]
@@ -688,6 +718,7 @@ class ProcessHist:
         fig.text(0.67, 0.85, textstr, fontsize=6, verticalalignment='top', bbox=props)
         plt.ylabel('Counts', loc='top')
         plt.xlabel('Pulse Amplitude [V]', loc='right')
+        plt.xlim(self.cutoff[1])
         if log_scale:
             plt.ylim(1E0)
             plt.yscale('log')
