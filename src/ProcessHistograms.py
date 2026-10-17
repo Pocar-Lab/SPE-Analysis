@@ -90,7 +90,7 @@ def fit_peaks_multigauss(
     centers: list[float],
     peak_range: tuple[int,int]=(1,4),
     cutoff: tuple[float, float] = (0, np.inf),
-    background_linear: bool = True,
+    background = 'exp',
     bins = None,
 ) -> lm.model.ModelResult:
     """
@@ -120,10 +120,12 @@ def fit_peaks_multigauss(
     high_peak = peak_range[1]
 
     # Construct model function
-    if background_linear:
-        model = LinearModel(prefix= 'l_')
-    else:
+    if background is Dict:
+        model = GaussianModel(prefix='bg_')
+    elif background == 'exp':
         model = ExponentialModel(prefix='e_')
+    else:
+        model = LinearModel(prefix= 'l_')
     for peak in range(low_peak, high_peak + 1):
         model += GaussianModel(prefix=f'g{peak}_')
     g_center = centers[:(peak_range[1]-peak_range[0]+1)]
@@ -135,9 +137,15 @@ def fit_peaks_multigauss(
                                  min=g_center[peak-1] - baseline_width,
                                  max=g_center[peak-1] + baseline_width)
     # Constraints for sigma
+    baseline_std = .5*baseline_width
+    # baseline_std = .0012
     for peak in range(low_peak, high_peak + 1):
+        # model.set_param_hint(f'g{peak}_sigma', value=2*baseline_std,
+        #                      min=.50*baseline_std, max=2.*baseline_std)
         model.set_param_hint(f'g{peak}_sigma', value=0.5 * baseline_width,
-                             min=0, max=baseline_width)
+                             # min=.3*baseline_width, max=.7*baseline_width)
+                             min=.2*baseline_width, max=.8*baseline_width)
+                             # min=0, max=baseline_width)
 
     # Constraints for amplitude
     g_amplitude = [np.amax(counts)*np.sqrt(2*np.pi)*baseline_width/(2**num)
@@ -146,14 +154,20 @@ def fit_peaks_multigauss(
         model.set_param_hint(f'g{peak}_amplitude', value=g_amplitude[peak-1], min=0)
     assert not np.any(np.isinf(g_amplitude)) and not np.any(np.isnan(g_amplitude))
 
-    if background_linear:
+    if background is Dict:
+        model.set_param_hint("bg_amplitude", value=background['amplitude'],      vary=False)
+        model.set_param_hint("bg_center",    value=background['center'],         vary=False)
+        model.set_param_hint("bg_sigma",     value=background['sigmaamplitude'], vary=False)
+    elif background == 'exp':
+        # Constraints for exponential background fit
+        # model.set_param_hint('e_decay',     value=decay, vary=False)
+        # model.set_param_hint('e_amplitude', value=amp,   vary=False)
+        model.set_param_hint('e_decay', value=.01, min=0, max=1)
+        model.set_param_hint('e_amplitude', value=7676, min=0)
+    else:
         # Constraints for linear background fit
         model.set_param_hint('l_slope', value=0, max=0) # constraint the slope fit to be less or equal to 0
         model.set_param_hint('l_intercept', value=counts[0])
-    else:
-        # Constraints for exponential background fit
-        model.set_param_hint('e_decay', value=84e-3, min=0, max=1)
-        model.set_param_hint('e_amplitude', value=counts[0], min=0)
 
     params = model.make_params()
     # params.pretty_print()
@@ -304,8 +318,10 @@ class ProcessHist:
         #check if any of the fitted sigmas are less than the sigma of baseline noise (unphysical):
         for s in self.peak_sigmas:
             # TODO only warn if more than 1 sigma different
-            if s < self.baseline_std:
-                print('WARNING! Fitted sigma ' + str(s) + ' is less than baseline sigma ' + str(self.baseline_std) +'!')
+            if s < self.baseline_std / 1.8:
+                print(f'WARNING! Fitted sigma {s} is less than baseline sigma {self.baseline_std}!')
+            if s > self.baseline_std * 1.8:
+                print(f'WARNING! Fitted sigma {s} is greater than baseline sigma {self.baseline_std}!')
 
         for i in range(len(self.peak_stds)):
             if self.peak_stds[i] is None:
