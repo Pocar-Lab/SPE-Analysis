@@ -95,6 +95,8 @@ def fit_peaks_multigauss(
     cutoff: tuple[float, float] = (0, np.inf),
     background = 'exp',
     bins = None,
+    noise_mean = None,
+    noise_sigma = None,
 ) -> lm.model.ModelResult:
     """
     Fits multiple Gaussian functions to a 'finger plot' with a linear or exponential background.
@@ -131,6 +133,10 @@ def fit_peaks_multigauss(
         model = LinearModel(prefix= 'l_')
     for peak in range(low_peak, high_peak + 1):
         model += GaussianModel(prefix=f'g{peak}_')
+    if noise_mean:
+        model += GaussianModel(prefix="noise_")
+        model.set_param_hint("noise_center", value=noise_mean)
+        model.set_param_hint("noise_sigma", value=noise_sigma)
     g_center = centers[:(peak_range[1]-peak_range[0]+1)]
     print('Center guesses used in fit: ', g_center)
 
@@ -194,6 +200,8 @@ class ProcessHist:
         subtraction_method: bool = False,
         background_linear: bool = True,
         peaks: str = 'all',
+        noise_mean = None,
+        noise_std = None,
     ):
         """
         Process and histogram the identified peaks and fit with a multi-gaussian to extract the
@@ -225,9 +233,9 @@ class ProcessHist:
         self.background_linear = background_linear
         self.peaks = peaks
 
-        self.baseline_mean = self.info.baseline_mean
+        self.baseline_mean = noise_mean or self.info.baseline_mean
         self.baseline_err  = self.info.baseline_err
-        self.baseline_std  = self.info.baseline_std
+        self.baseline_std  = noise_std or self.info.baseline_std
 
 
     def process_peaks(self) -> None:
