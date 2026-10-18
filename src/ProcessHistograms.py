@@ -87,6 +87,73 @@ def fit_alpha_gauss(
     f_range["fit"] = res
     return f_range
 
+def plot_fit(
+    fit_info: Dict[str, lm.model.ModelResult],
+    values: np.ndarray,
+    binnum: int = 20,
+    plot_hists: bool = True,
+    label: str | None = None,
+) -> None:
+    """
+    Plots the histogram of the data and the Gaussian fit.
+
+    Args:
+        fit_info (Dict[str, ModelResult]): A dictionary containing the range ('low', 'high', 'center') and
+                                           the final fit result ('fit') from the Gaussian model.
+        values (List[float]): List of values to plot in the histogram.
+        binnum (int, optional): The number of bins to use when creating the histogram. Defaults to 20.
+        plot_hists (bool, optional): If True, the histogram is plotted. Defaults to True.
+        label (str, optional): Label for the Gaussian fit line. Defaults to None.
+    """
+    fit_data = values[(values >= fit_info["low"]) & (values <= fit_info["high"])]
+    numvalues = len(fit_data)
+    h = 3.49 * (numvalues) ** (-1 / 3) * np.std(fit_data)
+    binnum = int(np.ceil((max(fit_data) - min(fit_data)) / h))
+    if plot_hists:
+        curr_hist = plt.hist(fit_data, bins=binnum)
+    x = np.linspace(fit_info["low"], fit_info["high"], num=200)
+    plt.plot(
+        x,
+        fit_info["fit"].eval(params=fit_info["fit"].params, x=x),
+        # color="red",
+        label=label,
+    )
+
+def background_func(x, amp, center, sigma):
+    return amp/(sigma*np.sqrt(2*np.pi))*np.exp(-((x-center)**2)/((2*sigma)**2))
+
+def find_local_minima(hist_values, hist_edges, min_prominence=100, min_distance=10):
+    """
+    Find local minima in histogram data
+    """
+    # Use negative values to find minima (peaks in negative data)
+    negative_hist = -hist_values
+
+    # Find peaks in negative data (which correspond to minima in original data)
+    # minima_indices = argrelextrema(negative_hist, np.less)
+    minima_indices, _ = find_peaks(negative_hist,
+                                   prominence=min_prominence,
+                                   distance=min_distance)
+
+    # Get bin centers for the minima
+    bin_centers = (hist_edges[:-1] + hist_edges[1:]) / 2
+    minima_positions = bin_centers[minima_indices]
+    minima_values = hist_values[minima_indices]
+
+    return minima_values, minima_positions
+
+def exp_decay(x, a, b):
+    return a * np.exp(-x/b)
+
+def fit_exponential_to_minima(x_minima, y_minima, p0=None):
+    # Default initial guess if not provided
+    if p0 is None:
+        p0 = [max(y_minima) - min(y_minima), 0.1]
+    # Fit exponential decay
+    popt, pcov = curve_fit(exp_decay, x_minima, y_minima, p0=p0, maxfev=5000)
+
+    return popt
+
 def fit_peaks_multigauss(
     values: np.ndarray,
     baseline_width: float,
@@ -162,6 +229,17 @@ def fit_peaks_multigauss(
     for peak in range(low_peak, high_peak + 1):
         model.set_param_hint(f'g{peak}_amplitude', value=g_amplitude[peak-1], min=0)
     assert not np.any(np.isinf(g_amplitude)) and not np.any(np.isnan(g_amplitude))
+
+    y, x = find_local_minima(counts, b)
+    if len(x) >= 3:
+        amp, decay = fit_exponential_to_minima(x, y)
+    else:
+        amp, decay = counts[0], .01
+    print(f"{amp=}, {decay=}")
+    # plt.hist(curr_peak_data, bins=bins)
+    # print(len(x))
+    # plt.plot(x, y, '.')
+    # plt.show()
 
     if background is Dict:
         model.set_param_hint("bg_amplitude", value=background['amplitude'],      vary=False)
@@ -651,10 +729,10 @@ class ProcessHist:
         textstr += f'Condition: {self.info.condition}\n'
         textstr += f'Bias: {self.info.bias} [V]\n'
         textstr += f'RTD4: {self.info.temperature} [K]\n'
-        textstr += f'--\n'
-        textstr += f'Peaks: {self.peaks}\n'
-        textstr += f'LED Ratio: {round(self.led_ratio,2)}\n'
-        textstr += f'Avg Amp: {A_avg:.3} ± {A_avg_err:.3} V\n'
+        # textstr += f'--\n'
+        # textstr += f'Peaks: {self.peaks}\n'
+        # textstr += f'LED Ratio: {round(self.led_ratio,2)}\n'
+        # textstr += f'Avg Amp: {A_avg:.3} ± {A_avg_err:.3} V\n'
         textstr += f'--\n'
         textstr += f'Peak Locations ($\\mu$) [V]:\n'
         for peak in range(len(self.peak_sigmas)):
@@ -705,17 +783,41 @@ class ProcessHist:
         centers = (bins[1:] + bins[:-1])/2
         y_line_fit = self.peak_fit.eval(x=centers)
 
+        y, x = find_local_minima(*np.histogram(self.peak_values, bins=self.bins))
+        print(f"{x=}, {y=}")
+        # plt.plot(x, y, 'r.')
+
+        # sim = {0: 520175, 5: 4756, 1: 307277, 3: 41591, 2: 110167, 8: 181, 4: 13725, 6: 1493, 9: 52, 7: 550, 10: 27, 12: 1, 11: 4, 13: 1}
+        # norm_factor = sim[0]/self.peak_heights[0]
+        # sim_vals = [v[1]/norm_factor for v in sorted(sim.items())]
+        # plt.bar(self.peak_locs, sim_vals[:len(self.peak_locs)], 'g.')
+        print(f"{self.peak_heights=}")
+
         plt.plot(centers, y_line_fit,'r-', label='best fit')
         if self.background_linear:
             background_fit = self.peak_fit.best_values['l_intercept'] + self.peak_fit.best_values['l_slope']*centers
         else:
             background_fit = self.peak_fit.best_values['e_amplitude'] * np.exp(-centers/self.peak_fit.best_values['e_decay'])
         plt.plot(centers, background_fit, 'b-', label='best fit - line')
+        # noise_amp = self.peak_fit.best_values['noise_amplitude'] / (self.peak_fit.best_values['noise_sigma']*np.sqrt(2*np.pi))
+        # noise_fit = noise_amp * np.exp(-(centers-self.peak_fit.best_values['noise_center'])**2/(2*self.peak_fit.best_values['noise_decay']**2))
+        # plt.plot(centers, noise_fit, 'g-', label='best fit - noise')
+
+        # # A = self.peak_fit.best_values['bg_amplitude']
+        # # mu = self.peak_fit.best_values['bg_center']
+        # # sigma = self.peak_fit.best_values['bg_sigma']
+        # A = self.bg['amplitude']
+        # mu = self.bg['center']
+        # sigma = self.bg['sigma']
+        # x = np.linspace(0, .1, 1000)
+        # background_fit =  A/(sigma*np.sqrt(2*np.pi))*np.exp(-((x-mu)**2)/((2*sigma)**2))
+        # plt.plot(x, background_fit, 'b-', label='best fit - line')
+
         plt.hist(self.all_peaks, bins=self.bins)
         plt.grid(True)
 
         props = dict(boxstyle='round', facecolor='tab:' + peakcolor, alpha=0.7)
-        fig.text(0.67, 0.85, textstr, fontsize=6, verticalalignment='top', bbox=props)
+        # fig.text(0.67, 0.85, textstr, fontsize=6, verticalalignment='top', bbox=props)
         plt.ylabel('Counts', loc='top')
         plt.xlabel('Pulse Amplitude [V]', loc='right')
         plt.xlim(self.cutoff[1])
