@@ -655,7 +655,8 @@ class AnalyzeResults:
 
         ratio_std = np.mean([ r.s for r in ratio]) # ratio.mean().s
 
-        axr.plot(x, ration, color='tab:green', label=f'Ratio: {ratio.mean().n:.2f} ± {ratio_std:.2g}')
+        ratio_mean, ratio_std = self.calc_ratio_mc(other)
+        axr.plot(x, ration, color='tab:green', label=f'Ratio: {ratio_mean:.2f} ± {ratio_std:.2f}')
         axr.fill_between(x, ration - ratios, ration + ratios, alpha=.3, color='tab:green')
         plt.xlim(self.ov_min, self.ov_max+.5)
         axr.set_ylim(*ratio_ylim)
@@ -672,11 +673,35 @@ class AnalyzeResults:
         # props = dict(boxstyle='round', facecolor=color, alpha=0.4)
         # fig.text(.5, .5, textstr, fontsize=10,
         #         verticalalignment='top', bbox=props)
-        ax.legend(loc='upper left', prop={'size': 16})
-        axr.legend(loc='upper right', prop={'size': 16})
+        ax.legend(loc='upper left')
+        axr.legend(loc='upper right')
         # plt.legend()
         plt.show()
         return ratio
+
+    def calc_ratio_mc(self, other):
+        x = np.linspace(self.ov_min-.5, self.ov_max+.5, num=100)
+        ratio_list = []
+        for _ in range(1_000):
+            delta_v_bd = np.random.normal(0, .076)
+            # print(f"{delta_v_bd=}")
+            other_delta_v_bd = np.random.normal(0, .12)
+            # print(f"{other_delta_v_bd=}")
+            other_fit = other.fit_alpha(x + other_delta_v_bd, 'exp1', None)
+            self_fit = self.fit_alpha(x + delta_v_bd, 'exp1', None)
+
+            ratio = self_fit / other_fit
+            ration = np.array([ r.n for r in ratio ])
+            ratios = np.array([ r.s for r in ratio ])
+            # print(f"Ratio: {ratio.mean().n} ± {ratio.mean().s}")
+            ratio_list.append(ratio.mean())
+
+        ratio_arr = np.array(ratio_list)
+        print(f"{ratio_arr.mean()=}")
+        ratio_avg = np.mean([r.n for r in ratio_list])
+        ratio_std = np.sqrt(np.std([r.n for r in ratio_list])**2 + ratio_arr.mean().s**2)
+        print(f"Ratio: {ratio_avg} ± {ratio_std}")
+        return (ratio_avg, ratio_std)
 
     def plot_sub_ratio(self, sub, denom, factor,
                        color="tab:purple", color_other="tab:blue", fit='exp',
