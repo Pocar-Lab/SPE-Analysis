@@ -604,8 +604,9 @@ class AnalyzeResults:
                      + f"$b$ = {res.best_values['b']:.3g}, "
                      # + f"$c$ = {res.best_values['c']:.3g}"
                      )
-            plt.fill_between(x, yfitn - yfits, yfitn + yfits, alpha=.3, color=color)
-            plt.errorbar(self.ov, self.alpha_vals, xerr=self.ov_err, yerr=self.alpha_err,
+            plt.fill_between(x, yfitn - yfits, yfitn + yfits, alpha=.7, color=color)
+            plt.fill_betweenx(yfitn, x - self.v_bd_err, x + self.v_bd_err, alpha=.3, color=color)
+            plt.errorbar(self.ov, self.alpha_vals, xerr=self.bias_err, yerr=self.alpha_err,
                          markersize=8, fmt='.', color=color, label=self.config)
         # plt.plot(self.ov, res.best_fit, color='tab:green', label=eq_label)
 
