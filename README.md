@@ -1,12 +1,14 @@
-# SPE Analysis
+# Single Photoelectron Analysis
 
-Single Photo Electron analysis code for the Pocar Lab LXe system.
+Single Photoelectron (SPE) analysis code for the Pocar Lab LXe system.
+Characterizes SiPM performance by calculating the amplitude of single photoelectrons to measure
+gain and breakdown voltage.
 
-## File Structure
+## Code Structure
 
 * **Analysis** Script: Main script which contains how to analyze specific data, calls other files
   from here
-  * Format: CONDITION_MONTH_YEAR_Analysis (eg LXe_May_2023_Analysis)
+  * Format: MEDIUM_MONTH_YEAR_Analysis (eg LXe_May_2023_Analysis)
 * **RunInfo**: Load data from hdf5, baseline correct, perform digital filtering, find pulses
 * **MeasurementInfo**: Organize metadata into object
 * **ProcessWaveforms**: Performs Gaussian and linear fits on finger plots, performs CA calculation and fit
@@ -32,14 +34,20 @@ For details on how to use git see the [git guide][1], in summary:
 
 ### Todo List
 
-- [ ] Make analyzes reproducible
-  - [ ] Make main analysis script self contained
+- [X] Make analyzes reproducible
+  - [X] Make main analysis script self contained
 - [ ] Document Every Function
 - [ ] Reorganize class structure
-  - [ ] Split RunInfo into MeasurementInfo and a new ProcessWaveforms
-  - [ ] Rename current ProcessWaveforms to ProcessHistograms
+  - [X] Split RunInfo into MeasurementInfo and a new ProcessWaveforms
+  - [X] Rename current ProcessWaveforms to ProcessHistograms
   - [ ] Split AnalyzePDE into AnalyzeSPE
+    - Merge SPEData into AnalayzeResults
 - [ ] Condense function arguments
-  - [ ] Remove redundancy (ie specifyAcquisition, acquisitions argument is either list or none)
+  - [X] Remove redundancy (ie specifyAcquisition, acquisitions argument is either list or none)
   - [ ] Group related parameters into single structure
-- [ ] Analysis script template
+- [X] Analysis script template
+- [ ] Automate more of analysis
+  - [X] Automate upper limit selection (set it to the o-scope range)
+  - [ ] Automate prominence selection
+  - [ ] Automate the center guesses of the PE peaks
+    - Find the first PE center by the mode of the histogram and use integer multiples for the rest
