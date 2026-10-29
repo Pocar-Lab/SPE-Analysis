@@ -84,6 +84,54 @@ spe.plot_spe(in_ov=True, absolute=False)
 
 spe.plot_CA()
 
+## New-ish
+
+condition = 'LXe'
+temperature = 171
+#1us, 10x gain, filter on - values from Noahs calibration report
+invC_filter = 0.011547
+invC_err_filter = 0.000098
+path = '../data/20260625_SPE_LXe_171K/'
+files, biases, pre_bd = rwf.get_files(path)
+pre_bd_baseline = pre_bd and rwf.Waveform(path+pre_bd)
+
+files = files[2:3]
+
+def proc(file):
+    return rwf.Waveform(path+file, condition, temperature, pre_bd_baseline)
+with Pool(len(files)+1) as p:
+    measurements = p.map(proc, iter(files))
+
+for m in measurements[7:]:
+    prochist.plot_multigaussian(m.peaks['all'])
+# prochist.plot_multigaussians(measurements[:], 'all')
+
+lower_cutoff = [4.3, 4.0, 4.5, 4.6, 4.8, 4.7, 4.7, 5.4, 5.1]
+first_pe     = [5.1, 5.0, 6.0, 6.3, 7.3, 7.3, 7.4, 8.0, 8.6]
+num_pes      = [4,   5,   5,   6,   5,   7,   7,   8,   5]
+# noise_means = [m.baseline_mean for m in measurements]
+# noise_stds = [m.baseline_std for m in measurements]
+# i = 2
+outpath = '/home/evanbruggen_umass_edu/0vbb/20260625/20260806_'
+spe_amps = []
+for i in range(0,len(measurements)):
+    fit = prochist.fit_multigaussian(np.array(measurements[i].peaks['all']),
+                            cutoff=(lower_cutoff[i], 100),
+                            first_pe=first_pe[i],
+                            peak_range=(1,num_pes[i]),
+                            baseline_mean=pre_bd_baseline.baseline_mean,
+                            baseline_width=pre_bd_baseline.baseline_sigma,
+                            )
+    prochist.plot_multigaussian(measurements[i].peaks['all'], fit,
+                                # save_path=outpath+f"hist_{biases[i]}.png"
+                                )
+    spe_amp = prochist.plot_spe(fit, (1,num_pes[i]), pre_bd_baseline.baseline_mean,
+                                pre_bd_baseline.baseline_sigma,
+                                # save_path=outpath+f"spe_{biases[i]}.png"
+                                )
+    spe_amps.append(spe_amp)
+
+ares.plot_breakdown(biases, spe_amps)
 ### Alpha
 
 condition = 'LXe'

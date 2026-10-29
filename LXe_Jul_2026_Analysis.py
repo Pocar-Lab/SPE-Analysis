@@ -84,6 +84,54 @@ spe.plot_spe(in_ov=True, absolute=False)
 
 spe.plot_CA()
 
+## New-ish
+
+condition = 'LXe'
+temperature = 171
+#1us, 10x gain, filter on - values from Noahs calibration report
+invC_filter = 0.011547
+invC_err_filter = 0.000098
+path = '../data/20260721_SPE_LXe_171K/'
+files, biases, pre_bd = rwf.get_files(path)
+pre_bd_baseline = pre_bd and rwf.Waveform(path+pre_bd)
+
+files = files[3:]
+biases = biases[3:]
+
+def proc(file):
+    return rwf.Waveform(path+file, condition, temperature, pre_bd_baseline)
+with Pool(len(files)+1) as p:
+    measurments = p.map(proc, iter(files))
+
+for m in measurments:
+    prochist.plot_multigaussian(m.peaks['all'])
+
+first_pe     = [4.8, 5.1, 5.9, 6.1, 6.4, 7.2, 7.2, 8.2, 8.5]
+num_pes      = [4,   4,   4,   5,   6,   6,   6,   6,   6]
+lower_cutoff = [3.8, 3.5, 3.8, 4,   4.1, 4.3, 4.3, 4.5, 4.6, ]
+# noise_means = [m.baseline_mean for m in measurments]
+# noise_stds = [m.baseline_std for m in measurments]
+outpath = '../20260721/20260903_'
+spe_amps = []
+for i in range(0,len(measurments)):
+    fit = prochist.fit_multigaussian(np.array(measurments[i].peaks['all']),
+                            cutoff=(lower_cutoff[i], 100),
+                            first_pe=first_pe[i],
+                            peak_range=(1,num_pes[i]),
+                            baseline_mean=pre_bd_baseline.baseline_mean,
+                            baseline_width=pre_bd_baseline.baseline_sigma,
+                            )
+    prochist.plot_multigaussian(measurments[i].peaks['all'], fit,
+                                save_path=outpath+f"{biases[i]}_hist.png"
+                                )
+    spe_amp = prochist.plot_spe(fit, (1,num_pes[i]), pre_bd_baseline.baseline_mean,
+                                pre_bd_baseline.baseline_sigma,
+                                save_path=outpath+f"{biases[i]}_spe.png"
+                                )
+    spe_amps.append(spe_amp)
+
+ares.plot_breakdown(biases, spe_amps)
+
 ### Alpha
 
 condition = 'LXe'
