@@ -1,22 +1,60 @@
-axes.titlesize : 10
-axes.labelsize : 10
-lines.linewidth : 1.5
-lines.markersize : 10
-xtick.labelsize : 10
-ytick.labelsize : 10
-figure.dpi : 200
-figure.facecolor: white
-savefig.dpi : 600
-savefig.bbox : tight
-savefig.pad_inches : 0.02
-legend.fontsize : 10
-legend.loc : upper left
-errorbar.capsize : 5
+# Set color cycle: blue, green, yellow, red, violet, gray
+axes.prop_cycle : cycler('color', ['0C5DA5', '00B945', 'FF9500', 'FF2C00', '845B97', '474747', '9e9e9e'])
+
+xtick.labelsize : 16
+ytick.labelsize : 16
+axes.titlesize : 14
+axes.labelsize : 18
 axes.autolimit_mode : round_numbers
 axes.xmargin : 0
 axes.ymargin : 0
-axes.prop_cycle : cycler('color', ['1f78b4', 'e66101', '33a02c', '984ea3', 'F27781', '18298C', '04BF8A', 'F2CF1D', 'F29F05', '7155D9', '8D07F6', '9E91F2', 'F29B9B', 'F25764', '6FB7BF', 'B6ECF2', '5D1314', 'B3640F'])
+
+xaxis.labellocation : right
+yaxis.labellocation : top
+
+# lines.linewidth : 1.5
+# lines.markersize : 10
+# xtick.labelsize : 10
+# ytick.labelsize : 10
+# grid.linestyle: "--"
+# grid.color: "#555555"
+
+# Set x axis
+xtick.direction : in
+xtick.major.size : 3
+xtick.major.width : 0.5
+xtick.minor.size : 1.5
+xtick.minor.width : 0.5
+xtick.minor.visible : True
+xtick.top : True
+
+# Set y axis
+ytick.direction : in
+ytick.major.size : 3
+ytick.major.width : 0.5
+ytick.minor.size : 1.5
+ytick.minor.width : 0.5
+ytick.minor.visible : True
+ytick.right : True
+
+# Set line widths
+axes.linewidth : 0.5
+grid.linewidth : 0.5
+lines.linewidth : 1.
+
+# Remove legend frame
+legend.frameon : True
+
+figure.dpi : 200
+figure.facecolor: white
+
+savefig.dpi : 600
+savefig.bbox : tight
+savefig.pad_inches : 0.02
+
+legend.fontsize : 18
+legend.loc : upper left
+errorbar.capsize : 5
+
 font.family : serif
 text.usetex: False
-grid.linestyle: "--"
-grid.color: "#555555"
