@@ -39,22 +39,22 @@ files, biases, _ = get_files(path)
 def proc(file):
     return ProcessWaveforms([path+file], do_filter=True,
                             baseline_correct=True, poly_correct=True,
-                            upper_limit=-1, prominence=.003)
+                            upper_limit=-1, prominence=.002)
 with Pool(len(files)+1) as p:
     runs = p.map(proc, iter(files))
 
 measurments = []
 for run in runs:
     m = MeasurementInfo(condition, temperature, run, run_spe_pre_bd)
-    m.plot_histogram() # Plot preliminary histogram
+    # m.plot_histogram() # Plot preliminary histogram
     measurments.append(m)
 
 # Fit Gauss to peaks and find the best value for peak location
-savefig=False
+savefig=True
 pe_center_guesses = [4.9, 5.1, 5.3, 5.8, 6.0, 6.6, 7.1, 7.4, 7.8]
 num_pes           = [3,   5,   6,   7,   8,   8,   8,   10,  10]
 lower_cutoff      = [4.2, 4.2, 4.3, 4.6, 4.5, 4.5, 4.9, 5.0, 5.0]
-outpath = '~/0vbb/20250808/2.6V/20250812_'
+outpath = '/home/evanbruggen_umass_edu/0vbb/20250808/2.6V/20251215_'
 campaign_spe = []
 for i in range(len(files)):
     wp_spe = ProcessHist(measurments[i],
@@ -71,7 +71,7 @@ for i in range(len(files)):
                                savefig=savefig, path=outpath+f"hist_{measurments[i].bias}.png")
     wp_spe.plot_spe(fit_origin=False,
                     savefig=savefig, path=outpath+f"spe_{measurments[i].bias}.png")
-    wp_spe.plot_ca(outpath+f"ca_{measurments[i].bias}.png" if savefig else None)
+    # wp_spe.plot_ca(outpath+f"ca_{measurments[i].bias}.png" if savefig else None)
     # wp_spe.plot_led_only_hist()
     # wp_spe.plot_both_histograms(with_fit=True, savefig=False, path = outpath+'silicon_baseline_'+str(info_spe.bias)+'.png')
     campaign_spe.append(wp_spe)

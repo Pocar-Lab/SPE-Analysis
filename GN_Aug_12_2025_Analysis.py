@@ -32,6 +32,12 @@ invC_err_filter = 0.000098
 path = '../data/20250812_SPE_GN_252K/'
 files, biases, run_spe_pre_bd = get_files(path)
 
+def proc_baseline(file):
+    return ProcessWaveforms([path+file], do_filter=True,
+                            is_pre_bd=True, upper_limit=-1, baseline_correct=True)
+with Pool(len(files)+1) as p:
+    baselines = p.map(proc_baseline, iter(files))
+
 def proc(file):
     return ProcessWaveforms([path+file], do_filter=True,
                             baseline_correct=True, poly_correct=True,
@@ -40,9 +46,9 @@ with Pool(len(files)+1) as p:
     runs = p.map(proc, iter(files))
 
 measurments = []
-for run in runs:
+for run in baselines:
     m = MeasurementInfo(condition, temperature, run, run_spe_pre_bd)
-    m.plot_histogram() # Plot preliminary histogram
+    # m.plot_histogram() # Plot preliminary histogram
     measurments.append(m)
 
 # Fit Gauss to peaks and find the best value for peak location
@@ -51,7 +57,10 @@ savefig = False
 first_pe     = [4.9, 4.6, 5.1, 5.5, 5.9, 6.3, 6.7, 7.1, 7.4]
 num_pes      = [4,   5,   5,   7,   7,   8,   9,   10,  10]
 lower_cutoff = [4.0, 3.2, 3.1, 3.0, 3.2, 3.3, 3.4, 3.5, 3.8]
-outpath = '/home/evanbruggen_umass_edu/0vbb/20250812/20250923_'
+noise_means = [m.baseline_mean for m in baselines]
+noise_stds = [m.baseline_std for m in baselines]
+
+outpath = '../results/20250812/20260519_noisefit_'
 campaign_spe = []
 for i in range(len(measurments)):
     wp_spe = ProcessHist(measurments[i],
@@ -62,10 +71,12 @@ for i in range(len(measurments)):
                          cutoff=(lower_cutoff[i]/1000, .1),
                          first_pe=first_pe[i],
                          background_linear=False,
-                         peak_range=(1,num_pes[i]))
+                         peak_range=(1,num_pes[i]),
+                         noise_mean=noise_means[i],
+                         noise_std=noise_stds[i],)
     wp_spe.process_spe()
-    # wp_spe.plot_peak_histogram(log_scale=True,
-    #                            savefig=savefig, path=outpath+f"hist_{measurments[i].bias}.png")
+    wp_spe.plot_peak_histogram(log_scale=True,
+                               savefig=savefig, path=outpath+f"hist_{measurments[i].bias}.png")
     # wp_spe.plot_spe(fit_origin=False,
     #                 savefig=savefig, path=outpath+f"spe_{measurments[i].bias}.png")
     # wp_spe.plot_ca(outpath+f"ca_{measurments[i].bias}.png" if savefig else None)
@@ -186,4 +197,3 @@ spe.plot_spe(in_ov=True, absolute=True)
 spe.plot_spe(in_ov=True, absolute=False)
 
 spe.plot_CA()
-

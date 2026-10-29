@@ -23,6 +23,37 @@ from ProcessWaveforms_MultiGaussian import WaveformProcessor
 plt.style.use('misc/nexo.mplstyle')
 
 
+import matplotlib.pyplot as plt
+from src.MeasurementInfo import MeasurementInfo, get_files
+from src.ProcessHistograms import ProcessHist
+from src.ProcessWaveforms import ProcessWaveforms
+from AnalyzePDE import SPE_data
+from multiprocessing import Pool
+plt.style.use('misc/nexo.mplstyle')
+
+condition = 'GN'
+temperature = 171
+#1us, 10x gain, filter on - values from Noahs calibration report
+invC_filter = 0.011547
+invC_err_filter = 0.000098
+path ='../data/20250509_SPE_GN/'
+files, biases, run_spe_pre_bd = get_files(path)
+
+def proc(file):
+    return ProcessWaveforms([path+file], do_filter=True,
+                            baseline_correct=True, poly_correct=True,
+                            upper_limit=-1, prominence=.003,
+                            plot_waveforms=True, num_waveforms=500,
+                            )
+with Pool(len(files)+1) as p:
+    runs = p.map(proc, iter(files))
+
+for f in files:
+    run = ProcessWaveforms([path+f], do_filter=True,
+                            baseline_correct=True, poly_correct=True,
+                            upper_limit=-1, prominence=.003,
+                            # plot_waveforms=True, num_waveforms=500,
+                            )
 #%%
 #1us, 10x gain, filter on - values from Noahs calibration report
 invC_filter = 0.011547

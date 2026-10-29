@@ -29,6 +29,61 @@ from uncertainties import ufloat
 from uncertainties import unumpy
 plt.style.use('misc/nexo.mplstyle')
 
+import matplotlib.pyplot as plt
+from src.MeasurementInfo import MeasurementInfo, get_files
+from src.ProcessHistograms import ProcessHist
+from src.ProcessWaveforms import ProcessWaveforms
+# from src.AnalyzePDE import SPE_data
+from multiprocessing import Pool
+plt.style.use('misc/nexo.mplstyle')
+
+condition = 'LXe'
+temperature = 170
+#1us, 10x gain, filter on - values from Noahs calibration report
+# invC_filter = 0.011547
+# invC_err_filter = 0.000098
+invC_alpha_1us = 0.001142
+invC_alpha_err_1us = 0.0000021
+path = '../data/20241017_Alpha_LXe/'
+files, biases, run_spe_pre_bd = get_files(path)
+
+def proc(file):
+    return ProcessWaveforms([path+file], do_filter=False,
+                            baseline_correct=True, poly_correct=False,
+                            # TODO why does upper_limit=-1 not work
+                            upper_limit=1, prominence=.01,
+                            # plot_waveforms=True, num_waveforms=500,
+                            )
+with Pool(len(files)+1) as p:
+    runs = p.map(proc, iter(files))
+
+measurments = []
+for run in runs:
+    m = MeasurementInfo(condition, temperature, run)
+    # Plot preliminary histogram
+    if m.bias == 36:
+        m.plot_histogram()
+    measurments.append(m)
+
+#%%
+campaign_alpha = []
+bins = [40, 39, 42]
+bins += [41, 41, 44]
+bins += [40, 39]
+bins += [40, 40]
+bins += [42, 39, 40, 40]
+for n in range(0,len(measurments)):
+    wp = ProcessHist(measurments[n],
+                     baseline_correct=True,
+                     # no_solicit=True,
+                     cutoff=(0,10))
+    wp.process_alpha(0.001 if measurments[n].bias < 36 else 0.02, bins[n])
+    # j, k = wp.get_alpha()
+    wp.plot_alpha_histogram(bins[n], peakcolor = 'blue', with_fit=False)
+    campaign_alpha.append(wp)
+    # break
+
+
 #%% ALPHA - 1us
 #1us, no gain
 invC_alpha_1us = 0.001142
